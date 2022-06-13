@@ -1,0 +1,94 @@
+
+
+
+
+* Choses communes pour tout le monde
+
+** Variables communes
+*** Où est mon dossier de configuration
+
+#+begin_src emacs-lisp
+(setq config-directory (expand-file-name "config/" user-emacs-directory))
+#+end_src
+
+
+*** Où est mon braindump
+
+#+begin_src emacs-lisp
+(setq braindump-directory "~/braindump/")
+#+end_src
+
+*** Mon braindump existe ?
+
+#+begin_src emacs-lisp
+(setq braindump-exists (file-exists-p braindump-directory))
+#+end_src
+
+
+** Modes qui n'apparaissent plus dans la modeline
+
+This package implements hiding or abbreviation of the mode line displays (lighters) of minor-modes.
+
+#+begin_src emacs-lisp 
+
+  (use-package diminish)
+
+#+end_src
+
+* Les modules
+** Lancement Raccourcis
+
+#+begin_src emacs-lisp
+(org-babel-load-file (expand-file-name "raccourcis.org" config-directory))
+#+end_src
+
+
+** Lancement Opti 
+
+#+begin_src emacs-lisp
+(org-babel-load-file (expand-file-name "optimisationsSansDeps.org" config-directory))
+#+end_src
+
+** Lancement Opti avec dep
+
+#+begin_src emacs-lisp
+  (org-babel-load-file (expand-file-name "optimisationsAvecDeps.org" config-directory))
+#+end_src
+
+** Lancement Second Cerveau
+
+
+#+begin_src emacs-lisp
+
+  (org-babel-load-file (expand-file-name "org-mode.org" config-directory))
+
+#+end_src
+
+ 
+** Lancement Programmation
+
+
+#+begin_src emacs-lisp
+(org-babel-load-file (expand-file-name "programmation.org" config-directory))
+#+end_src
+
+
+
+** Streaming
+
+#+begin_src emacs-lisp
+
+  (org-babel-load-file (expand-file-name "streaming.org" config-directory))
+
+#+end_src
+
+
+** Mail
+
+
+** Autre
+* Message de fin
+
+#+begin_src emacs-lisp
+(message "Fin")
+#+end_src

@@ -1,0 +1,48 @@
+#car ça sert à r d'avoir tout dans le git, car télécharger automatiquement
+
+
+# les config à exclure
+# futur mail
+# /config/mail.org
+# /config/mail.el
+
+# /config/private.org
+# /config/private.el
+
+# gestion package
+/elpa/
+/straight/build/
+/straight/repos/
+/straight/build-cache.el
+
+# les variables
+/var/backup/
+/var/auto-save/
+/var/emacs-session/
+/var/lsp/server/
+/var/lsp-java/
+
+/var/org/persist/
+/var/org/timestamps/
+
+/var/tramp/
+/auto-save-list/
+
+
+
+
+# vie privée
+/var/eshell/history
+/var/recentf-save.el
+/var/lsp/session.el
+
+/.org-id-locations
+/var/org/id-locations.el
+
+/org-roam.db
+/var/org/org-roam.db
+/var/save-place.el
+/var/savehist.el
+/var/projectile/known-projects.el
+/var/url/cookies.el
+/var/elfeed/

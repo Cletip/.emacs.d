@@ -1,0 +1,232 @@
+
+
+Dans la config, je vais noter comment installer les choses, ainsi que les scripts à lancer pour avoir les dépendances !
+
+#+TITLE:Mon config.org
+#+TAGS: High(h) Medium Low 
+#+TODO: ACTIVE | DISABLED
+
+
+High = Call a command in a terminal to install a dependencie
+Medium = Call a command to install the dependencie in emacs
+Low = Dependencies download automaticaly by emacs (juste say "yes
+please let's go")
+
+Ici, chargement des "différents modules" placé dans [[file:config][file:~/.emacs.d/config]]. Suffit de changer le tag pour les activer ou pas.
+
+=NE PAS METTRE DE "" dans les titres !!!!!!=
+
+Vous pouver naviguer rapidement avec la commande =org-sidebar-tree-toggle=
+Vous pouvez aller voir le site d'un package (pour avoir plus d'info) avec la commande =straight-visit-package-website=
+=NE plus avoir un seul home msi=
+
+
+* Emacs Perfect
+** ACTIVE Fonction pour tangle la suite, =indispensable= !
+
+#+begin_src emacs-lisp
+
+  ;; où est le dossier des fichiers de config ?
+  (setq my-user-emacs-config-directory (concat my-user-emacs-directory "config/"))
+
+  (defun my-tangle-a-file-of-config-org (file)
+    "This function will write all source blocks from =config.org= into =config.el= that are ...
+      - not marked as =tangle: no=
+      - doesn't have the TODO state =DISABLED=
+      - have a source-code of =emacs-lisp="
+    (require 'org)
+    (let* ((body-list ())
+           (output-file (concat my-user-emacs-config-directory (concat file ".el")))
+           (input-file (concat my-user-emacs-config-directory (concat file ".org")))
+           (org-babel-default-header-args (org-babel-merge-params org-babel-default-header-args
+                                                                  (list (cons :tangle output-file)))))
+      (message "—————• Re-generating %s …" output-file)
+      (save-restriction
+        (save-excursion
+          (org-babel-map-src-blocks input-file
+            (let* (
+                   (org_block_info (org-babel-get-src-block-info 'light))
+                   ;;(block_name (nth 4 org_block_info))
+                   (tfile (cdr (assq :tangle (nth 2 org_block_info))))
+                   (match_for_TODO_keyword)
+                   )
+              (save-excursion
+                (catch 'exit
+                  ;;(when (string= "" block_name)
+                  ;;  (message "Going to write block name: " block_name)
+                  ;;  (add-to-list 'body-list (concat "message(\"" block_name "\")"));; adding a debug statement for named blocks
+                  ;;  )
+                  (org-back-to-heading t)
+                  (when (looking-at org-outline-regexp)
+                    (goto-char (1- (match-end 0))))
+                  (when (looking-at (concat " +" org-todo-regexp "\\( +\\|[ \t]*$\\)"))
+                    (setq match_for_TODO_keyword (match-string 1)))))
+              (unless (or (string= "no" tfile)
+                          (string= "DISABLED" match_for_TODO_keyword)
+                          (not (string= "emacs-lisp" lang)))
+                (add-to-list 'body-list (concat "\n\n;; #####################################################################################\n"
+                                                "(message \"config • " (org-get-heading) " …\")\n\n")
+                             )
+                (add-to-list 'body-list body)
+                ))))
+        (with-temp-file output-file
+          (insert ";; ============================================================\n")
+          (insert ";; Don't edit this file, edit config.org' instead ...\n")
+          (insert ";; Auto-generated at " (format-time-string current-date-time-format (current-time)) " on host " system-name "\n")
+          (insert ";; ============================================================\n\n")
+          (insert (apply 'concat (reverse body-list))))
+        (message "—————• Wrote %s" output-file))))
+
+  ;; when config.org is saved, re-generate the X.el:
+  (defun my-tangle-a-file-of-config-org-hook-func (file)
+    ;; (message "%s" file)
+    (when (string= (concat file ".org") (buffer-name))
+      (let (
+            (orgfile (concat my-user-emacs-config-directory (concat file ".org")))
+            (elfile (concat my-user-emacs-config-directory (concat file ".el")))
+            )
+        (my-tangle-a-file-of-config-org file)
+        )))
+
+
+
+  (defun export-and-load-and-hook (file)
+    (let (
+          ;;création des fichiers de base
+          (orgfile (concat my-user-emacs-config-directory (concat file ".org")))
+          (elfile (concat my-user-emacs-config-directory (concat file ".el")))
+          (gc-cons-threshold most-positive-fixnum))
+
+      ;; création du fichier si jamais ça marche pas
+      (when (or (not (file-exists-p elfile))
+                (file-newer-than-file-p orgfile elfile))
+        (my-tangle-a-file-of-config-org file)
+        )
+      ;;chargement du fichier
+      (load-file elfile)
+      )
+    ;; (add-hook 'after-save-hook '(my-tangle-a-file-of-config-org-hook-func-"file"))
+    (add-hook 'after-save-hook (apply-partially #'my-tangle-a-file-of-config-org-hook-func file))
+    )
+
+#+end_src
+
+** ACTIVE Divers variables que j'utilise
+*** User emacs configuration
+
+
+#+begin_src emacs-lisp
+  (setq my-user-emacs-configuration (concat my-user-emacs-directory "config.org"))
+  ;; besoin d'une "liste " pour faire certaines choses sur mes fichiers de config emacs
+  (setq my-user-emacs-configuration-list (list my-user-emacs-configuration))
+#+end_src
+*** [[id:30be81cc-5a13-4ed6-96e4-919810f5fa85][Où sont les fichiers org + mes documents ?]] Configuration files org-mode
+** ACTIVE Raccourcis
+#+begin_src emacs-lisp
+(export-and-load-and-hook "raccourcis")
+#+end_src
+** ACTIVE Optimisation de base
+#+begin_src emacs-lisp
+
+(export-and-load-and-hook "basicOptimisations")
+ 
+#+end_src
+** ACTIVE Optimisation de base, mais avec des dépendances
+
+#+begin_src emacs-lisp
+
+  (export-and-load-and-hook "basicOptimisationsAvecDep")
+
+#+end_src
+
+** ACTIVE Org-mode
+
+#+begin_src emacs-lisp
+
+  (export-and-load-and-hook "org-mode")
+
+#+end_src
+
+** ACTIVE Programmations
+#+begin_src emacs-lisp
+(export-and-load-and-hook "programmation")
+#+end_src
+
+** DISABLED Integration
+CLOSED: [2022-03-02 Wed 09:58]
+
+** DISABLED Les choses à try
+CLOSED: [2022-03-02 Wed 09:58]
+
+#+begin_src emacs-lisp
+(export-and-load-and-hook "try")
+#+end_src
+
+* Les choses à faire soi-même
+:PROPERTIES:
+:ID:       b7bb7a71-ad31-4c36-b7c2-af6040b471d0
+:END:
+*** L'extension better-bibtex pour zotero :
+
+Il faut bien d'abord penser à ne pas écraser sa bibliographie !
+Les instructions : [[id:e254ed4d-d47b-4b9d-9155-108772b8b2c7][ici]]
+
+* Bug connu :
+
+1. obliger de faire ceci pour éviter warning de org-mode, doit être corriger avec une maj de leur part
+   #+begin_src emacs-lisp
+     (setq org-element-use-cache nil)
+   #+end_src
+2. mettre la dernière version de xah-fly-key manuellement dans
+   "straight/build/", puis straight-rebuild-package xah-fly-key ou alors ceci : 
+   #+begin_src emacs-lisp
+     (setq xah-fly-insert-state-p "")
+   #+end_src
+Au final : installation en local de xah-fly-keys régulièrement mise à jour.
+3. "Package cl is deprecated" s'affiche
+Mettre ceci
+#+begin_src emacs-lisp
+(setq byte-compile-warnings '(cl-functions))
+#+end_src
+dans early-init.el
+* Les choses à ajouter (un jour ou pas) :
+
+** Choses général à implémenter dans emacs pas encore faîtes
+**** Nouvelles fonctionnalité
+***** TODO https://www.youtube.com/watch?v=pOFqzK1Ymr4 pour elfeed (brunce schneier pour la cyber)
+:PROPERTIES:
+:CREATED:  <2021-10-13 mer. 20:10>
+:END:
+
+***** TODO https://nyxt.atlas.engineer/download nyxt, internet like emacs
+:PROPERTIES:
+:CREATED:  <2021-09-11 sam. 11:45>
+:END:
+
+***** TODO [[https://www.youtube.com/watch?v=AfkrzFodoNw][Lien ici pour org publish (tester avec org roam, doit marcher car site déjà fait)]]Titre de l'évènement
+***** TODO Exwm
+:PROPERTIES:
+:CREATED:  [2021-09-18 Sat 11:17]
+:END:
+
+***** TODO A grammatical corrector for English-language emacs
+:PROPERTIES:
+:CREATED:  [2021-09-22 Wed 12:59]
+:END:
+
+***** TODO PEUT-ÊTRE Org ref, avec Zotero ! https://github.com/jkitchin/org-ref (pour la science  ?)
+:PROPERTIES:
+:CREATED:  <2021-09-23 jeu. 18:18>
+:END:
+
+***** TODO Le débuggueur [[https://www.reddit.com/r/emacs/comments/mxiqt6/how_to_setup_and_use_dapmode_for_c/][ici]], [[https://emacs-lsp.github.io/lsp-mode/tutorials/CPP-guide/][ici]]
+***** TODO Pour les mails [[https://www.youtube.com/watch?v=yZRyEhi4y44&list=PLEoMzSkcN8oM-kA19xOQc8s0gr0PpFGJQ][ici]]
+****** TODO https://www.youtube.com/watch?v=yZRyEhi4y44&list=PLEoMzSkcN8oM-kA19xOQc8s0gr0PpFGJQ
+***** TODO Org ref pour citer des références scientifique ?
+**** Pour emacs lisp
+***** TODO pour programmer en lisp
+
+- http://lgmoneda.github.io/2017/03/15/elisp-summary.html
+- http://ergoemacs.org/emacs/elisp_basics.html
+
+
