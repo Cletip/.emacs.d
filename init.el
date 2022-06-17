@@ -39,6 +39,16 @@
 ;;ici, je prends juste celui par défault
 (use-package org :straight (:type built-in))
 
+;; si je prends un autre, les titres ne se déploit plus quand je cherche
+;; (use-package org
+  ;; :straight '(org :type git
+     ;; :repo "https://code.orgmode.org/bzg/org-mode.git"
+     ;; :local-repo "org"
+     ;; :depth full
+     ;; :pre-build (straight-recipes-org-elpa--build)
+     ;; :build (:not autoloads)
+     ;; :files (:defaults "lisp/*.el" ("etc/styles/" "etc/styles/*"))))
+
 ;; load les variables customiser (chemin définit par no-littering)
 ;; (org-babel-load-file (expand-file-name "~/.emacs.d/var/custom.el"))
 (when (file-exists-p custom-file)

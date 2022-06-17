@@ -2,6 +2,22 @@
 
 * Variable and mode built-in 
 
+
+** bases esthétique
+
+#+begin_src emacs-lisp
+  ;;basique
+  (when window-system
+    (progn
+      (scroll-bar-mode 0)
+      (tool-bar-mode 0))
+    )
+
+  (menu-bar-mode 0)
+  (tooltip-mode 0)
+
+#+end_src
+
 ** Fichiers récents sauvegardé 
 
 #+begin_src emacs-lisp
@@ -813,7 +829,7 @@ OVERCHEAT et je m'en sert tout le temps
 #+begin_src emacs-lisp
 
 
-  (use-package helpful
+  (use-package helpful  
     :config
 
     ;; If you want to replace the default Emacs help keybindings, you can do so:
@@ -895,6 +911,53 @@ winner-undo and winner-redo
     ;; (defalias 'bookmark-windows-and-frames-burly #'burly-bookmark-frames)
     ;; j'ai gardé et mis directement sur LayerXahFlyKey
     )
+#+end_src
+*** Pour que chaque nouvelle fenêtre soit une fois à droite une fois à gauche
+
+#+begin_src emacs-lisp
+  
+  (defun cp/position-of-new-windows ()
+    (if (and window-system (get 'cp/position-of-new-windows 'state))
+        (progn
+          (set-frame-position (selected-frame) 50 0)
+          (set-frame-size (selected-frame) 91 63)
+          (put 'cp/position-of-new-windows 'state nil)
+          )
+      (progn
+        (set-frame-position (selected-frame) 1050 0)
+        (set-frame-size (selected-frame) 91 63)
+        (put 'cp/position-of-new-windows 'state t)
+        )
+      )
+    )
+
+  (add-hook 'after-make-frame-functions
+            (lambda (frame)
+              (select-frame frame)
+              (when (display-graphic-p frame)
+                (cp/position-of-new-windows))))
+
+  (cp/position-of-new-windows)
+
+#+end_src
+
+*** Pour lancer la fenêtre sur le côté au démarrage
+
+#+begin_src emacs-lisp
+  (when window-system
+    (set-frame-position (selected-frame) 1050 0)
+    (set-frame-size (selected-frame) 91 63))
+#+end_src
+*** Pour lancer deux fenêtre au démarrage
+
+#+begin_src emacs-lisp
+  (make-frame)
+#+end_src
+
+*** Buffer temporaires dans une autre frame (dont scratch au démarrage)
+
+#+begin_src emacs-lisp
+  ;; (when window-system (setq pop-up-frames t))
 #+end_src
 
 ** Démarrer avec les fichiers récents, titre etc
@@ -1051,8 +1114,6 @@ Dépendances : all-the-icons et projectile
 
 
 #+end_src
-
-
 * Emacs restart
 
 #+begin_src emacs-lisp
@@ -1079,8 +1140,9 @@ Dépendances : all-the-icons et projectile
 ** Meilleure lecture de pdf
 
 #+begin_src emacs-lisp 
-  
+
   (use-package pdf-tools
+    :if (not termux-p)
     :config
     ;; initialise
     (pdf-tools-install t)
@@ -1094,4 +1156,21 @@ Dépendances : all-the-icons et projectile
     (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
     )
 
+#+end_src
+
+
+** Faire des recherches rapide
+
+#+begin_src emacs-lisp
+(use-package engine-mode
+	 :straight t
+	 :config
+	 (engine-mode t)
+	 (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
+	 (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
+	 (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
+	 (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
+	 (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
+	 (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
+	 (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
 #+end_src

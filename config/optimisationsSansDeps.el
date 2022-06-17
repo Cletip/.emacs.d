@@ -1,3 +1,13 @@
+;;basique
+(when window-system
+  (progn
+    (scroll-bar-mode 0)
+    (tool-bar-mode 0))
+  )
+
+(menu-bar-mode 0)
+(tooltip-mode 0)
+
 (use-package recentf
   :config
 
@@ -432,7 +442,7 @@ targets."
 (advice-add #'embark-completing-read-prompter
             :around #'embark-hide-which-key-indicator)
 
-(use-package helpful
+(use-package helpful  
   :config
 
   ;; If you want to replace the default Emacs help keybindings, you can do so:
@@ -500,6 +510,37 @@ reuse it's window, otherwise create new one."
   ;; (defalias 'bookmark-windows-and-frames-burly #'burly-bookmark-frames)
   ;; j'ai gardé et mis directement sur LayerXahFlyKey
   )
+
+(defun cp/position-of-new-windows ()
+  (if (and window-system (get 'cp/position-of-new-windows 'state))
+      (progn
+        (set-frame-position (selected-frame) 50 0)
+        (set-frame-size (selected-frame) 91 63)
+        (put 'cp/position-of-new-windows 'state nil)
+        )
+    (progn
+      (set-frame-position (selected-frame) 1050 0)
+      (set-frame-size (selected-frame) 91 63)
+      (put 'cp/position-of-new-windows 'state t)
+      )
+    )
+  )
+
+(add-hook 'after-make-frame-functions
+          (lambda (frame)
+            (select-frame frame)
+            (when (display-graphic-p frame)
+              (cp/position-of-new-windows))))
+
+(cp/position-of-new-windows)
+
+(when window-system
+  (set-frame-position (selected-frame) 1050 0)
+  (set-frame-size (selected-frame) 91 63))
+
+(make-frame)
+
+;; (when window-system (setq pop-up-frames t))
 
 ;;pour supprimer directement le buffer si un fichier est supprimé (ou directory)
 (defun my--dired-kill-before-delete (file &rest rest)
@@ -596,6 +637,7 @@ reuse it's window, otherwise create new one."
     (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode)))
 
 (use-package pdf-tools
+  :if (not termux-p)
   :config
   ;; initialise
   (pdf-tools-install t)
@@ -608,3 +650,15 @@ reuse it's window, otherwise create new one."
   ;;mode nuit de base
   (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
   )
+
+(use-package engine-mode
+	 :straight t
+	 :config
+	 (engine-mode t)
+	 (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
+	 (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
+	 (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
+	 (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
+	 (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
+	 (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
+	 (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))

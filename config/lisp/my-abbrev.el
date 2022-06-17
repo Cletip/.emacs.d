@@ -132,7 +132,7 @@ func main() {
 
 (define-abbrev-table 'org-mode-abbrev-table
   '(("if" "if 4 { 3 }")
-    ("up" "use-package")
+    ("upk" "use-package")
 
     ("acb" "l'accessibilité")
     ("fr" "for k, v := range xxx {

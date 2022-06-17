@@ -5,6 +5,25 @@
 * Choses communes pour tout le monde
 
 ** Variables communes
+
+*** Où est démarré emacs ?
+
+#+begin_src emacs-lisp
+
+
+  ;; (defvar my-laptop-p (equal (system-name) "sacha-kubuntu"))
+
+  ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
+
+
+  (defvar termux-p (not (null (getenv "ANDROID_ROOT")))
+    "If non-nil, GNU Emacs is running on Termux.")
+  (when termux-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
+  ;; lancement de syncthing en arrière plan dans termux (impossible de le lancer en background normal)
+  (when termux-p (shell-command "syncthing &"))
+
+#+end_src
+
 *** Où est mon dossier de configuration
 
 #+begin_src emacs-lisp
@@ -39,14 +58,14 @@ This package implements hiding or abbreviation of the mode line displays (lighte
 ** Lancement Raccourcis
 
 #+begin_src emacs-lisp
-(org-babel-load-file (expand-file-name "raccourcis.org" config-directory))
+  (org-babel-load-file (expand-file-name "raccourcis.org" config-directory))
 #+end_src
 
 
 ** Lancement Opti 
 
 #+begin_src emacs-lisp
-(org-babel-load-file (expand-file-name "optimisationsSansDeps.org" config-directory))
+  (org-babel-load-file (expand-file-name "optimisationsSansDeps.org" config-directory))
 #+end_src
 
 ** Lancement Opti avec dep

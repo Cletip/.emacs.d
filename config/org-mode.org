@@ -5,22 +5,25 @@ Ici, je veux utiliser org mode.
 Par contre, mon second cerveau utilise une partie d'org-mode et org-roam.
 J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mon braindump
 
-* Variables de chemins et autres utile dans tous les cas
 
-** Lieu de mon dossier org-directory (tout se base sur lui)
+* Config + code final
+
+** Variables de chemins et autres utile dans tous les cas
+
+*** Lieu de mon dossier org-directory (tout se base sur lui)
 
 #+begin_src emacs-lisp
-(setq org-directory (expand-file-name "org/" braindump-directory))
+  (setq org-directory (expand-file-name "org/" braindump-directory))
 #+end_src
 
-** Lieu du org-roam-directory
+*** Lieu du org-roam-directory
 
 #+begin_src emacs-lisp
 (setq org-roam-directory org-directory)
 #+end_src
 
 
-** Lieu de mon dossier de bibliographie
+*** Lieu de mon dossier de bibliographie
 
 #+begin_src emacs-lisp
   (setq my-bibliography-list (list (expand-file-name "biblio.bib" config-directory)
@@ -30,9 +33,11 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
         )
 #+end_src
 
-* La bibliothèque d'automatisations des choses (à placer tôt) 
+** La bibliothèque d'automatisations des choses (à placer tôt) 
 
 =Si c'est le premier lancement, faire un (org-roam-db-sync 'force), puis syncroniser la database=
+
+À mettre à un endroit (org-roam-db-sync 'force) pour termux automatiquement
 
 #+begin_src emacs-lisp
   (use-package vulpea
@@ -44,17 +49,23 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
     ;; hook into org-roam-db-autosync-mode you wish to enable
     ;; persistence of meta values (see respective section in README to
     ;; find out what meta means)
-    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
+    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+    :config
+    (defun org-roam-vulpea-bdd ()
+      (interactive)
+      "Mets à jour la bdd pour l'utilisation de velpua"
+      (org-roam-db-sync 'force)
+      )
+    )
   (require 'vulpea) ;;sinon ne charge pas tout je comprends pas pk
 #+end_src
 
 
-* Org-mode
+** Org-mode
 
-** Choses toujours présentes (pour l'édition n'importe où notamment)
-*** Optimisation de bases
-
-**** Les TODO en done quand tous les sous arbres sont done
+*** Choses toujours présentes (pour l'édition n'importe où notamment)
+**** Optimisation de bases
+***** Les TODO en done quand tous les sous arbres sont done
 #+begin_src emacs-lisp
      (defun org-summary-todo (n-done n-not-done)
        "Switch entry to DONE when all subentries are done, to TODO otherwise."
@@ -94,7 +105,7 @@ Pour les checkbox
       (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
     #+end_src
 
-**** Better templates / <el shortcutt
+***** Better templates / <el shortcutt
 
 Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
@@ -112,7 +123,7 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
   (add-to-list 'org-structure-template-alist '("json" . "src json"))
 #+end_src
 
-**** TODO Pour insérer du sons + Jouer un son quand Done
+***** TODO Pour insérer du sons + Jouer un son quand Done
 
 #+begin_src emacs-lisp :tangle no
 
@@ -137,14 +148,37 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
 
 #+end_src
-**** Pour avoir une barre de navigation sur le côté
+***** Pour avoir une barre de navigation sur le côté
 
 #+begin_src emacs-lisp
 (use-package org-sidebar)
 #+end_src
+***** Pour insérer un nouveau titre comme le précédent visible 
 
-*** Esthétique d'org-mode
-**** Petite bulles des titres
+Si je fait avec C-u, alors org-insert-heading !
+
+#+begin_src emacs-lisp
+
+  ;;chargement d'une bibliothèque
+  ;; (add-to-list 'org-modules 'org-fold)
+
+  (defun org-meta-return (&optional arg)
+    "Insert a new heading or wrap a region in a table.
+    Calls `org-insert-heading', `org-insert-item' or
+    `org-table-wrap-region', depending on context.  When called with
+    an argument, unconditionally call `org-insert-heading'."
+    (interactive "P")
+    ;; (org-fold-check-before-invisible-edit 'insert)
+    (or (run-hook-with-args-until-success 'org-metareturn-hook)
+        (call-interactively (cond (arg #'org-insert-heading)
+                                  (current-prefix-arg #'org-insert-heading)
+                                  ((org-at-table-p) #'org-table-wrap-region)
+                                  ((org-in-item-p) #'org-insert-item)
+                                  (t #'org-insert-heading-after-current)))))
+#+end_src
+
+**** Esthétique d'org-mode
+***** Petite bulles des titres
 
 #+begin_src emacs-lisp 
 
@@ -192,8 +226,8 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
 #+end_src
 
-**** Org emphasis (surligné, souligné etc)
-***** Couleurs
+***** Org emphasis (surligné, souligné etc)
+****** Couleurs
 #+begin_src emacs-lisp 
 
   (setq org-emphasis-alist
@@ -238,7 +272,7 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
 #+end_src
 
-***** Pour voir directement les liens, faire disparaître l'emphasis
+****** Pour voir directement les liens, faire disparaître l'emphasis
 
 #+begin_src emacs-lisp 
 
@@ -251,7 +285,7 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
 #+end_src
 
-**** Org font (police et taille des titres et checkbox)
+***** Org font (police et taille des titres et checkbox)
 
 Tout se trouve dans .dotfiles/.fonts
 
@@ -309,7 +343,7 @@ Tout se trouve dans .dotfiles/.fonts
    'append)
 
 #+end_src
-**** Nouveau symbole à fin de titres
+***** Nouveau symbole à fin de titres
 
 #+begin_src emacs-lisp
 
@@ -319,14 +353,14 @@ Tout se trouve dans .dotfiles/.fonts
 
 #+end_src
 
-**** Voir directement les images + leur ajuster leur taille
+***** Voir directement les images + leur ajuster leur taille
 
 #+begin_src emacs-lisp
 (setq org-startup-with-inline-images t)
 (setq org-image-actual-width 800)  
 #+end_src
 
-**** Voir les prévisualisations de latex 
+***** Voir les prévisualisations de latex 
 
 #+BEGIN_SRC emacs-lisp   
   (use-package org-fragtog
@@ -334,7 +368,7 @@ Tout se trouve dans .dotfiles/.fonts
     )
 #+END_SRC
 
-**** Indente automatiquement en fonction des titres (attention, que visuel)
+***** Indente automatiquement en fonction des titres (attention, que visuel)
 
 #+begin_src emacs-lisp
   (add-hook 'org-mode-hook 'org-indent-mode)
@@ -342,7 +376,7 @@ Tout se trouve dans .dotfiles/.fonts
 #+end_src
 
 
-**** Jolie icones, ne marche pas chez moi (si mais fait buguer les icônes de dired)
+***** Jolie icones, ne marche pas chez moi (si mais fait buguer les icônes de dired)
 
 #+begin_src emacs-lisp :tangle no
 
@@ -394,7 +428,7 @@ Tout se trouve dans .dotfiles/.fonts
 
 #+end_src
 
-**** TODO Pour mettres les jolis tags :
+***** TODO Pour mettres les jolis tags :
 
 #+begin_src emacs-lisp :tangle no
 
@@ -412,8 +446,8 @@ Tout se trouve dans .dotfiles/.fonts
 
 #+end_src
 
-*** Pour coder dans org
-**** Les langages chargé par org-babel
+**** Pour coder dans org
+***** Les langages chargé par org-babel
 
 Do not load all to booste the startup time 
 
@@ -448,11 +482,11 @@ Do not load all to booste the startup time
      )
    )  
 #+end_src
-**** Annulation de la demande de confirmation lors de la demande d'évaluation du code
+***** Annulation de la demande de confirmation lors de la demande d'évaluation du code
 #+begin_src emacs-lisp 
   (setq org-confirm-babel-evaluate nil)
 #+end_src
-**** Indente le code selon le language
+***** Indente le code selon le language
 Dans les blocs de code, on veut la mise en évidence de syntaxe, et l'on
 utilise la touche TAB pour indenter (et non pour insérer une tabulation)
 
@@ -463,8 +497,8 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
 #+begin_src emacs-lisp
   (setq org-src-fontify-natively t)
 #+end_src
-*** Latex
-**** TODO Yasnippets de Latex dans org, désactive org bullet, à faire après les yasnippets
+**** Latex
+***** TODO Yasnippets de Latex dans org, désactive org bullet, à faire après les yasnippets
 
 #+begin_src emacs-lisp :tangle no
 
@@ -477,7 +511,7 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
   (add-hook 'org-mode-hook 'my-org-latex-yas)
   
 #+end_src
-**** Les nouvelles classes latex
+***** Les nouvelles classes latex
 
 #+begin_src emacs-lisp
 
@@ -499,9 +533,9 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
 )
 
 #+end_src
-*** Options sur les exports (sauf Latex) + Nouveaux exports org-modet
-**** Options générales
-***** Ignorer les headline avec le tag ignore:
+**** Options sur les exports (sauf Latex) + Nouveaux exports org-modet
+***** Options générales
+****** Ignorer les headline avec le tag ignore:
 
 #+begin_src emacs-lisp
   (with-eval-after-load 'org-contrib
@@ -509,10 +543,10 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
     (ox-extras-activate '(ignore-headlines))
     )
 #+end_src
-***** Ignorer les subtree avec le tag noexport
+****** Ignorer les subtree avec le tag noexport
 Rien besoin de faire, si ça change y mettre ici
 
-**** Html
+***** Html
 #+begin_src emacs-lisp 
   (use-package htmlize
     :config
@@ -520,11 +554,11 @@ Rien besoin de faire, si ça change y mettre ici
     (setq org-html-indent nil) ;;indentation du code automatiquement si sur t, mais tue l'indentation des balise exemple, python etc
     )
 #+end_src
-**** Pour twitter (why not)
+***** Pour twitter (why not)
 #+begin_src emacs-lisp
   (use-package ox-twbs)
 #+end_src
-**** Epub
+***** Epub
 
 
 #+begin_src emacs-lisp  
@@ -534,7 +568,7 @@ Rien besoin de faire, si ça change y mettre ici
 
 
 
-*** Notes collaboratives avec org-mode ([[https://floobits.com/help/plugins/emacs][ici]]) 
+**** Notes collaboratives avec org-mode ([[https://floobits.com/help/plugins/emacs][ici]]) 
 
 
 
@@ -545,34 +579,34 @@ Rien besoin de faire, si ça change y mettre ici
 #+end_src
 
 
-** Choses dans le second cerveau
+*** Choses dans le second cerveau
 
 #+begin_src emacs-lisp
-(when braindump-exists
+  (when braindump-exists
 #+end_src
 
-*** Gestion des liens
+**** Gestion des liens
 
 Deux stockage d'id : utilisé dans la db de org-roam, utiliser par org.
 Quand on clique sur un lien, les deux marche.
 Il faut dire à org où sont les fichiers avec les ids
 
 
-**** Les id sont créés grâce à la date
+***** Les id sont créés grâce à la date
 
 #+begin_src emacs-lisp
 
   (setq org-id-method 'ts)
-  (setq org-id-ts-format "%Y%m%d%H%M%S") ;; pour avoir le même format que org roam !
+  (setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
 
 #+end_src
 
-**** Ids chemin relatif
+***** Ids chemin relatif
 
 #+begin_src emacs-lisp
 (setq org-id-locations-file-relative t)
 #+end_src
-**** Mise à jour des ids
+***** Mise à jour des ids
 
 #+begin_src emacs-lisp
   ;; (org-roam-update-org-id-locations) ;; =  org-directory and org-roam-directory
@@ -584,7 +618,7 @@ Il faut dire à org où sont les fichiers avec les ids
   (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
 
 #+end_src
-**** Les ids des fichiers
+***** Les ids des fichiers
 
 #+begin_src emacs-lisp
 
@@ -610,10 +644,10 @@ Il faut dire à org où sont les fichiers avec les ids
   (setq org-id-extra-files (append(directory-files-recursively config-directory "org$") (org-roam-list-files)))
 #+end_src
 
-**** Les id sans org-roam
+***** Les id sans org-roam
 C'est possible, mais pas de backlinks, pas stocké dans une base de donnée, etc. Pour la postérité cette config
 
-***** Ce qu'il faut comprendre
+****** Ce qu'il faut comprendre
 Avant, les liens était stocké comme ceci : [[lien/vers/letruc][descriptioni] ]
 Donc, si on change le nom de "letruc", ça ne marche plus, mais c'était pratique car c'était des liens relatif (et donc ça fonctionnait partout). 
 Il faut donc trouver autre chose... les id sont parfait. Mais pas relatif... on l'active, et tout est ok !
@@ -624,7 +658,7 @@ Ce qu'il faut faire :
 - Faire un système de completion pour insérer un lien id (fait, c'est une variable exactement comme org-refile)
 - rajouter différents dossier où je veux aussi créer des link. ces dossier doivent aussi être à la bonne place (fait, comme org-agenda-files. J'ai tout mis)
 
-***** TODO Pour mettre des liens directement avec org-insert-link id
+****** TODO Pour mettre des liens directement avec org-insert-link id
 
 #+begin_src emacs-lisp :tangle no
 
@@ -680,21 +714,21 @@ Ce qu'il faut faire :
 
 #+end_src
 
-***** Pour nettoyer les id inutilisé
+****** Pour nettoyer les id inutilisé
 
 #+begin_src emacs-lisp :tangle no
 (use-package org-id-cleanup)
 #+end_src
 
-***** On update à la fin ?
+****** On update à la fin ?
 
 #+begin_src emacs-lisp
   ;; Update ID file .org-id-locations on startup
   ;; (org-id-update-id-locations)
 #+end_src
-*** Gestion de capture de connaissances
+**** Gestion de capture de connaissances
 
-**** Lieu de mon inbox
+***** Lieu de mon inbox
 
 #+begin_src emacs-lisp
 (setq capture-inbox-file
@@ -702,7 +736,7 @@ Ce qu'il faut faire :
     )
 #+end_src
 
-**** Moteur de Org-capture
+***** Moteur de Org-capture
 :PROPERTIES:
 :ID:       54e7121a-93ed-4fb8-96b7-83cba535c170
 :END:
@@ -802,7 +836,7 @@ Ancien :
 
 #+end_src
 
-**** Ajouter des fonctions suites aux captures, comme pour mettre des dates ou créer un ID
+***** Ajouter des fonctions suites aux captures, comme pour mettre des dates ou créer un ID
 
 #+begin_src emacs-lisp
 
@@ -839,24 +873,53 @@ Ancien :
         )
       )
     )
-  (add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
+  
+  ;; (add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
 
 #+end_src
 
-*** Gestion changement rapide de place pour les noeuds
+**** TODO Gestion changement rapide de place pour les noeuds
 
+refile
 
-*** Gestion de l'agenda (visuel) 
+**** Gestion de l'agenda
 
+***** Options de base
 
-On peut utiliser la propriété "catégorie", mais c'est long, donc on fait plûtôt par rapport au nom du fichier. Mais par défaut, le nom à la date (ce qui est pratique), donc il faut enlever cette date.
-
-Patch de org agenda pour que ça marche, avec sa bibliothèque vulpea
-
-
-**** Export de l'agenda en ics
 
 #+begin_src emacs-lisp
+
+  ;; Nouvelle touche pour mieux naviguer avec xah
+  (define-key org-agenda-mode-map [remap next-line] #'org-agenda-next-item)
+  (define-key org-agenda-mode-map [remap previous-line] #'org-agenda-previous-item)
+  ;;
+  (define-key org-agenda-mode-map [remap ?\r] #'org-agenda-goto)
+
+  ;;avoir "org", notamment org-schedule, en anglais, indispensable pour orgzly
+  (eval-after-load 'org (setq system-time-locale "C"))
+
+  ;;  pour que le curseur soit en haut de org agenda quand t on l'ouvre
+  (add-hook 'org-agenda-finalize-hook (lambda () (goto-char (point-min))) 90)
+
+  ;;ouvre l'agenda dans la window actuel
+  (setq org-agenda-window-setup 'current-window)
+
+  ;; quand commance l'agenda ?
+  ;;pas le week
+  (setq org-agenda-start-on-weekday nil)
+  ;; mais X jour après aujourd'hui
+  (setq org-agenda-start-day "+0d")
+
+  ;;vue de l'agenda sur X jours
+  (setq org-agenda-span 8)
+
+#+end_src
+
+***** Export de l'agenda en icalendar
+
+
+#+begin_src emacs-lisp
+
   ;;Lieu de l'export org-icalendar-combine-agenda-files
   (setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogletest.ics" braindump-directory))
 
@@ -890,7 +953,16 @@ Patch de org agenda pour que ça marche, avec sa bibliothèque vulpea
 #+end_src
 
 
-**** Construction dynamique de mon agenda
+***** Gestion de l'agenda (visuel) 
+
+
+On peut utiliser la propriété "catégorie", mais c'est long, donc on fait plûtôt par rapport au nom du fichier. Mais par défaut, le nom à la date (ce qui est pratique), donc il faut enlever cette date.
+
+Patch de org agenda pour que ça marche, avec sa bibliothèque vulpea
+
+
+
+****** Construction dynamique de mon agenda
 
 Principe : mettre aux notes qui ont un state todo un tag "project", puis parcourir les fichiers de la base de donnée, ajouter dans une liste les fichiers avec le tag "projet", et mettre cette liste comme variable : org-agenda-files. Facile
 
@@ -904,7 +976,7 @@ Pour ajouter des fichiers dans une liste:
 (setq test "/home/utilisateur/sharedDirectoryPrivate/notes/org/orgzly/GTD.org")
 (push test org-agenda-files)
 
-***** Tag projet à la note si il y a un state TODO dedans
+******* Tag projet à la note si il y a un state TODO dedans
 
 #+begin_src emacs-lisp
 
@@ -942,9 +1014,9 @@ Pour ajouter des fichiers dans une liste:
   (defun vulpea-project-p ()
     "Return non-nil if current buffer has any todo entry.
 
-    TODO entries marked as done are ignored, meaning the this
-    function returns nil if current buffer contains only completed
-    tasks."
+      TODO entries marked as done are ignored, meaning the this
+      function returns nil if current buffer contains only completed
+      tasks."
     (org-element-map                          ; (2)
         (org-element-parse-buffer 'headline) ; (1)
         'headline
@@ -955,7 +1027,7 @@ Pour ajouter des fichiers dans une liste:
 
 #+end_src
 
-****** Explication de la dernière fonction
+******** Explication de la dernière fonction
 This might look a little bit too much, so let me explain the code step by step.
 
 We parse the buffer using org-element-parse-buffer. It returns an abstract syntax tree of the current Org buffer. But sine we care only about headings, we ask it to return only them by passing a GRANULARITY parameter - 'headline. This makes things faster.
@@ -965,7 +1037,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
 
 
 
-***** Mise à jour de l'agenda juste avant son appel
+******* Mise à jour de l'agenda juste avant son appel
 
 
 #+begin_src emacs-lisp
@@ -986,13 +1058,15 @@ Now all we have to do is to check if the buffer list contains at least one keywo
     "Update the value of `org-agenda-files'."
     (setq org-agenda-files (vulpea-project-files)))
 
+  (vulpea-agenda-files-update) ;; on l'update une fois au démarrage
+
   (advice-add 'org-agenda :before #'vulpea-agenda-files-update)
   (advice-add 'org-todo-list :before #'vulpea-agenda-files-update)
 
 #+end_src
 
 
-***** Mise à jour automatisé des tags projets dans les notes avec le projet, à automatiser à un endroit. Je sais même pas si j'en ai besoin, car ça update à chaque sauvegarde. Et je sauvegarde tout le temps. Bon exemple après pour le lisp
+******* Mise à jour automatisé des tags projets dans les notes avec le projet, à automatiser à un endroit. Je sais même pas si j'en ai besoin, car ça update à chaque sauvegarde. Et je sauvegarde tout le temps. Bon exemple après pour le lisp
 
 #+begin_src emacs-lisp :tangle no
 (dolist (file (org-roam-list-files))
@@ -1003,7 +1077,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
     (save-buffer)))
 #+end_src
 
-**** Le format des choses affiché
+****** Le format des choses affiché
 #+begin_src emacs-lisp
 (setq org-agenda-prefix-format
         '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
@@ -1011,7 +1085,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
           (tags . " %i %(vulpea-agenda-category 12) ")
           (search . " %i %(vulpea-agenda-category 12) ")))
 #+end_src
-**** Jolie affichage des catégories trop longue, et la catégorie égale le titre - la date
+****** Jolie affichage des catégories trop longue, et la catégorie égale le titre - la date
 
 #+begin_src emacs-lisp
   (defun vulpea-agenda-category (&optional len)
@@ -1050,13 +1124,9 @@ Now all we have to do is to check if the buffer list contains at least one keywo
           (s-truncate len (s-pad-right len " " result))
         result)))
 #+end_src
+***** Gestion de l'agenda (commandes) 
 
-
-
-
-*** Gestion de l'agenda (commandes) 
-
-**** Agenda custom command
+****** Agenda custom command
 
 #+begin_src emacs-lisp
   (setq org-agenda-custom-commands
@@ -1088,18 +1158,43 @@ Now all we have to do is to check if the buffer list contains at least one keywo
         )
 #+end_src
 
-**** Faire des requête avec des commandes
+****** Faire des requête avec des commandes
 
 #+begin_src emacs-lisp
   (use-package org-ql)
 #+end_src
 
+***** Gestion de l'agenda (téléphone)
 
-*** Gestion des projets
 
-*** Gestion des tags (sauf tag "projet"), voir l'agenda
+#+begin_src emacs-lisp
+(use-package org-yaap
+  :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
+  :config
+  (org-yaap-mode 1))
+#+end_src
 
-**** Nouvelle fonction pour ajout de tag
+
+**** Gestion des tâches
+
+
+
+***** Gestion des projet
+
+***** Gestions des habitues
+
+#+begin_src emacs-lisp
+(require 'org-habit)
+;;pour que le logbook soit dans un tiroir
+
+;;  Pour savoir qd fini une tâche
+(setq org-log-done 'time)
+(setq org-log-into-drawer t);; le mets dans un propreties
+#+end_src
+
+**** Gestion des tags (sauf tag "projet"), voir l'agenda
+
+***** Nouvelle fonction pour ajout de tag
 
 Fait appel à la fonction pour ajouter un tag à la personne 
 
@@ -1117,7 +1212,7 @@ Fait appel à la fonction pour ajouter un tag à la personne
 #+end_src
 
 
-**** Personne
+***** Personne
 
 Cela permet de faire des projets également pour des personnes (Nell hehe)
 Si je connais la personne, alors je la tag avec people. Si j'ai des choses en rapport à faire avec elle, alors je lui mets un tag "@NomDeLaPersonne"
@@ -1130,7 +1225,7 @@ Pour appeler une fonction qui ajoute les tags, et si jamais le tag people est mi
 
 
 
-***** Créer automatiquement le tag "NomPersonne" si la personne à le tag people
+****** Créer automatiquement le tag "NomPersonne" si la personne à le tag people
 
 Appeler dans vulpea-tags-add
 
@@ -1153,7 +1248,7 @@ Appeler dans vulpea-tags-add
 
 #+end_src
 
-***** Automatisation insertion tag de la personne qd on la cite ailleurs ! 
+****** Automatisation insertion tag de la personne qd on la cite ailleurs ! 
 
 Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo, insère le tag automatiquement
 #+begin_src emacs-lisp
@@ -1185,7 +1280,7 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
 
 
 
-**** Fonction qui demande TOUTES les tâches associé à une personne
+***** Fonction qui demande TOUTES les tâches associé à une personne
 
 #+begin_src emacs-lisp
 (defun vulpea-agenda-person ()
@@ -1207,7 +1302,7 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
 #+end_src
 
 
-*** Gestion org transclution
+**** Gestion org transclution
 
 Dépendant des ids dans id-locations.el
 
@@ -1217,9 +1312,9 @@ Dépendant des ids dans id-locations.el
 
 #+end_src
 
-*** Gestion des fichiers et des dossiers en pièce jointe (org-attach)
+**** Gestion des fichiers et des dossiers en pièce jointe (org-attach)
 
-**** Quand on rajoute un fichier en attachment, on store le link pour l'insertion
+***** Quand on rajoute un fichier en attachment, on store le link pour l'insertion
 
 #+begin_src emacs-lisp
   (setq org-attach-store-link-p 'file)
@@ -1229,32 +1324,34 @@ Dépendant des ids dans id-locations.el
 
 
 
-**** On créer les dossier par années/mois/jour/lerest par rapport à la date de la création du noeud pour les rangements
+***** On créer les dossier par années/mois/jour/lerest par rapport à la date de la création du noeud pour les rangements
 
 #+begin_src emacs-lisp
 
-      ;;The first function in this list defines the preferred function which will be used when creating new attachment folders.
-      (setq org-attach-id-to-path-function-list
-          '(org-attach-id-ts-folder-format
-            org-attach-id-uuid-folder-format))
+  ;;The first function in this list defines the preferred function which will be used when creating new attachment folders.
+  (setq org-attach-id-to-path-function-list
+        '(org-attach-id-ts-folder-format
+          org-attach-id-uuid-folder-format))
 
 
-      (defun org-attach-id-ts-folder-format (id)
-      "Translate an ID based on a timestamp to a folder-path.
-    Useful way of translation if ID is generated based on ISO8601
-    timestamp.  Splits the attachment folder hierarchy into
-    year-month, the rest."
-      (format "%s/%s/%s/%s"
-              (substring id 0 4)
-              (substring id 4 6)
-              (substring id 6 8)
-              (substring id 8)))
+  (defun org-attach-id-ts-folder-format (id)
+    "Translate an ID based on a timestamp to a folder-path.
+  Useful way of translation if ID is generated based on ISO8601
+  timestamp.  Splits the attachment folder hierarchy into
+  year-month, the rest."
+    (format "%s/%s/%s/%s"
+            (substring id 0 4)
+            (substring id 4 6)
+            (substring id 6 8)
+            (substring id 9)
+            )
+    )
 
 #+end_src
 
 
 
-**** Dired attachment
+***** Dired attachment
 
 2 windows : une avec fichiers dired, l'autre avec le curseur sur le subtree ou attacher les fichiers
 marquer les fichiers sur dired, appeler la fonction org-attach-dired-to-subtree, et voilà !
@@ -1270,7 +1367,7 @@ marquer les fichiers sur dired, appeler la fonction org-attach-dired-to-subtree,
 
               
 
-**** Chemin de org attach
+***** Chemin de org attach
 
 #+begin_src emacs-lisp
     ;; (setq org-attach-id-dir (expand-file-name ".data/" vulpea-directory))
@@ -1281,7 +1378,7 @@ marquer les fichiers sur dired, appeler la fonction org-attach-dired-to-subtree,
 
 
 
-**** Pour pouvoir attacher des dossiers
+***** Pour pouvoir attacher des dossiers
 
 Patch de la fonction pour pouvoir attach des dossiers
 
@@ -1399,49 +1496,119 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 
 
-*** TODO Gestion des archives
+          
+
+***** Pour automatiquement commit quand on rajoute un document
+
+#+begin_src emacs-lisp
+  (require 'org-attach-git)
+#+end_src
+
+**** TODO Gestion des archives
 
 #+begin_src emacs-lisp
     (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
 #+end_src
 
-*** Gestion de l'intéraction avec le pc
+**** Gestion de l'intéraction avec le pc
 
 #+begin_src emacs-lisp
   (require 'org-protocol)
 #+end_src
 
-*** Publier son site
-*** Fin du when
+**** Publier son site
+**** Fin du when
 #+begin_src emacs-lisp
 )
 #+end_src
 
 
+** Org-roam, seulement si ya mon braindump (logique)
 
-* Org-roam, seulement si ya mon braindump (logique)
-
-** Org-roam pur
 #+begin_src emacs-lisp
+
   (use-package org-roam
-  :if braindump-exists 
+    :if braindump-exists
+
 #+end_src
 
-*** Init
+
+*** Org-roam pur
+
+**** Init
 
 #+begin_src emacs-lisp
   :init
-  ;;éviter d'avoir la nottif de version 1 à 2
+  ;;éviter d'avoir la nottif de version 1 à 2 
   (setq org-roam-v2-ack t)
 #+end_src
 
-*** Config
+**** Config
 
 #+begin_src emacs-lisp
   :config
 #+end_src
 
-**** Base et amélioration mineur
+
+***** Test termux
+
+#+begin_src emacs-lisp
+  
+  (when nil
+
+    ;; this is a chunglak's hack to get sqlite to work on Android with org-roam v2:
+    ;; from: https://github.com/org-roam/org-roam/issues/1605#issuecomment-885997237
+    (defun org-roam-db ()
+      "Entrypoint to the Org-roam sqlite database.
+  Initializes and stores the database, and the database connection.
+  Performs a database upgrade when required."
+      (unless (and (org-roam-db--get-connection)
+                   (emacsql-live-p (org-roam-db--get-connection)))
+        (let ((init-db (not (file-exists-p org-roam-db-location))))
+          (make-directory (file-name-directory org-roam-db-location) t)
+          (let ((conn (emacsql-sqlite3 org-roam-db-location)))
+            (emacsql conn [:pragma (= foreign_keys ON)])
+            (set-process-query-on-exit-flag (emacsql-process conn) nil)
+            (puthash (expand-file-name org-roam-directory)
+                     conn
+                     org-roam-db--connection)
+            (when init-db
+              (org-roam-db--init conn))
+            (let* ((version (caar (emacsql conn "PRAGMA user_version")))
+                   (version (org-roam-db--upgrade-maybe conn version)))
+              (cond
+               ((> version org-roam-db-version)
+                (emacsql-close conn)
+                (user-error
+                 "The Org-roam database was created with a newer Org-roam version.  "
+                 "You need to update the Org-roam package"))
+               ((< version org-roam-db-version)
+                (emacsql-close conn)
+                (error "BUG: The Org-roam database scheme changed %s"
+                       "and there is no upgrade path")))))))
+      (org-roam-db--get-connection))
+    (defun org-roam-db--init (db)
+      "Initialize database DB with the correct schema and user version."
+      (emacsql-with-transaction db
+        (emacsql db "PRAGMA foreign_keys = ON") ;; added
+        (emacsql db [:pragma (= foreign_keys ON)])
+        (pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
+          (emacsql db [:create-table $i1 $S2] table schema))
+        (pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
+          (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
+        (emacsql db (format "PRAGMA user_version = %s" org-roam-db-version))))
+    ;; end chunglak hack
+
+    (org-roam-setup)
+
+
+
+    )  
+
+#+end_src
+
+
+***** Base et amélioration mineur
 #+begin_src emacs-lisp
 
   (setq org-roam-completion-everywhere t) ;; pour avoir la complétien partout
@@ -1461,7 +1628,7 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 
 
-**** Org-roam capture
+***** Org-roam capture
 
 #+begin_src emacs-lisp
   (setq org-roam-capture-templates
@@ -1496,14 +1663,14 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 #+end_src
 
-**** Journal
+***** Journal
 
 #+begin_src emacs-lisp
   ;;défini la capture de mon journal
-  (setq org-roam-dailies-directory "journal/")
+  (setq org-roam-dailies-directory "journals/")
 #+end_src
 
-**** Buffer des backlinks
+***** Buffer des backlinks
 
 #+begin_src emacs-lisp
 
@@ -1520,9 +1687,9 @@ Patch de la fonction pour pouvoir attach des dossiers
   ;; org-roam-reflinks-section))
 #+end_src
 
-**** TODO Lors de la recherche d'un noeud, info sup
+***** TODO Lors de la recherche d'un noeud, info sup
 
-***** Voir le nombre de backlinks d'une note + Utiliser la souris sur le buffer backlinks
+****** TODO Voir le nombre de backlinks d'une note + Utiliser la souris sur le buffer backlinks
 
 #+begin_src emacs-lisp
 
@@ -1554,7 +1721,7 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 #+end_src
 
-***** hiérarchie quand on cherche/insert une note
+****** TODO hiérarchie quand on cherche/insert une note
 
 #+begin_src emacs-lisp
 
@@ -1587,7 +1754,7 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 #+end_src
 
-***** Qu'est ce qu'on met lorsque l'on recherche un node (nombre = nombre de caractère)
+****** Qu'est ce qu'on met lorsque l'on recherche un node (nombre = nombre de caractère)
 
 #+begin_src emacs-lisp
   (with-eval-after-load 'org-roam
@@ -1610,16 +1777,15 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 
 
-*** Fin de use-package org-roam
+**** Fin de use-package org-roam
 #+begin_src emacs-lisp
 )
 #+end_src
 
 
-** Fonctionnalité en plus grâce à l'utilisation d' org-roam
+*** Fonctionnalité en plus grâce à l'utilisation d' org-roam
 
-
-**** Deft, pour chercher dans toutes les notes d'org-roam
+***** Deft, pour chercher dans toutes les notes d'org-roam
 
 #+begin_src emacs-lisp
   (use-package deft
@@ -1634,7 +1800,7 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+end_src
 
 
-**** Convertir les fichiers org en markdown hugo
+***** Convertir les fichiers org en markdown hugo
 
 #+begin_src emacs-lisp
   (use-package ox-hugo
@@ -1646,7 +1812,7 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+end_src
 
 
-**** Org roam ui (org roam server pour org roam v2)
+***** Org roam ui (org roam server pour org roam v2)
 
 
 La vue en bulle, comme Obsidian
@@ -1654,6 +1820,11 @@ Il faut que le serveur soit démarré
 Se trouve à cette adresse http://127.0.0.1:35901/ 
 
 #+begin_src emacs-lisp
+
+  (when termux-p
+    ;; This makes Emacs in Termux use your Android browser for opening urls
+    (setq browse-url-browser-function 'browse-url-xdg-open)
+    )
 
   (use-package org-roam-ui
     :after org-roam
@@ -1674,8 +1845,8 @@ Se trouve à cette adresse http://127.0.0.1:35901/
 
 
 
-* Gestion des références/bibliographie 
-** Ce qu'il reste à fairepour org-cite (un jour)
+** Gestion des références/bibliographie 
+*** Ce qu'il reste à fairepour org-cite (un jour)
 :PROPERTIES:
 :ID:       8aac069c-ecda-4a5f-82df-add2a7ddfdcb
 :END:
@@ -1685,8 +1856,8 @@ Se trouve à cette adresse http://127.0.0.1:35901/
 2. 
 
 3.
-** Comment ça marche avec org-cite ?
-*** Pour l'installation de zotero + extension betterbitex
+*** Comment ça marche avec org-cite ?
+**** Pour l'installation de zotero + extension betterbitex
 :PROPERTIES:
 :ID:       e254ed4d-d47b-4b9d-9155-108772b8b2c7
 :END:
@@ -1708,7 +1879,7 @@ puis on automatise l'exportation avec l'extension !
 
 ([[https://retorque.re/zotero-better-bibtex/exporting/auto/][ici]])
 
-*** Pour citar et citeproc
+**** Pour citar et citeproc
 On utilise les package citar et citeproc. Le premier pour insérer les citations , le deuxième pour exporter
 Il faut configurer la variable de la/les bibliothèques.
 
@@ -1723,7 +1894,7 @@ ou bien juste :
 
 (Pour la conversion de org-ref à org-cite, il suffit juste d'enlever une paire de crochet au références de org-ref, puis de remplacer le "&" par "@", et de moddifier le print_biblio en 
 [[bibliography:../biblio.bib] ] , logique quoi et assez simple à faire je pense)
-** Citar, les propositions avec citar-insert-citation
+*** Citar, les propositions avec citar-insert-citation
 
 #+begin_src emacs-lisp
 
@@ -1758,7 +1929,7 @@ ou bien juste :
 
 #+end_src
 
-** Pour les exports
+*** Pour les exports
 :PROPERTIES:
 :ID:       7ebb8fdb-0d07-4b8d-b86a-9d8cf2109848
 :END:
@@ -1810,7 +1981,7 @@ ou bien juste :
   ;; (setq org-cite-csl-locales-dir "/home/msi/documents/notes/braindump/org/reference/")
 
 #+end_src
-** Trouver si une citation est affilié à un noeud. Si oui, alors bug lol y'a plus qu'à la trouver ! Permet aussi d'ajouter les sources
+*** Trouver si une citation est affilié à un noeud. Si oui, alors bug lol y'a plus qu'à la trouver ! Permet aussi d'ajouter les sources
 
 
 [cite:@${citekey}]
@@ -1879,5 +2050,3 @@ Ceci était des tests. Permet de remplacer n'importe quoi de ceci : ${fonction} 
 
 
 #+end_src
-
-

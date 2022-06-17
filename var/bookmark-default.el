@@ -2,16 +2,41 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-((".emacs.d"
+((".emacs.dAvantBraindump"
+ (filename . "~/.dotfiles/.emacs.dAvantBraindump/")
+ (front-context-string . "config\n  -rw-rw-")
+ (rear-context-string . " juin  16 11:09 ")
+ (position . 799))
+("org-mode "
+ (filename . "~/.emacs.d/straight/repos/org/lisp/")
+ (front-context-string . "Makefile\n  -rw-r")
+ (rear-context-string . " juin  16 14:55 ")
+ (position . 287))
+("org-mode.org"
+ (filename . "~/.emacs.d/config/org-mode.org")
+ (front-context-string . "* Config + code ")
+ (rear-context-string . "mon braindump\n\n\n")
+ (position . 204))
+("secondCerveau.org"
+ (filename . "~/braindump/org/.data/2022/06/16/130244/secondCerveau.org")
+ (front-context-string . "#+filetags: :pro")
+ (rear-context-string)
+ (position . 1))
+("xah-fly-keys.el"
+ (filename . "~/.dotfiles/.emacs.d/straight/repos/xah-fly-keys/xah-fly-keys.el")
+ (front-context-string . "cp\n\n(xah-fly-key")
+ (rear-context-string . "     )))\n\n\n\n;;\f ")
+ (position . 152215))
+(".emacs.d"
  (filename . "~/.emacs.d/")
  (front-context-string . "config\n  -rw-rw-")
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20220612193254-emacs.org")
+ (filename . "~/braindump/org/pages/20220616193341-comment_faire_un_second_cerveau.org")
  (front-context-string)
- (rear-context-string . "\n#+title: Emacs\n")
- (position . 61))
+ (rear-context-string . " second cerveau\n")
+ (position . 93))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")
@@ -27,11 +52,6 @@
  (front-context-string . "Testdedossier\n ")
  (rear-context-string . " mai   27 10:42 ")
  (position . 271))
-("x xah-fly-keys.el"
- (filename . "~/.emacs.d/lisp/xah-fly-keys/xah-fly-keys.el")
- (front-context-string . "(xah-fly-keys);;")
- (rear-context-string . " )))\n\n\n\n;;\f cp\n\n")
- (position . 153011))
 ("T Téléchargements"
  (filename . "~/Téléchargements/")
  (front-context-string . "..\n  -rw-rw-r-- ")

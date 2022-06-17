@@ -17,7 +17,14 @@
   ;; hook into org-roam-db-autosync-mode you wish to enable
   ;; persistence of meta values (see respective section in README to
   ;; find out what meta means)
-  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
+  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+  :config
+  (defun org-roam-vulpea-bdd ()
+    (interactive)
+    "Mets à jour la bdd pour l'utilisation de velpua"
+    (org-roam-db-sync 'force)
+    )
+  )
 (require 'vulpea) ;;sinon ne charge pas tout je comprends pas pk
 
 (defun org-summary-todo (n-done n-not-done)
@@ -66,6 +73,23 @@
 (add-to-list 'org-structure-template-alist '("json" . "src json"))
 
 (use-package org-sidebar)
+
+;;chargement d'une bibliothèque
+;; (add-to-list 'org-modules 'org-fold)
+
+(defun org-meta-return (&optional arg)
+  "Insert a new heading or wrap a region in a table.
+  Calls `org-insert-heading', `org-insert-item' or
+  `org-table-wrap-region', depending on context.  When called with
+  an argument, unconditionally call `org-insert-heading'."
+  (interactive "P")
+  ;; (org-fold-check-before-invisible-edit 'insert)
+  (or (run-hook-with-args-until-success 'org-metareturn-hook)
+      (call-interactively (cond (arg #'org-insert-heading)
+                                (current-prefix-arg #'org-insert-heading)
+                                ((org-at-table-p) #'org-table-wrap-region)
+                                ((org-in-item-p) #'org-insert-item)
+                                (t #'org-insert-heading-after-current)))))
 
 ;; (use-package org-bullets
   ;; :after org
@@ -285,7 +309,7 @@
 (when braindump-exists
 
 (setq org-id-method 'ts)
-(setq org-id-ts-format "%Y%m%d%H%M%S") ;; pour avoir le même format que org roam !
+(setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
 
 (setq org-id-locations-file-relative t)
 
@@ -441,7 +465,32 @@
       )
     )
   )
-(add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
+
+;; (add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
+
+;; Nouvelle touche pour mieux naviguer avec xah
+(define-key org-agenda-mode-map [remap next-line] #'org-agenda-next-item)
+(define-key org-agenda-mode-map [remap previous-line] #'org-agenda-previous-item)
+;;
+(define-key org-agenda-mode-map [remap ?\r] #'org-agenda-goto)
+
+;;avoir "org", notamment org-schedule, en anglais, indispensable pour orgzly
+(eval-after-load 'org (setq system-time-locale "C"))
+
+;;  pour que le curseur soit en haut de org agenda quand t on l'ouvre
+(add-hook 'org-agenda-finalize-hook (lambda () (goto-char (point-min))) 90)
+
+;;ouvre l'agenda dans la window actuel
+(setq org-agenda-window-setup 'current-window)
+
+;; quand commance l'agenda ?
+;;pas le week
+(setq org-agenda-start-on-weekday nil)
+;; mais X jour après aujourd'hui
+(setq org-agenda-start-day "+0d")
+
+;;vue de l'agenda sur X jours
+(setq org-agenda-span 8)
 
 ;;Lieu de l'export org-icalendar-combine-agenda-files
 (setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogletest.ics" braindump-directory))
@@ -509,9 +558,9 @@
 (defun vulpea-project-p ()
   "Return non-nil if current buffer has any todo entry.
 
-  TODO entries marked as done are ignored, meaning the this
-  function returns nil if current buffer contains only completed
-  tasks."
+    TODO entries marked as done are ignored, meaning the this
+    function returns nil if current buffer contains only completed
+    tasks."
   (org-element-map                          ; (2)
       (org-element-parse-buffer 'headline) ; (1)
       'headline
@@ -535,6 +584,8 @@
 (defun vulpea-agenda-files-update (&rest _)
   "Update the value of `org-agenda-files'."
   (setq org-agenda-files (vulpea-project-files)))
+
+(vulpea-agenda-files-update) ;; on l'update une fois au démarrage
 
 (advice-add 'org-agenda :before #'vulpea-agenda-files-update)
 (advice-add 'org-todo-list :before #'vulpea-agenda-files-update)
@@ -611,6 +662,18 @@ Refer to `org-agenda-prefix-format' for more information."
 
 (use-package org-ql)
 
+(use-package org-yaap
+  :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
+  :config
+  (org-yaap-mode 1))
+
+(require 'org-habit)
+;;pour que le logbook soit dans un tiroir
+
+;;  Pour savoir qd fini une tâche
+(setq org-log-done 'time)
+(setq org-log-into-drawer t);; le mets dans un propreties
+
 (defun vulpea-tags-add ()
   "Add a tag to current note."
   (interactive)
@@ -685,12 +748,12 @@ Refer to `org-agenda-prefix-format' for more information."
 ;; org attach attach
 
 ;;The first function in this list defines the preferred function which will be used when creating new attachment folders.
-  (setq org-attach-id-to-path-function-list
+(setq org-attach-id-to-path-function-list
       '(org-attach-id-ts-folder-format
         org-attach-id-uuid-folder-format))
 
 
-  (defun org-attach-id-ts-folder-format (id)
+(defun org-attach-id-ts-folder-format (id)
   "Translate an ID based on a timestamp to a folder-path.
 Useful way of translation if ID is generated based on ISO8601
 timestamp.  Splits the attachment folder hierarchy into
@@ -699,7 +762,9 @@ year-month, the rest."
           (substring id 0 4)
           (substring id 4 6)
           (substring id 6 8)
-          (substring id 8)))
+          (substring id 9)
+          )
+  )
 
 (add-hook 'dired-mode-hook
           (lambda ()
@@ -760,6 +825,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
           (dired attach-dir)
         (message "File %S is now an attachment" basename)))))
 
+(require 'org-attach-git)
+
 (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
 
 (require 'org-protocol)
@@ -767,13 +834,64 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 )
 
 (use-package org-roam
-:if braindump-exists
+  :if nil
 
 :init
-;;éviter d'avoir la nottif de version 1 à 2
+;;éviter d'avoir la nottif de version 1 à 2 
 (setq org-roam-v2-ack t)
 
 :config
+
+(when nil
+
+  ;; this is a chunglak's hack to get sqlite to work on Android with org-roam v2:
+  ;; from: https://github.com/org-roam/org-roam/issues/1605#issuecomment-885997237
+  (defun org-roam-db ()
+    "Entrypoint to the Org-roam sqlite database.
+Initializes and stores the database, and the database connection.
+Performs a database upgrade when required."
+    (unless (and (org-roam-db--get-connection)
+                 (emacsql-live-p (org-roam-db--get-connection)))
+      (let ((init-db (not (file-exists-p org-roam-db-location))))
+        (make-directory (file-name-directory org-roam-db-location) t)
+        (let ((conn (emacsql-sqlite3 org-roam-db-location)))
+          (emacsql conn [:pragma (= foreign_keys ON)])
+          (set-process-query-on-exit-flag (emacsql-process conn) nil)
+          (puthash (expand-file-name org-roam-directory)
+                   conn
+                   org-roam-db--connection)
+          (when init-db
+            (org-roam-db--init conn))
+          (let* ((version (caar (emacsql conn "PRAGMA user_version")))
+                 (version (org-roam-db--upgrade-maybe conn version)))
+            (cond
+             ((> version org-roam-db-version)
+              (emacsql-close conn)
+              (user-error
+               "The Org-roam database was created with a newer Org-roam version.  "
+               "You need to update the Org-roam package"))
+             ((< version org-roam-db-version)
+              (emacsql-close conn)
+              (error "BUG: The Org-roam database scheme changed %s"
+                     "and there is no upgrade path")))))))
+    (org-roam-db--get-connection))
+  (defun org-roam-db--init (db)
+    "Initialize database DB with the correct schema and user version."
+    (emacsql-with-transaction db
+      (emacsql db "PRAGMA foreign_keys = ON") ;; added
+      (emacsql db [:pragma (= foreign_keys ON)])
+      (pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
+        (emacsql db [:create-table $i1 $S2] table schema))
+      (pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
+        (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
+      (emacsql db (format "PRAGMA user_version = %s" org-roam-db-version))))
+  ;; end chunglak hack
+
+  (org-roam-setup)
+
+
+
+  )
 
 (setq org-roam-completion-everywhere t) ;; pour avoir la complétien partout
 
@@ -817,7 +935,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
       )
 
 ;;défini la capture de mon journal
-(setq org-roam-dailies-directory "journal/")
+(setq org-roam-dailies-directory "journals/")
 
 ;;ce qu'il y a dans le buffer de backlinks
 (setq org-roam-mode-sections
@@ -916,6 +1034,11 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   ;; :custom
   ;;à modifier
   ;; (org-hugo-base-dir "/home/msi/Documents/Projet/SitesWeb/braindump")
+  )
+
+(when termux-p
+  ;; This makes Emacs in Termux use your Android browser for opening urls
+  (setq browse-url-browser-function 'browse-url-xdg-open)
   )
 
 (use-package org-roam-ui

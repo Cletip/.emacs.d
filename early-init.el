@@ -7,14 +7,6 @@
 ;; prevent resize window on startup and boost a little speed
 (setq frame-inhibit-implied-resize t)
 
-
-;;basique
-(tool-bar-mode 0)
-(menu-bar-mode 0)
-(scroll-bar-mode 0)
-(tooltip-mode 0)
-
-
 ;; Optimisation du temps de chargement
 ;;pour aller plus vite
 (setq package-enable-at-startup nil)
