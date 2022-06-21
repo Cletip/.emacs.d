@@ -142,3 +142,152 @@ Il faut aussi installer flutter sur asdf
 (add-hook 'dart-mode-hook 'lsp)
 #+end_src
 
+
+
+**** Completion et proposition
+***** Voir les propositions avec company
+
+Auto-complete existe aussi, mais pas aussi efficace.
+****** Le moteur
+
+#+begin_src emacs-lisp
+
+  (use-package company
+    :after lsp-mode  ;;si ya lsp-mode
+    :hook (lsp-mode . company-mode)  ;; au lieu de lsp, mettre c-mode, python mode etc
+    ;; (org-mode . company-mode)
+    :custom
+    (company-minimum-prefix-length 1) ;;taille avant que le popup arrive
+    (company-idle-delay 0.6);;temps avant qu'il pop
+    ;;pour cycler dans les sélections
+    (company-selection-wrap-around t)
+
+
+
+    ;; réglemeent des touches, assez explicite, sur azerty :
+    ;; k i s 
+    (define-key company-active-map (kbd "M-n") nil)
+    (define-key company-active-map (kbd "M-p") nil)
+    ;; (define-key company-active-map (kbd "s") #'company-select-next)
+    ;; (define-key company-active-map (kbd "d") #'company-select-previous)
+    (define-key company-active-map (kbd "C-s") #'company-select-next)
+    (define-key company-active-map (kbd "C-d") #'company-select-previous)
+    (define-key company-active-map (kbd "u") 'company-complete-selection)
+    ;; (define-key company-active-map (kbd "SPC") #'company-abort)
+
+    )
+
+#+end_src
+
+
+  ;; Mettre yasnippets dans company
+
+  ;; ne pas y mettre dans :config
+    (with-eval-after-load 'company
+      ;;pour =activer les yasnippets dans company !!!!!!=
+      (setq lsp-completion-provider :none)
+      ;; Add yasnippet support for all company backends
+      ;; https://github.com/syl20bnr/spacemacs/pull/179
+      (defvar company-mode/enable-yas t
+        "Enable yasnippet for all backends.")
+
+      (defun company-mode/backend-with-yas (backend)
+        (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+            backend
+          (append (if (consp backend) backend (list backend))
+                  '(:with company-yasnippet))))
+
+      (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))       
+      )
+
+
+#+begin_src emacs-lisp :tangle no
+    (use-package company
+      :config
+      ;; (add-hook 'org-mode 'company-mode)
+      (add-hook 'after-init-hook 'global-company-mode)
+      )
+
+  ;; Smartparens
+  ;; To automatically close "]]" brackets and other parentheses,
+  ;; you need a package called "smartparens" Set it up globally.
+  (smartparens-global-mode t)
+
+  ;; Company
+  ;; You need package called `company`.
+  ;; I believe what these variables are meant to do is self-explanatory.
+  ;; You type minimum 2 characters and wait for ¼ seconds for the candidates
+  ;; to appear automatically. It uses a backend `company-capf` (part of
+  ;; `company`; capf stands for "completion-at-point function"). I would
+  ;; call it inline automatic completion. Org-roam has functions to work
+  ;; with `company-capf`.
+  (add-hook 'after-init-hook 'global-company-mode)
+  (setq company-minimum-prefix-length 2)
+  (setq company-idle-delay 0.25)
+  (add-to-list 'company-backends 'company-capf)
+
+  ;; This enables candidates matching to be case-insensitive
+  (setq completion-ignore-case t)
+
+  ;; You need this for your org-roam part of configuration
+  ;; This prevents it from automatically replacing [[Title of a note]]
+  ;; into [[file:path/to/note][Title of a note]].
+  ;;(setq org-roam-auto-replace-fuzzy-links nil)
+
+  ;; Some keybindings for within Company mode
+  ;; Use (with-eval-after-load) to defer the use of `company-active-map`.
+  ;; Otherwise, Emacs will error when loading `init.el` as it does not
+  ;; recognise any Company related variables and functions yet.
+  ;; This delay is defined above as we load 'global-company-mode' with
+  ;; `after-init-hook`.
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "C-n") #'company-select-next)
+    (define-key company-active-map (kbd "C-p") #'company-select-previous))
+
+      (tool-bar-mode)
+
+#+end_src
+
+****** Pour l'esthétique de l'affichage
+
+#+begin_src emacs-lisp
+    (use-package company-box
+      :after company ;;logique
+      :hook (company-mode . company-box-mode) ;;logique également
+      )
+#+end_src
+
+***** Candidats intelligent, se base sur la fréquence d'apparition
+
+#+begin_src emacs-lisp
+
+  (use-package company-prescient
+    :after company
+    :config
+    (company-prescient-mode 1)
+    ;; Remember candidate frequencies across sessions
+    (prescient-persist-mode 1)
+    )
+
+#+end_src
+***** Expand des choses préfaites
+
+#+begin_src emacs-lisp
+
+  (use-package yasnippet
+    ;; si on veux les yas que en prog mode, décocher ça et cocher yas global mode
+    ;; :hook (prog-mode . yas-minor-mode)
+    :config
+    (yas-reload-all)
+    (yas-global-mode 1)
+    (setq yas-triggers-in-field t) ;;appeler des snippets dans des snippets
+
+    (define-key yas-minor-mode-map (kbd "<tab>") nil)
+    (define-key yas-minor-mode-map (kbd "TAB") nil)
+    (define-key yas-minor-mode-map (kbd "<C-tab>") 'yas-expand)
+    )
+
+  (use-package yasnippet-snippets ;; un pack de snippets
+    :diminish)
+
+#+end_src

@@ -83,7 +83,7 @@
 
 (cd user-emacs-directory)
 
-(server-start)  ;; starts emacs as server (if you didn't already)
+;; (server-start)  ;; starts emacs as server (if you didn't already)
 
 (use-package move-text
      :defer 0.5
@@ -108,15 +108,6 @@
 
 
 
-  )
-
-(use-package smart-hungry-delete
-  :bind (
-	 ("<backspace>" . smart-hungry-delete-backward-char)
-	 ;; ("C-d" . smart-hungry-delete-forward-char)
-	 )
-  :defer nil ;; dont defer so we can add our functions to hooks 
-  :config (smart-hungry-delete-add-default-hooks)
   )
 
 (use-package smartparens
@@ -151,7 +142,6 @@
     (let ($p1 $p2)
       (if (use-region-p)
           (progn
-            (message "salut")
             (setq $p1 (region-beginning))
             (setq $p2 (region-end)))
         (save-excursion
@@ -353,21 +343,39 @@ Version 2017-06-02"
 (use-package vertico
 
   ;;charger les extensions de vertico
-  ;; :load-path "straight/build/vertico/extensions"
+  :load-path "straight/build/vertico/extensions"
   :custom
   (vertico-cycle t)
   :custom-face
   (vertico-current ((t (:background "#3a3f5a"))))
   :config
-  (vertico-mode)
+
+
+  ;; Prefix the current candidate with “» ”. From
+  ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
+  (advice-add #'vertico--format-candidate :around
+              (lambda (orig cand prefix suffix index _start)
+                (setq cand (funcall orig cand prefix suffix index _start))
+                (concat
+                 (if (= vertico--index index)
+                     (propertize "» " 'face 'vertico-current)
+                   "  ")
+                 cand)))
+
+
+
+
 
   ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! sur backword-kill)
-  ;; (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+  (require 'vertico-directory)
   ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
+  (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+  ;; (define-key vertico-map [remap delete-backward-char] #'vertico-directory-up)
 
   ;; pour pouvoir jump à une entrée
   ;; (define-key vertico-map [remap avy-goto-char] #'vertico-quick-jump)
 
+  (vertico-mode)
 
   )
 
@@ -386,8 +394,17 @@ Version 2017-06-02"
 (use-package orderless
   :init
   (setq completion-styles '(orderless)
-	completion-category-defaults nil
-	completion-category-overrides '((file (styles partial-completion)))))
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion))))
+  :config
+
+  ;;couleur avec company
+  (defun just-one-face (fn &rest args)
+    (let ((orderless-match-faces [completions-common-part]))
+      (apply fn args)))
+  (advice-add 'company-capf--candidates :around #'just-one-face)
+
+  )
 
 (use-package embark
      :bind (("C-t" . embark-act))
@@ -538,7 +555,7 @@ reuse it's window, otherwise create new one."
   (set-frame-position (selected-frame) 1050 0)
   (set-frame-size (selected-frame) 91 63))
 
-(make-frame)
+;; (make-frame)
 
 ;; (when window-system (setq pop-up-frames t))
 
@@ -652,13 +669,13 @@ reuse it's window, otherwise create new one."
   )
 
 (use-package engine-mode
-	 :straight t
-	 :config
-	 (engine-mode t)
-	 (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
-	 (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
-	 (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
-	 (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
-	 (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
-	 (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
-	 (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
+         :straight t
+         :config
+         (engine-mode t)
+         (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
+         (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
+         (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
+         (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
+         (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
+         (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
+         (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))

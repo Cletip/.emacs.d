@@ -74,3 +74,57 @@
     )
 
 ;; (use-package lsp-javascript-typescript)
+
+(use-package company
+  :after lsp-mode  ;;si ya lsp-mode
+  :hook (lsp-mode . company-mode)  ;; au lieu de lsp, mettre c-mode, python mode etc
+  ;; (org-mode . company-mode)
+  :custom
+  (company-minimum-prefix-length 1) ;;taille avant que le popup arrive
+  (company-idle-delay 0.6);;temps avant qu'il pop
+  ;;pour cycler dans les sélections
+  (company-selection-wrap-around t)
+
+
+
+  ;; réglemeent des touches, assez explicite, sur azerty :
+  ;; k i s 
+  (define-key company-active-map (kbd "M-n") nil)
+  (define-key company-active-map (kbd "M-p") nil)
+  ;; (define-key company-active-map (kbd "s") #'company-select-next)
+  ;; (define-key company-active-map (kbd "d") #'company-select-previous)
+  (define-key company-active-map (kbd "C-s") #'company-select-next)
+  (define-key company-active-map (kbd "C-d") #'company-select-previous)
+  (define-key company-active-map (kbd "u") 'company-complete-selection)
+  ;; (define-key company-active-map (kbd "SPC") #'company-abort)
+
+  )
+
+(use-package company-box
+  :after company ;;logique
+  :hook (company-mode . company-box-mode) ;;logique également
+  )
+
+(use-package company-prescient
+  :after company
+  :config
+  (company-prescient-mode 1)
+  ;; Remember candidate frequencies across sessions
+  (prescient-persist-mode 1)
+  )
+
+(use-package yasnippet
+  ;; si on veux les yas que en prog mode, décocher ça et cocher yas global mode
+  ;; :hook (prog-mode . yas-minor-mode)
+  :config
+  (yas-reload-all)
+  (yas-global-mode 1)
+  (setq yas-triggers-in-field t) ;;appeler des snippets dans des snippets
+
+  (define-key yas-minor-mode-map (kbd "<tab>") nil)
+  (define-key yas-minor-mode-map (kbd "TAB") nil)
+  (define-key yas-minor-mode-map (kbd "<C-tab>") 'yas-expand)
+  )
+
+(use-package yasnippet-snippets ;; un pack de snippets
+  :diminish)

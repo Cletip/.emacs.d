@@ -38,7 +38,7 @@
   ;; (xah-fork-cp-xah-open-file-at-cursor-function-name cp/open-link)
   ;; (xah-fork-cp-xah-extend-selection-function-name er/expand-region)
   :config
-  (setq xah-fork-cp-isearch-forward-function-name 'consult-line)
+  (setq xah-fork-cp-isearch-forward-function-name 'cp/consult-line-or-with-word)
   (setq xah-fork-cp-recentf-open-files-function-name 'consult-recent-file)
   (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
   (setq xah-fork-cp-xah-open-file-at-cursor-function-name 'cp/open-link)

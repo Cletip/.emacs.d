@@ -6,6 +6,18 @@
 
 ** Variables communes
 
+
+
+*** Où est le home ?
+
+#+begin_src emacs-lisp
+  (defconst path-home-dir (file-name-as-directory (getenv "HOME"))
+    "Path to user home directory.
+
+  In a nutshell, it's just a value of $HOME.")
+
+#+end_src
+
 *** Où est démarré emacs ?
 
 #+begin_src emacs-lisp
@@ -34,7 +46,7 @@
 *** Où est mon braindump
 
 #+begin_src emacs-lisp
-(setq braindump-directory "~/braindump/")
+  (setq braindump-directory (concat path-home-dir "braindump/"))
 #+end_src
 
 *** Mon braindump existe ?
@@ -42,6 +54,8 @@
 #+begin_src emacs-lisp
 (setq braindump-exists (file-exists-p braindump-directory))
 #+end_src
+
+
 
 
 ** Modes qui n'apparaissent plus dans la modeline
@@ -86,7 +100,7 @@ This package implements hiding or abbreviation of the mode line displays (lighte
  
 ** Lancement Programmation
 
-
+ 
 #+begin_src emacs-lisp
 (org-babel-load-file (expand-file-name "programmation.org" config-directory))
 #+end_src

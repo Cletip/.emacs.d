@@ -57,7 +57,7 @@
     ("subdir" "sub-directory")
     ("wd" "web development")
 
-    ("db" "database")
+    ;; ("db" "database")
     ("gui3" "graphical user interface")
     ("oop3" "object oriented programing")
 

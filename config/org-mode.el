@@ -2,11 +2,11 @@
 
 (setq org-roam-directory org-directory)
 
-(setq my-bibliography-list (list (expand-file-name "biblio.bib" config-directory)
+(setq bibliography-directory (expand-file-name "dossierCitation/" config-directory))
+;; (setq my-bibliography-list (list (expand-file-name "dossierCitation/biblio.bib" bibliography-directory)
                                  ;; "/path/to/another/"
                                  ;; "/path/to/another/"
-                                 )
-      )
+                                 ;; ))
 
 (use-package vulpea
   :if braindump-exists
@@ -25,7 +25,7 @@
     (org-roam-db-sync 'force)
     )
   )
-(require 'vulpea) ;;sinon ne charge pas tout je comprends pas pk
+(require 'vulpea);;sinon ne charge pas tout je comprends pas pk
 
 (defun org-summary-todo (n-done n-not-done)
   "Switch entry to DONE when all subentries are done, to TODO otherwise."
@@ -90,6 +90,8 @@
                                 ((org-at-table-p) #'org-table-wrap-region)
                                 ((org-in-item-p) #'org-insert-item)
                                 (t #'org-insert-heading-after-current)))))
+
+(setq-default org-catch-invisible-edits nil)
 
 ;; (use-package org-bullets
   ;; :after org
@@ -349,9 +351,9 @@
     (expand-file-name (format "inbox-%s.org" (system-name)) org-roam-directory)
     )
 
-;; (setq org-capture-templates
-      ;; '(("t" "todo" plain (file capture-inbox-file)
-         ;; "* TODO %?\n%U\n" )))
+(setq org-capture-templates
+       '(("t" "todo" plain (file capture-inbox-file)
+          "* TODO %?\n%U\n" )))
 
 ;; quand on donne un truc relatif, alors le org-directory est bien appelé ! Si je mets des fonctions pour les templates à récupéré ça ne marche plus. Obligé de laisser les capture templates dans le dossier braindump et en dehors du dossier org-directory (sinon la bdd dit double id)
 
@@ -493,9 +495,9 @@
 (setq org-agenda-span 8)
 
 ;;Lieu de l'export org-icalendar-combine-agenda-files
-(setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogletest.ics" braindump-directory))
+(setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogle.ics" braindump-directory))
 
-  (setq org-icalendar-with-timestamps 'active) ;; seulement les timestamp active pour exporter les évèmenements.
+(setq org-icalendar-with-timestamps 'active) ;; seulement les timestamp active pour exporter les évèmenements.
 (setq org-icalendar-include-todo nil) ;; sinon ça clone les choses schedulded
 (setq org-icalendar-use-scheduled '(
                                     ;; event-if-not-todo ;;pour pas exporter mes tickler
@@ -522,7 +524,11 @@
 ;; quand je close emacs, lance le processus
 ;; (add-hook 'kill-emacs-hook #'org-icalendar-combine-agenda-files-foreground)
 
-(add-to-list 'org-tags-exclude-from-inheritance "project")
+;; dès que la data base se syncronise, je mets à jour mon calendrier
+(advice-add 'org-roam-db-sync :after #'org-icalendar-combine-agenda-files-background)
+
+(add-to-list 'org-tags-exclude-from-inheritance "PROJECT")
+(add-to-list 'org-tags-exclude-from-inheritance "PERSONNE")
 
 ;; ne pas mettre, empêche le démarrage d'emacs. Pk ?
 (add-hook 'find-file-hook #'vulpea-project-update-tag)
@@ -537,8 +543,8 @@
       (let* ((tags (vulpea-buffer-tags-get))
              (original-tags tags))
         (if (vulpea-project-p)
-            (setq tags (cons "project" tags))
-          (setq tags (remove "project" tags)))
+            (setq tags (cons "PROJECT" tags))
+          (setq tags (remove "PROJECT" tags)))
 
         ;; cleanup duplicates
         (setq tags (seq-uniq tags))
@@ -579,7 +585,7 @@
               :from tags
               :left-join nodes
               :on (= tags:node-id nodes:id)
-              :where (like tag (quote "%\"project\"%"))]))))
+              :where (like tag (quote "%\"PROJECT\"%"))]))))
 
 (defun vulpea-agenda-files-update (&rest _)
   "Update the value of `org-agenda-files'."
@@ -667,6 +673,8 @@ Refer to `org-agenda-prefix-format' for more information."
   :config
   (org-yaap-mode 1))
 
+(setq org-enforce-todo-dependencies t)
+
 (require 'org-habit)
 ;;pour que le logbook soit dans un tiroir
 
@@ -688,7 +696,7 @@ Refer to `org-agenda-prefix-format' for more information."
   "Add respective file tag if it's missing in the current note."
   (let ((tags (vulpea-buffer-tags-get))
         (tag (vulpea--title-as-tag)))
-    (when (and (seq-contains-p tags "people")
+    (when (and (seq-contains-p tags "PERSONNE")
                (not (seq-contains-p tags tag)))
       (vulpea-buffer-tags-add tag))))
 
@@ -704,7 +712,7 @@ Refer to `org-agenda-prefix-format' for more information."
   "Hook to be called on NOTE after `vulpea-insert'."
   (when-let* ((title (vulpea-note-title note))
               (tags (vulpea-note-tags note)))
-    (when (seq-contains-p tags "people")
+    (when (seq-contains-p tags "PERSONNE")
       (save-excursion
         (ignore-errors
           (org-back-to-heading)
@@ -732,7 +740,7 @@ Refer to `org-agenda-prefix-format' for more information."
                   :filter-fn
                   (lambda (note)
                     (seq-contains-p (vulpea-note-tags note)
-                                    "people"))))
+                                    "PERSONNE"))))
          (node (org-roam-node-from-id (vulpea-note-id person)))
          (names (cons (org-roam-node-title node)
                       (org-roam-node-aliases node)))
@@ -827,14 +835,24 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 (require 'org-attach-git)
 
-(setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
+(use-package org-archive
+  :straight nil
+  :defer t
+  :init
+  (setq-default
+   org-archive-location
+   (concat braindump-directory "org/.archive/%s_archive" "::" "datetree/")
+   org-archive-save-context-info
+   '(time file ltags itags todo category olpath)))
+
+;; (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
 
 (require 'org-protocol)
 
 )
 
 (use-package org-roam
-  :if nil
+  :if braindump-exists
 
 :init
 ;;éviter d'avoir la nottif de version 1 à 2 
@@ -842,67 +860,32 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 :config
 
-(when nil
-
-  ;; this is a chunglak's hack to get sqlite to work on Android with org-roam v2:
-  ;; from: https://github.com/org-roam/org-roam/issues/1605#issuecomment-885997237
-  (defun org-roam-db ()
-    "Entrypoint to the Org-roam sqlite database.
-Initializes and stores the database, and the database connection.
-Performs a database upgrade when required."
-    (unless (and (org-roam-db--get-connection)
-                 (emacsql-live-p (org-roam-db--get-connection)))
-      (let ((init-db (not (file-exists-p org-roam-db-location))))
-        (make-directory (file-name-directory org-roam-db-location) t)
-        (let ((conn (emacsql-sqlite3 org-roam-db-location)))
-          (emacsql conn [:pragma (= foreign_keys ON)])
-          (set-process-query-on-exit-flag (emacsql-process conn) nil)
-          (puthash (expand-file-name org-roam-directory)
-                   conn
-                   org-roam-db--connection)
-          (when init-db
-            (org-roam-db--init conn))
-          (let* ((version (caar (emacsql conn "PRAGMA user_version")))
-                 (version (org-roam-db--upgrade-maybe conn version)))
-            (cond
-             ((> version org-roam-db-version)
-              (emacsql-close conn)
-              (user-error
-               "The Org-roam database was created with a newer Org-roam version.  "
-               "You need to update the Org-roam package"))
-             ((< version org-roam-db-version)
-              (emacsql-close conn)
-              (error "BUG: The Org-roam database scheme changed %s"
-                     "and there is no upgrade path")))))))
-    (org-roam-db--get-connection))
-  (defun org-roam-db--init (db)
-    "Initialize database DB with the correct schema and user version."
-    (emacsql-with-transaction db
-      (emacsql db "PRAGMA foreign_keys = ON") ;; added
-      (emacsql db [:pragma (= foreign_keys ON)])
-      (pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
-        (emacsql db [:create-table $i1 $S2] table schema))
-      (pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
-        (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
-      (emacsql db (format "PRAGMA user_version = %s" org-roam-db-version))))
-  ;; end chunglak hack
-
-  (org-roam-setup)
-
-
-
+;; complétion et proprosition
+(setq org-roam-completion-everywhere t) ;; pour avoir la complétion partout avec company
+(setq completion-ignore-case t) ;; ne dépend pas de la case pour la complétion
+(with-eval-after-load 'company
+  (add-to-list 'company-backends 'company-capf) ;;completion avec org-roam
   )
 
-(setq org-roam-completion-everywhere t) ;; pour avoir la complétien partout
+(add-hook 'org-mode-hook 'company-mode)
+(add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
 
-;; syncro automatique avec les fichiers 
-(org-roam-db-autosync-mode +1)
+
+
+
+;; syncro automatique avec les fichiers
+(org-roam-db-autosync-mode)
 
 ;; pour améliorer les perf
 (setq org-roam-db-gc-threshold most-positive-fixnum)
 
 ;; On prend pas les fichiers org dans org-attach
 (setq org-roam-file-exclude-regexp ".data/")
+
+;;ajout du tag BROUILLON tant que c'est pas fini
+(defun jethro/tag-new-node-as-draft ()
+  (org-roam-tag-add '("BROUILLON")))
+(add-hook 'org-roam-capture-new-node-hook #'jethro/tag-new-node-as-draft)
 
 (setq org-roam-capture-templates
       '(
@@ -1055,13 +1038,13 @@ Performs a database upgrade when required."
 
 (use-package citar
   ;; :after all-the-icons ;; besoin des icones pour charger les propositions
-  :after oc-csl all-the-icons
+  ;; :after oc-csl all-the-icons
   :custom
   ;;lieu de ma bibliographie
-  (citar-bibliography (list (concat org-roam-directory "biblio.bib")))
+  (citar-bibliography (list (concat bibliography-directory "biblio.bib")))
   :config
-  ;; pour complété avec consult yeah
-  (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
+  ;; pour complété avec consult yeah, pas besoin
+  ;; (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
 
   ;; comment on gère l'affichage des propositions en dur
   (setq citar-templates
@@ -1092,16 +1075,18 @@ Performs a database upgrade when required."
     (plist-put org-hugo-citations-plist :bibliography-section-heading "References"))
 
   :config
-  (setq org-cite-global-bibliography my-bibliography-list) ;; pour que org-cite sache où est ma biblio
+  (setq org-cite-global-bibliography (list (concat bibliography-directory "biblio.bib"))) ;; pour que org-cite sache où est ma biblio
+
+
+  (require 'oc-csl)
   (setq org-cite-export-processors '((t csl)));; exporter tout le temps avec la méthode csl
 
   ;; les fichiers de configuration. Impossible de les configurer "normalement" (voir en dessous), j'utilise donc les fichiers "fallback" qui sont ceux par défaut
   ;; (setq org-cite-csl--fallback-style-file "/home/msi/documents/notes/braindump/org/chicago-author-date-16th-edition.csl") ;;
 
+  (setq org-cite-csl--fallback-locales-dir bibliography-directory)
+  (setq org-cite-csl--fallback-style-file (concat bibliography-directory "vancouver-brackets.csl"));; pour changer le style. Vancouver = numéro
 
-  ;;à remettre
-  (setq org-cite-csl--fallback-style-file (concat org-roam-directory "vancouver-brackets.csl"));; pour changer le style. Vancouver = numéro
-  (setq org-cite-csl--fallback-locales-dir org-roam-directory)
   )
 
 ;;le bordel ici, mais pas utilisé

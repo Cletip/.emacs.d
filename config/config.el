@@ -1,3 +1,8 @@
+(defconst path-home-dir (file-name-as-directory (getenv "HOME"))
+  "Path to user home directory.
+
+In a nutshell, it's just a value of $HOME.")
+
 ;; (defvar my-laptop-p (equal (system-name) "sacha-kubuntu"))
 
 ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
@@ -11,7 +16,7 @@
 
 (setq config-directory (expand-file-name "config/" user-emacs-directory))
 
-(setq braindump-directory "~/braindump/")
+(setq braindump-directory (concat path-home-dir "braindump/"))
 
 (setq braindump-exists (file-exists-p braindump-directory))
 

@@ -144,7 +144,7 @@ I advise you to put in "application at startup" (under linux, I don't know under
 
 #+begin_src emacs-lisp 
 
-  (server-start)  ;; starts emacs as server (if you didn't already)
+  ;; (server-start)  ;; starts emacs as server (if you didn't already)
 
 #+end_src
 
@@ -197,7 +197,7 @@ Utiliser les fonctions de xah ?
 Supprimer les espaces entre les mots, les parenthèses et autres délimiteurs de manière intelligente (ou stupide).
 Voir la doc pour plus customisations
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle no
 
   (use-package smart-hungry-delete
     :bind (
@@ -260,7 +260,6 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
       (let ($p1 $p2)
         (if (use-region-p)
             (progn
-              (message "salut")
               (setq $p1 (region-beginning))
               (setq $p2 (region-end)))
           (save-excursion
@@ -709,23 +708,42 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
   (use-package vertico
 
     ;;charger les extensions de vertico
-    ;; :load-path "straight/build/vertico/extensions"
+    :load-path "straight/build/vertico/extensions"
     :custom
     (vertico-cycle t)
     :custom-face
     (vertico-current ((t (:background "#3a3f5a"))))
     :config
-    (vertico-mode)
+
+
+    ;; Prefix the current candidate with “» ”. From
+    ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
+    (advice-add #'vertico--format-candidate :around
+                (lambda (orig cand prefix suffix index _start)
+                  (setq cand (funcall orig cand prefix suffix index _start))
+                  (concat
+                   (if (= vertico--index index)
+                       (propertize "» " 'face 'vertico-current)
+                     "  ")
+                   cand)))
+
+
+
+
 
     ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! sur backword-kill)
-    ;; (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+    (require 'vertico-directory)
     ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
+    (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+    ;; (define-key vertico-map [remap delete-backward-char] #'vertico-directory-up)
 
     ;; pour pouvoir jump à une entrée
     ;; (define-key vertico-map [remap avy-goto-char] #'vertico-quick-jump)
 
+    (vertico-mode)
 
     )
+
 #+end_src
 
 
@@ -754,15 +772,24 @@ OVERCHEAT et je m'en sert tout le temps
 
 #+begin_src emacs-lisp 
 
-    ;; Complétation par candidats      
-    ;; Use the `orderless' completion style.
-    ;; Enable `partial-completion' for files to allow path expansion.
-    ;; You may prefer to use `initials' instead of `partial-completion'.
-    (use-package orderless
-      :init
-      (setq completion-styles '(orderless)
-	    completion-category-defaults nil
-	    completion-category-overrides '((file (styles partial-completion)))))
+  ;; Complétation par candidats      
+  ;; Use the `orderless' completion style.
+  ;; Enable `partial-completion' for files to allow path expansion.
+  ;; You may prefer to use `initials' instead of `partial-completion'.
+  (use-package orderless
+    :init
+    (setq completion-styles '(orderless)
+          completion-category-defaults nil
+          completion-category-overrides '((file (styles partial-completion))))
+    :config
+
+    ;;couleur avec company
+    (defun just-one-face (fn &rest args)
+      (let ((orderless-match-faces [completions-common-part]))
+        (apply fn args)))
+    (advice-add 'company-capf--candidates :around #'just-one-face)
+
+    )
 
 #+end_src
 
@@ -948,10 +975,12 @@ winner-undo and winner-redo
     (set-frame-position (selected-frame) 1050 0)
     (set-frame-size (selected-frame) 91 63))
 #+end_src
-*** Pour lancer deux fenêtre au démarrage
+*** Pour lancer deux fenêtre au démarrage, mais ne fait plus fonctionner org-icalendar-combine-agenda-files-background
 
 #+begin_src emacs-lisp
-  (make-frame)
+
+  ;; (make-frame)
+
 #+end_src
 
 *** Buffer temporaires dans une autre frame (dont scratch au démarrage)
@@ -1054,7 +1083,6 @@ Dépendances : all-the-icons et projectile
 *** Cacher certains fichiers
 
 #+begin_src emacs-lisp
-
   (setq dired-omit-files
         (rx (or
              (seq bol (? ".") "#")
@@ -1162,15 +1190,15 @@ Dépendances : all-the-icons et projectile
 ** Faire des recherches rapide
 
 #+begin_src emacs-lisp
-(use-package engine-mode
-	 :straight t
-	 :config
-	 (engine-mode t)
-	 (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
-	 (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
-	 (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
-	 (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
-	 (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
-	 (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
-	 (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
+  (use-package engine-mode
+           :straight t
+           :config
+           (engine-mode t)
+           (defengine duckduckgo "https://duckduckgo.com/?q=%s" :keybinding "d")
+           (defengine ecosia "https://www.ecosia.org/search?q=%s" :keybinding "e")
+           (defengine google "http://www.google.com/search?ie=utf-8&oe=utf-8&q=%s" :keybinding "g")
+           (defengine lilo "https://search.lilo.org/results.php?q=%s" :keybinding "l")
+           (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
+           (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
+           (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
 #+end_src

@@ -18,7 +18,7 @@
  (rear-context-string . "mon braindump\n\n\n")
  (position . 204))
 ("secondCerveau.org"
- (filename . "~/braindump/org/.data/2022/06/16/130244/secondCerveau.org")
+ (filename . "~/braindump/org/.data/2022/06/16/93340664791/secondCerveau.org")
  (front-context-string . "#+filetags: :pro")
  (rear-context-string)
  (position . 1))
@@ -33,10 +33,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20220616193341-comment_faire_un_second_cerveau.org")
- (front-context-string)
- (rear-context-string . " second cerveau\n")
- (position . 93))
+ (filename . "~/braindump/org/pages/20220620213457-quatrieme_mur.org")
+ (front-context-string . "\nIl s'agit d'un ")
+ (rear-context-string . "parc monjuzet\n\n\n")
+ (position . 186))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

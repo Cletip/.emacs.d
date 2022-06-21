@@ -4,6 +4,6 @@ var/save-place.el
 var/recentf-save.el
 var/keyfreq.el
 
-var/org/org-roam.db
+
 
 config/*.el

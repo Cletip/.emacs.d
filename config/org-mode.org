@@ -22,15 +22,16 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 (setq org-roam-directory org-directory)
 #+end_src
 
-
 *** Lieu de mon dossier de bibliographie
 
 #+begin_src emacs-lisp
-  (setq my-bibliography-list (list (expand-file-name "biblio.bib" config-directory)
+
+
+  (setq bibliography-directory (expand-file-name "dossierCitation/" config-directory))
+  ;; (setq my-bibliography-list (list (expand-file-name "dossierCitation/biblio.bib" bibliography-directory)
                                    ;; "/path/to/another/"
                                    ;; "/path/to/another/"
-                                   )
-        )
+                                   ;; ))
 #+end_src
 
 ** La bibliothèque d'automatisations des choses (à placer tôt) 
@@ -40,24 +41,24 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 À mettre à un endroit (org-roam-db-sync 'force) pour termux automatiquement
 
 #+begin_src emacs-lisp
-  (use-package vulpea
-    :if braindump-exists
-    :straight (vulpea
-               :type git
-               :host github
-               :repo "d12frosted/vulpea")
-    ;; hook into org-roam-db-autosync-mode you wish to enable
-    ;; persistence of meta values (see respective section in README to
-    ;; find out what meta means)
-    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
-    :config
-    (defun org-roam-vulpea-bdd ()
-      (interactive)
-      "Mets à jour la bdd pour l'utilisation de velpua"
-      (org-roam-db-sync 'force)
-      )
-    )
-  (require 'vulpea) ;;sinon ne charge pas tout je comprends pas pk
+   (use-package vulpea
+     :if braindump-exists
+     :straight (vulpea
+                :type git
+                :host github
+                :repo "d12frosted/vulpea")
+     ;; hook into org-roam-db-autosync-mode you wish to enable
+     ;; persistence of meta values (see respective section in README to
+     ;; find out what meta means)
+     :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+     :config
+     (defun org-roam-vulpea-bdd ()
+       (interactive)
+       "Mets à jour la bdd pour l'utilisation de velpua"
+       (org-roam-db-sync 'force)
+       )
+     )
+   (require 'vulpea);;sinon ne charge pas tout je comprends pas pk
 #+end_src
 
 
@@ -175,6 +176,12 @@ Si je fait avec C-u, alors org-insert-heading !
                                   ((org-at-table-p) #'org-table-wrap-region)
                                   ((org-in-item-p) #'org-insert-item)
                                   (t #'org-insert-heading-after-current)))))
+#+end_src
+
+***** Ne pas éditer qd le heading est plié
+
+#+begin_src emacs-lisp
+(setq-default org-catch-invisible-edits nil)
 #+end_src
 
 **** Esthétique d'org-mode
@@ -591,7 +598,6 @@ Deux stockage d'id : utilisé dans la db de org-roam, utiliser par org.
 Quand on clique sur un lien, les deux marche.
 Il faut dire à org où sont les fichiers avec les ids
 
-
 ***** Les id sont créés grâce à la date
 
 #+begin_src emacs-lisp
@@ -600,6 +606,24 @@ Il faut dire à org où sont les fichiers avec les ids
   (setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
 
 #+end_src
+
+(use-package org-id
+  :straight nil
+  :defer t
+  :hook ((before-save . vulpea-id-auto-assign)
+         (org-capture-prepare-finalize . org-id-get-create))
+  :init
+  (setq org-id-uuid-program
+        "uuidgen | tr \"[:upper:]\" \"[:lower:]\"")
+  :config
+  (setq
+   org-id-track-globally t
+   org-id-extra-files
+   (list (expand-file-name ".archive/archive" org-directory)
+         (expand-file-name ".archive/archive.org" org-directory))
+   org-id-link-to-org-use-id t
+   org-id-locations-file (expand-file-name "org-id-locations"
+                                           path-cache-dir)))
 
 ***** Ids chemin relatif
 
@@ -642,6 +666,30 @@ Il faut dire à org où sont les fichiers avec les ids
 
   ;;plus propre d'y mettre dans les extras
   (setq org-id-extra-files (append(directory-files-recursively config-directory "org$") (org-roam-list-files)))
+#+end_src
+
+
+
+***** TODO Pour mettre des les archives dans les id
+
+#+begin_src emacs-lisp :tangle no
+(use-package org-id
+  :straight nil
+  :defer t
+  :hook ((before-save . vulpea-id-auto-assign)
+         (org-capture-prepare-finalize . org-id-get-create))
+  :init
+  (setq org-id-uuid-program
+        "uuidgen | tr \"[:upper:]\" \"[:lower:]\"")
+  :config
+  (setq
+   org-id-track-globally t
+   org-id-extra-files
+   (list (expand-file-name ".archive/archive" org-directory)
+         (expand-file-name ".archive/archive.org" org-directory))
+   org-id-link-to-org-use-id t
+   org-id-locations-file (expand-file-name "org-id-locations"
+                                           path-cache-dir)))
 #+end_src
 
 ***** Les id sans org-roam
@@ -726,6 +774,8 @@ Ce qu'il faut faire :
   ;; Update ID file .org-id-locations on startup
   ;; (org-id-update-id-locations)
 #+end_src
+
+
 **** Gestion de capture de connaissances
 
 ***** Lieu de mon inbox
@@ -744,9 +794,9 @@ Ce qu'il faut faire :
 Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
 
 #+begin_src emacs-lisp
-  ;; (setq org-capture-templates
-        ;; '(("t" "todo" plain (file capture-inbox-file)
-           ;; "* TODO %?\n%U\n" )))
+  (setq org-capture-templates
+         '(("t" "todo" plain (file capture-inbox-file)
+            "* TODO %?\n%U\n" )))
 #+end_src
 
 Ancien : 
@@ -921,9 +971,9 @@ refile
 #+begin_src emacs-lisp
 
   ;;Lieu de l'export org-icalendar-combine-agenda-files
-  (setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogletest.ics" braindump-directory))
+  (setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogle.ics" braindump-directory))
 
-    (setq org-icalendar-with-timestamps 'active) ;; seulement les timestamp active pour exporter les évèmenements.
+  (setq org-icalendar-with-timestamps 'active) ;; seulement les timestamp active pour exporter les évèmenements.
   (setq org-icalendar-include-todo nil) ;; sinon ça clone les choses schedulded
   (setq org-icalendar-use-scheduled '(
                                       ;; event-if-not-todo ;;pour pas exporter mes tickler
@@ -950,6 +1000,11 @@ refile
   ;; quand je close emacs, lance le processus
   ;; (add-hook 'kill-emacs-hook #'org-icalendar-combine-agenda-files-foreground)
 
+  ;; dès que la data base se syncronise, je mets à jour mon calendrier
+
+  (with-eval-after-load 'org-roam
+    ;; (advice-add 'org-roam-db-sync :after #'org-icalendar-combine-agenda-files-background)
+    )
 #+end_src
 
 
@@ -968,7 +1023,8 @@ Principe : mettre aux notes qui ont un state todo un tag "project", puis parcour
 
 Ne rajoute pas le tag "projet" au headline dans un fichier qui a comme filetag "project" (logique, car sinon tous les noeuds en dessous ont le tag projet aussi. Seul les fichiers nous intéresse)
 #+begin_src emacs-lisp
-(add-to-list 'org-tags-exclude-from-inheritance "project")
+  (add-to-list 'org-tags-exclude-from-inheritance "PROJECT")
+  (add-to-list 'org-tags-exclude-from-inheritance "PERSONNE")
 #+end_src
 
 Pour ajouter des fichiers dans une liste:
@@ -993,8 +1049,8 @@ Pour ajouter des fichiers dans une liste:
         (let* ((tags (vulpea-buffer-tags-get))
                (original-tags tags))
           (if (vulpea-project-p)
-              (setq tags (cons "project" tags))
-            (setq tags (remove "project" tags)))
+              (setq tags (cons "PROJECT" tags))
+            (setq tags (remove "PROJECT" tags)))
 
           ;; cleanup duplicates
           (setq tags (seq-uniq tags))
@@ -1052,7 +1108,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
                 :from tags
                 :left-join nodes
                 :on (= tags:node-id nodes:id)
-                :where (like tag (quote "%\"project\"%"))]))))
+                :where (like tag (quote "%\"PROJECT\"%"))]))))
 
   (defun vulpea-agenda-files-update (&rest _)
     "Update the value of `org-agenda-files'."
@@ -1066,7 +1122,9 @@ Now all we have to do is to check if the buffer list contains at least one keywo
 #+end_src
 
 
-******* Mise à jour automatisé des tags projets dans les notes avec le projet, à automatiser à un endroit. Je sais même pas si j'en ai besoin, car ça update à chaque sauvegarde. Et je sauvegarde tout le temps. Bon exemple après pour le lisp
+******* (migration) Mise à jour automatisé des tags projets dans les notes avec le projet, à automatiser à un endroit. Je sais même pas si j'en ai besoin, car ça update à chaque sauvegarde. Et je sauvegarde tout le temps. Bon exemple après pour le lisp
+
+
 
 #+begin_src emacs-lisp :tangle no
 (dolist (file (org-roam-list-files))
@@ -1177,9 +1235,13 @@ Now all we have to do is to check if the buffer list contains at least one keywo
 
 **** Gestion des tâches
 
-
-
 ***** Gestion des projet
+
+****** Empêche les parent d'être coché si les fils ne le sont pas
+
+#+begin_src emacs-lisp
+(setq org-enforce-todo-dependencies t)
+#+end_src
 
 ***** Gestions des habitues
 
@@ -1234,7 +1296,7 @@ Appeler dans vulpea-tags-add
       "Add respective file tag if it's missing in the current note."
       (let ((tags (vulpea-buffer-tags-get))
             (tag (vulpea--title-as-tag)))
-        (when (and (seq-contains-p tags "people")
+        (when (and (seq-contains-p tags "PERSONNE")
                    (not (seq-contains-p tags tag)))
           (vulpea-buffer-tags-add tag))))
 
@@ -1256,7 +1318,7 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
   "Hook to be called on NOTE after `vulpea-insert'."
   (when-let* ((title (vulpea-note-title note))
               (tags (vulpea-note-tags note)))
-    (when (seq-contains-p tags "people")
+    (when (seq-contains-p tags "PERSONNE")
       (save-excursion
         (ignore-errors
           (org-back-to-heading)
@@ -1291,7 +1353,7 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
                   :filter-fn
                   (lambda (note)
                     (seq-contains-p (vulpea-note-tags note)
-                                    "people"))))
+                                    "PERSONNE"))))
          (node (org-roam-node-from-id (vulpea-note-id person)))
          (names (cons (org-roam-node-title node)
                       (org-roam-node-aliases node)))
@@ -1504,10 +1566,21 @@ Patch de la fonction pour pouvoir attach des dossiers
   (require 'org-attach-git)
 #+end_src
 
-**** TODO Gestion des archives
+**** Gestion des archives
 
 #+begin_src emacs-lisp
-    (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
+
+  (use-package org-archive
+    :straight nil
+    :defer t
+    :init
+    (setq-default
+     org-archive-location
+     (concat braindump-directory "org/.archive/%s_archive" "::" "datetree/")
+     org-archive-save-context-info
+     '(time file ltags itags todo category olpath)))
+
+  ;; (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
 #+end_src
 
 **** Gestion de l'intéraction avec le pc
@@ -1550,9 +1623,9 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+end_src
 
 
-***** Test termux
+***** Test termux, plus besoin 
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   
   (when nil
 
@@ -1608,13 +1681,25 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+end_src
 
 
-***** Base et amélioration mineur
+***** Amélioration mineur et completion
+
+  ;;pour mes fichiers agenda prennent en compte les hook, il suffit de faire un revert
+
 #+begin_src emacs-lisp
 
-  (setq org-roam-completion-everywhere t) ;; pour avoir la complétien partout
 
-  ;; syncro automatique avec les fichiers 
-  (org-roam-db-autosync-mode +1)
+  ;; complétion et proprosition
+  (setq org-roam-completion-everywhere t) ;; pour avoir la complétion partout avec company
+  (setq completion-ignore-case t) ;; ne dépend pas de la case pour la complétion
+  (with-eval-after-load 'company
+    (add-to-list 'company-backends 'company-capf) ;;completion avec org-roam
+    )
+
+  (add-hook 'org-mode-hook 'company-mode)
+  (add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
+
+  ;; syncro automatique avec les fichiers
+  (org-roam-db-autosync-mode)
 
   ;; pour améliorer les perf
   (setq org-roam-db-gc-threshold most-positive-fixnum)
@@ -1631,6 +1716,12 @@ Patch de la fonction pour pouvoir attach des dossiers
 ***** Org-roam capture
 
 #+begin_src emacs-lisp
+
+  ;;ajout du tag BROUILLON tant que c'est pas fini
+  (defun jethro/tag-new-node-as-draft ()
+    (org-roam-tag-add '("BROUILLON")))
+  (add-hook 'org-roam-capture-new-node-hook #'jethro/tag-new-node-as-draft)
+
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
@@ -1900,13 +1991,13 @@ ou bien juste :
 
   (use-package citar
     ;; :after all-the-icons ;; besoin des icones pour charger les propositions
-    :after oc-csl all-the-icons
+    ;; :after oc-csl all-the-icons
     :custom
     ;;lieu de ma bibliographie
-    (citar-bibliography (list (concat org-roam-directory "biblio.bib")))
+    (citar-bibliography (list (concat bibliography-directory "biblio.bib")))
     :config
-    ;; pour complété avec consult yeah
-    (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
+    ;; pour complété avec consult yeah, pas besoin
+    ;; (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
 
     ;; comment on gère l'affichage des propositions en dur
     (setq citar-templates
@@ -1946,16 +2037,18 @@ ou bien juste :
       (plist-put org-hugo-citations-plist :bibliography-section-heading "References"))
 
     :config
-    (setq org-cite-global-bibliography my-bibliography-list) ;; pour que org-cite sache où est ma biblio
+    (setq org-cite-global-bibliography (list (concat bibliography-directory "biblio.bib"))) ;; pour que org-cite sache où est ma biblio
+
+    
+    (require 'oc-csl)
     (setq org-cite-export-processors '((t csl)));; exporter tout le temps avec la méthode csl
 
     ;; les fichiers de configuration. Impossible de les configurer "normalement" (voir en dessous), j'utilise donc les fichiers "fallback" qui sont ceux par défaut
     ;; (setq org-cite-csl--fallback-style-file "/home/msi/documents/notes/braindump/org/chicago-author-date-16th-edition.csl") ;;
 
+    (setq org-cite-csl--fallback-locales-dir bibliography-directory)
+    (setq org-cite-csl--fallback-style-file (concat bibliography-directory "vancouver-brackets.csl"));; pour changer le style. Vancouver = numéro
 
-    ;;à remettre
-    (setq org-cite-csl--fallback-style-file (concat org-roam-directory "vancouver-brackets.csl"));; pour changer le style. Vancouver = numéro
-    (setq org-cite-csl--fallback-locales-dir org-roam-directory)
     )
 
   ;;le bordel ici, mais pas utilisé
