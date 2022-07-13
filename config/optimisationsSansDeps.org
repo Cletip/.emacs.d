@@ -1,7 +1,6 @@
 
 
-* Variable and mode built-in 
-
+* Variable and mode built-in
 
 ** bases esthétique
 
@@ -76,7 +75,9 @@ Cela permet de ré-avoir les commandes faites lors de la dernière session d'ema
     Version 2019-11-05"
       (interactive)
       (save-some-buffers t ))
-  (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
+  ;; (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
+      ;; sauvegarde automatique avec command mode
+    (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
 
   (setq make-backup-files t               ; backup of a file the first time it is saved.
         backup-by-copying t               ; don't clobber symlinks
@@ -244,6 +245,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 ** Navigation
 *** Consult
 
+
 #+begin_src emacs-lisp
 
   (use-package consult
@@ -253,9 +255,9 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
     ;; Définition de mes fonctions
     (defun cp/consult-line-or-with-word ()
       "Call `consult-line' on current word or text selection.
-              “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-              URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
-              Version 2015-04-09"
+                  “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+                  URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+                  Version 2015-04-09"
       (interactive)
       (let ($p1 $p2)
         (if (use-region-p)
@@ -270,14 +272,29 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
           (goto-char $p1))
         (consult-line (buffer-substring-no-properties $p1 $p2))))
 
-    (defun cp/consult-ripgrep-with-directory ()
+    (defun cp/consult-ripgrep-with-directory (&optional dir)
       (interactive)
-      (consult-ripgrep (read-directory-name "Directory:"))
+      (consult-ripgrep (or dir (read-directory-name "Directory:")))
       )
-    
     )
 
 #+end_src
+
+;; peut marcher aussi : 
+(defun cp/consult-line-or-with-word (&optional initial)
+      (interactive (progn
+                     (if (use-region-p)
+                         (progn
+                           (setq $p1 (region-beginning))
+                           (setq $p2 (region-end)))
+                       (save-excursion
+                         (setq $p1 (point))
+                         (setq $p2 (point))))
+                     (list (buffer-substring-no-properties $p1 $p2))
+                     )
+                   )
+      (consult-line initial)
+      )
 
 *** Pour jump sur un endroit sur la fenêtre d'emacs
 
@@ -419,23 +436,105 @@ CLOSED: [2022-04-10 Sun 23:00]
 #+end_src
 
 *** Curseur
-**** Trainée de lumière pour pas perdre le curseur
+**** Trainée de lumière pour pas perdre le curseur, désactiver consomme toute la ram
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
   (use-package beacon
     :config
     (setq beacon-blink-delay 0.0)
     (setq beacon-blink-duration 0.5)
-    (setq beacon-size 60)
-    ;; (setq beacon-color "#ffa38f")
+    (setq beacon-size 20)
     (setq beacon-color "red")
     (beacon-mode 1)
     )
 
 
  #+end_src
+
+
  
+**** Trainée de lumière sur la ligne à certains moment
+
+#+begin_src emacs-lisp :tangle no
+
+  (use-package pulsar
+    :config
+    (setq pulsar-pulse-functions
+          ;; fonction qui active l'effet
+          ;; NOTE 2022-04-09: The commented out functions are from before
+          ;; the introduction of `pulsar-pulse-on-window-change'.  Try that
+          ;; instead.
+          '(recenter-top-bottom
+            move-to-window-line-top-bottom
+            reposition-window
+            bookmark-jump
+            other-window
+            delete-window
+            delete-other-windows
+            forward-page
+            backward-page
+            scroll-up-command
+            scroll-down-command
+            ;; windmove-right
+            ;; windmove-left
+            ;; windmove-up
+            ;; windmove-down
+            ;; windmove-swap-states-right
+            ;; windmove-swap-states-left
+            ;; windmove-swap-states-up
+            ;; windmove-swap-states-down
+            ;; tab-new
+            ;; tab-close
+            ;; tab-next
+            org-next-visible-heading
+            org-previous-visible-heading
+            org-forward-heading-same-level
+            org-backward-heading-same-level
+            outline-backward-same-level
+            outline-forward-same-level
+            outline-next-visible-heading
+            outline-previous-visible-heading
+            outline-up-heading))
+
+    (setq pulsar-pulse-on-window-change t)
+    (setq pulsar-pulse t)
+    (setq pulsar-delay 0.02)
+    (setq pulsar-iterations 30)
+    (setq pulsar-face 'pulsar-cyan)
+    ;; (setq pulsar-highlight-face 'pulsar-gray)
+
+    (pulsar-global-mode 1)
+
+    ;; OR use the local mode for select mode hooks
+    ;; (dolist (hook '(org-mode-hook emacs-lisp-mode-hook))
+    ;; (add-hook hook #'pulsar-mode))
+
+    ;; pulsar does not define any key bindings.  This is just a sample that
+    ;; respects the key binding conventions.  Evaluate:
+    ;;
+    ;;     (info "(elisp) Key Binding Conventions")
+    ;;
+    ;; The author uses C-x l for `pulsar-pulse-line' and C-x L for
+    ;; `pulsar-highlight-line'.
+    ;;
+    ;; You can replace `pulsar-highlight-line' with the command
+    ;; `pulsar-highlight-dwim'.
+    ;; (let ((map global-map))
+    ;; (define-key map (kbd "C-c h p") #'pulsar-pulse-line)
+    ;; (define-key map (kbd "C-c h h") #'pulsar-highlight-line)
+    ;;   )
+
+    ;; integration with the `consult' package, pas besoin mais pour le test:
+    ;; (add-hook 'consult-after-jump-hook #'pulsar-recenter-top)
+    ;; (add-hook 'consult-after-jump-hook #'pulsar-reveal-entry)
+
+    )
+
+
+
+#+end_src
+
 **** Surlignage ligne du curseur
 #+begin_src emacs-lisp
  (global-hl-line-mode t)
@@ -731,10 +830,11 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
 
 
 
-    ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! sur backword-kill)
+    ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! )
     (require 'vertico-directory)
     ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
-    (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+    ;; (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+    (define-key vertico-map [remap open-line] #'vertico-directory-up)
     ;; (define-key vertico-map [remap delete-backward-char] #'vertico-directory-up)
 
     ;; pour pouvoir jump à une entrée
@@ -1030,9 +1130,7 @@ Dépendances : all-the-icons et projectile
 
 #+end_src
 
-* File Manager dired
-
-
+* File Manager
 *** Optimisation de base
 
 #+begin_src emacs-lisp
@@ -1142,6 +1240,29 @@ Dépendances : all-the-icons et projectile
 
 
 #+end_src
+
+*** Fonction pour rename file et buffer
+
+#+begin_src emacs-lisp
+  (defun rename-file-and-buffer (new-name)
+    "Renames both current buffer and file it's visiting to NEW-NAME."
+    (interactive "sNew name: ")
+    (let ((name (buffer-name))
+          (filename (buffer-file-name)))
+      (if (not filename)
+          (message "Buffer '%s' is not visiting a file!" name)
+        (if (get-buffer new-name)
+            (message "A buffer named '%s' already exists!" new-name)
+          (progn
+            (rename-file filename new-name 1)
+            (rename-buffer new-name)
+            (set-visited-file-name new-name)
+            (set-buffer-modified-p nil))))))
+
+  ;; (rename-file-and-buffer (concat "../liens/" (file-name-nondirectory buffer-file-name)))
+
+#+end_src
+
 * Emacs restart
 
 #+begin_src emacs-lisp

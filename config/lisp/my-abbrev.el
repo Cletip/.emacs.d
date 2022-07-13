@@ -10,8 +10,13 @@
     ("mail1" "payard.clement63@gmail.com")
     ("mail2" "clement020302@gmail.com")
 
-    ("ts" "timestamp")
-
+    ;;abbréviations pour le tel notamment
+    ("bc" "beaucoup")
+    ("pk" "pourquoi")
+    ("tt" "tout")
+    ("qqch" "quelque chose")
+    ("bjr" "bonjour")
+    ("cad" "bonjour")
 
     ;; net abbrev
     ("afaik" "as far as i know")
@@ -19,7 +24,7 @@
     ("dfb" "difference between")
     ("---" "--->")
     ("ty" "thank you")
-    ("ui" "user interface")
+    ;; ("ui" "user interface")
     ("uns" "understand")
     ("ur" "you are")
     ("btw" "by the way")
@@ -57,7 +62,6 @@
     ("subdir" "sub-directory")
     ("wd" "web development")
 
-    ;; ("db" "database")
     ("gui3" "graphical user interface")
     ("oop3" "object oriented programing")
 
@@ -131,14 +135,13 @@ func main() {
   (clear-abbrev-table org-mode-abbrev-table))
 
 (define-abbrev-table 'org-mode-abbrev-table
-  '(("if" "if 4 { 3 }")
+  '(
+    ;; ("if" "if 4 { 3 }")
+    
     ("upk" "use-package")
 
     ("acb" "l'accessibilité")
-    ("fr" "for k, v := range xxx {
-▮
-    }
-")
+    
     ;;
 
     ))

@@ -1,15 +1,12 @@
 ;; éviter "Package cl is deprecated"
 (setq byte-compile-warnings '(cl-functions))
 
-;; in ~/.emacs.d/init.el (or ~/.emacs.d/early-init.el in Emacs 27)
-(setq package-enable-at-startup nil) ; don't auto-initialize!
-
-;; prevent resize window on startup and boost a little speed
-(setq frame-inhibit-implied-resize t)
+;; Disable package.el in favor of straight.el
+(setq package-enable-at-startup nil)
 
 ;; Optimisation du temps de chargement
-;;pour aller plus vite
-(setq package-enable-at-startup nil)
+;; prevent resize window on startup and boost a little speed
+(setq frame-inhibit-implied-resize t)
 
 ;; Inspiré de la FAQ de doom : https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org
 ;;

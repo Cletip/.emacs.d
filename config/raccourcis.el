@@ -51,6 +51,8 @@
   (setq xah-fly-use-meta-key nil)
 
   ;; choisir son clavier, important
+  ;; lsusb | grep Omkbd\ ErgoDash ;;pour obtenir si le clavier est connecté
+  ;; ou bien peut-être termux-usb -l
   (if termux-p
       (xah-fly-keys-set-layout "azerty")
     (xah-fly-keys-set-layout "beopy"))

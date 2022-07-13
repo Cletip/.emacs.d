@@ -128,3 +128,18 @@
 
 (use-package yasnippet-snippets ;; un pack de snippets
   :diminish)
+
+(use-package projectile
+  :config
+  ;; (projectile-global-mode)
+  ;;(setq projectile-completion-system 'ivy)
+  )
+
+(defun xah-print-hash (hashtable)
+  "Prints the hashtable, each line is key, val"
+  (maphash
+   (lambda (k v)
+     (princ (format "%s , %s" k v))
+     (princ "\n"))
+   hashtable
+   ))

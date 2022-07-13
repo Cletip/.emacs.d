@@ -3,7 +3,8 @@ var/savehist.el
 var/save-place.el
 var/recentf-save.el
 var/keyfreq.el
-
-
+var/transient/history.el
 
 config/*.el
+
+var/org/org-roam.db

@@ -49,7 +49,9 @@
   Version 2019-11-05"
     (interactive)
     (save-some-buffers t ))
-(add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
+;; (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
+    ;; sauvegarde automatique avec command mode
+  (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
 
 (setq make-backup-files t               ; backup of a file the first time it is saved.
       backup-by-copying t               ; don't clobber symlinks
@@ -135,9 +137,9 @@
   ;; Définition de mes fonctions
   (defun cp/consult-line-or-with-word ()
     "Call `consult-line' on current word or text selection.
-            “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-            URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
-            Version 2015-04-09"
+                “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+                URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+                Version 2015-04-09"
     (interactive)
     (let ($p1 $p2)
       (if (use-region-p)
@@ -152,11 +154,10 @@
         (goto-char $p1))
       (consult-line (buffer-substring-no-properties $p1 $p2))))
 
-  (defun cp/consult-ripgrep-with-directory ()
+  (defun cp/consult-ripgrep-with-directory (&optional dir)
     (interactive)
-    (consult-ripgrep (read-directory-name "Directory:"))
+    (consult-ripgrep (or dir (read-directory-name "Directory:")))
     )
-
   )
 
 (use-package avy
@@ -240,16 +241,6 @@ Version 2017-06-02"
 
 (add-hook 'prog-mode-hook #'numéro-des-lignes-relatif)
 ;; (add-hook 'org-mode-hook #'numéro-des-lignes-relatif)
-
-(use-package beacon
-  :config
-  (setq beacon-blink-delay 0.0)
-  (setq beacon-blink-duration 0.5)
-  (setq beacon-size 60)
-  ;; (setq beacon-color "#ffa38f")
-  (setq beacon-color "red")
-  (beacon-mode 1)
-  )
 
 (global-hl-line-mode t)
 (set-face-background hl-line-face "#311")
@@ -366,10 +357,11 @@ Version 2017-06-02"
 
 
 
-  ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! sur backword-kill)
+  ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! )
   (require 'vertico-directory)
   ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
-  (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+  ;; (define-key vertico-map [remap xah-delete-backward-char-or-bracket-text] #'vertico-directory-up)
+  (define-key vertico-map [remap open-line] #'vertico-directory-up)
   ;; (define-key vertico-map [remap delete-backward-char] #'vertico-directory-up)
 
   ;; pour pouvoir jump à une entrée
@@ -642,6 +634,23 @@ reuse it's window, otherwise create new one."
 (defun concat-string-list (list) 
   "Return a string which is a concatenation of all elements of the list separated by spaces" 
   (mapconcat #'(lambda (obj) (format "%s" obj)) list " "))
+
+(defun rename-file-and-buffer (new-name)
+  "Renames both current buffer and file it's visiting to NEW-NAME."
+  (interactive "sNew name: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (get-buffer new-name)
+          (message "A buffer named '%s' already exists!" new-name)
+        (progn
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil))))))
+
+;; (rename-file-and-buffer (concat "../liens/" (file-name-nondirectory buffer-file-name)))
 
 (use-package restart-emacs
     :config (defalias 'emacs-restart #'restart-emacs)

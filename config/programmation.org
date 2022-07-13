@@ -1,4 +1,3 @@
-#+TODO: ACTIVE | DISABLED
 
 
 *** Programming 
@@ -290,4 +289,56 @@ Auto-complete existe aussi, mais pas aussi efficace.
   (use-package yasnippet-snippets ;; un pack de snippets
     :diminish)
 
+#+end_src
+
+
+**** Gestion de projet
+#+begin_src emacs-lisp 
+  (use-package projectile
+    :config
+    ;; (projectile-global-mode)
+    ;;(setq projectile-completion-system 'ivy)
+    )
+#+end_src
+**** Language without lsp
+***** Elisp
+
+****** TODO xah fly elisp mode, pas encore utilisé
+
+Documentation : 
+http://ergoemacs.org/emacs/xah-elisp-mode.html
+
+Liste des abbrev : M-x list-abbrevs
+
+#+begin_src emacs-lisp :tangle no
+(use-package xah-elisp-mode)
+#+end_src
+
+
+
+****** Pour afficher joliment une hash-map
+
+#+begin_src emacs-lisp
+
+  (defun xah-print-hash (hashtable)
+    "Prints the hashtable, each line is key, val"
+    (maphash
+     (lambda (k v)
+       (princ (format "%s , %s" k v))
+       (princ "\n"))
+     hashtable
+     ))
+
+#+end_src
+
+***** TODO  Processing 3 (cours)
+
+#+begin_src emacs-lisp :tangle no
+  
+  (use-package processing-mode)
+  (add-to-list 'auto-mode-alist '("\\.pde\\'" . processing-mode))
+
+  
+  (setq processing-location "~/Téléchargements/processing-3.5.4/processing-java")
+  
 #+end_src

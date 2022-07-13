@@ -70,6 +70,8 @@ Fork de xah pour faire des modifications de mon côté
     (setq xah-fly-use-meta-key nil)
 
     ;; choisir son clavier, important
+    ;; lsusb | grep Omkbd\ ErgoDash ;;pour obtenir si le clavier est connecté
+    ;; ou bien peut-être termux-usb -l
     (if termux-p
         (xah-fly-keys-set-layout "azerty")
       (xah-fly-keys-set-layout "beopy"))
@@ -182,7 +184,7 @@ Fork de xah pour faire des modifications de mon côté
 * Chargement de mes abbréviation 
 
 #+begin_src emacs-lisp
-(load "~/.emacs.d/config/lisp/my-abbrev.el")
+  (load "~/.emacs.d/config/lisp/my-abbrev.el") 
 #+end_src
 
 * Compter le nombre de chaque commande faite (bien pour optimiser les raccourcis)

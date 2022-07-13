@@ -9,7 +9,6 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 * Config + code final
 
 ** Variables de chemins et autres utile dans tous les cas
-
 *** Lieu de mon dossier org-directory (tout se base sur lui)
 
 #+begin_src emacs-lisp
@@ -29,36 +28,46 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 
   (setq bibliography-directory (expand-file-name "dossierCitation/" config-directory))
   ;; (setq my-bibliography-list (list (expand-file-name "dossierCitation/biblio.bib" bibliography-directory)
-                                   ;; "/path/to/another/"
-                                   ;; "/path/to/another/"
-                                   ;; ))
+  ;; "/path/to/another/"
+  ;; "/path/to/another/"
+  ;; ))
+
+  (setq bibliography-file-list (list
+                                (concat bibliography-directory "biblio.bib")
+                                ;; "test"
+                                ))
+
 #+end_src
 
 ** La bibliothèque d'automatisations des choses (à placer tôt) 
 
 =Si c'est le premier lancement, faire un (org-roam-db-sync 'force), puis syncroniser la database=
 
-À mettre à un endroit (org-roam-db-sync 'force) pour termux automatiquement
+À mettre à un endroit (org-roam-db-sync 'force) pour termux automatiquement ? non
 
 #+begin_src emacs-lisp
-   (use-package vulpea
-     :if braindump-exists
-     :straight (vulpea
-                :type git
-                :host github
-                :repo "d12frosted/vulpea")
-     ;; hook into org-roam-db-autosync-mode you wish to enable
-     ;; persistence of meta values (see respective section in README to
-     ;; find out what meta means)
-     :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
-     :config
-     (defun org-roam-vulpea-bdd ()
-       (interactive)
-       "Mets à jour la bdd pour l'utilisation de velpua"
-       (org-roam-db-sync 'force)
-       )
-     )
-   (require 'vulpea);;sinon ne charge pas tout je comprends pas pk
+  (use-package vulpea
+    :if braindump-exists
+    :straight (vulpea
+               :type git
+               :host github
+               :repo "d12frosted/vulpea")
+    ;; hook into org-roam-db-autosync-mode you wish to enable
+    ;; persistence of meta values (see respective section in README to
+    ;; find out what meta means)
+    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+    :config
+    (defun org-roam-vulpea-bdd ()
+      (interactive)
+      "Mets à jour la bdd pour l'utilisation de velpua"
+      (org-roam-db-sync 'force)
+      )
+    )
+  (require 'vulpea);;sinon ne charge pas tout je comprends pas pk
+
+  (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
+
+
 #+end_src
 
 
@@ -68,42 +77,44 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 **** Optimisation de bases
 ***** Les TODO en done quand tous les sous arbres sont done
 #+begin_src emacs-lisp
-     (defun org-summary-todo (n-done n-not-done)
-       "Switch entry to DONE when all subentries are done, to TODO otherwise."
-       (let (org-log-done org-log-states)   ; turn off logging
-         (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+  (defun org-summary-todo (n-done n-not-done)
+    "Switch entry to DONE when all subentries are done, to TODO otherwise."
+    (let (org-log-done org-log-states)   ; turn off logging
+      (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
 
-     (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+  
 #+end_src
 
 Pour les checkbox
     #+begin_src emacs-lisp
-	    (defun my/org-checkbox-todo ()
-	      "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
-	      (let ((todo-state (org-get-todo-state)) beg end)
-		(unless (not todo-state)
-		  (save-excursion
-		(org-back-to-heading t)
-		(setq beg (point))
-		(end-of-line)
-		(setq end (point))
-		(goto-char beg)
-		(if (re-search-forward "\\[\\([0-9]*%\\)\\]\\|\\[\\([0-9]*\\)/\\([0-9]*\\)\\]"
-			       end t)
-		    (if (match-end 1)
-		    (if (equal (match-string 1) "100%")
-			(unless (string-equal todo-state "DONE")
-			  (org-todo 'done))
-		      (unless (string-equal todo-state "TODO")
-			(org-todo 'todo)))
-		      (if (and (> (match-end 2) (match-beginning 2))
-			   (equal (match-string 2) (match-string 3)))
-		      (unless (string-equal todo-state "DONE")
-			(org-todo 'done))
-		    (unless (string-equal todo-state "TODO")
-		      (org-todo 'todo)))))))))
-      
+            (defun my/org-checkbox-todo ()
+              "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
+              (let ((todo-state (org-get-todo-state)) beg end)
+                (unless (not todo-state)
+                  (save-excursion
+                (org-back-to-heading t)
+                (setq beg (point))
+                (end-of-line)
+                (setq end (point))
+                (goto-char beg)
+                (if (re-search-forward "\\[\\([0-9]*%\\)\\]\\|\\[\\([0-9]*\\)/\\([0-9]*\\)\\]"
+                               end t)
+                    (if (match-end 1)
+                    (if (equal (match-string 1) "100%")
+                        (unless (string-equal todo-state "DONE")
+                          (org-todo 'done))
+                      (unless (string-equal todo-state "TODO")
+                        (org-todo 'todo)))
+                      (if (and (> (match-end 2) (match-beginning 2))
+                           (equal (match-string 2) (match-string 3)))
+                      (unless (string-equal todo-state "DONE")
+                        (org-todo 'done))
+                    (unless (string-equal todo-state "TODO")
+                      (org-todo 'todo)))))))))
+
       (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
+
     #+end_src
 
 ***** Better templates / <el shortcutt
@@ -122,6 +133,7 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
   (add-to-list 'org-structure-template-alist '("py" . "src python"))
   (add-to-list 'org-structure-template-alist '("yaml" . "src yaml"))
   (add-to-list 'org-structure-template-alist '("json" . "src json"))
+  
 #+end_src
 
 ***** TODO Pour insérer du sons + Jouer un son quand Done
@@ -152,7 +164,9 @@ Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 ***** Pour avoir une barre de navigation sur le côté
 
 #+begin_src emacs-lisp
-(use-package org-sidebar)
+
+    (use-package org-sidebar)
+      
 #+end_src
 ***** Pour insérer un nouveau titre comme le précédent visible 
 
@@ -176,6 +190,7 @@ Si je fait avec C-u, alors org-insert-heading !
                                   ((org-at-table-p) #'org-table-wrap-region)
                                   ((org-in-item-p) #'org-insert-item)
                                   (t #'org-insert-heading-after-current)))))
+
 #+end_src
 
 ***** Ne pas éditer qd le heading est plié
@@ -453,7 +468,7 @@ Tout se trouve dans .dotfiles/.fonts
 
 #+end_src
 
-**** Pour coder dans org
+**** Pour coder dans org (org-babel)
 ***** Les langages chargé par org-babel
 
 Do not load all to booste the startup time 
@@ -504,6 +519,37 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
 #+begin_src emacs-lisp
   (setq org-src-fontify-natively t)
 #+end_src
+
+***** Permet de gérer l'erreur des parenthèse quand il y a un "<"
+
+#+begin_src emacs-lisp
+  
+  (defun org-mode-<>-syntax-fix (start end)
+    "Change syntax of characters ?< and ?> to symbol within source code blocks."
+    (let ((case-fold-search t))
+      (when (eq major-mode 'org-mode)
+        (save-excursion
+          (goto-char start)
+          (while (re-search-forward "<\\|>" end t)
+            (when (save-excursion
+                    (and
+                     (re-search-backward "[[:space:]]*#\\+\\(begin\\|end\\)_src\\_>" nil t)
+                     (string-equal (downcase (match-string 1)) "begin")))
+              ;; This is a < or > in an org-src block
+              (put-text-property (point) (1- (point))
+                                 'syntax-table (string-to-syntax "_"))))))))
+
+  (defun org-setup-<>-syntax-fix ()
+    "Setup for characters ?< and ?> in source code blocks.
+  Add this function to `org-mode-hook'."
+    (make-local-variable 'syntax-propertize-function)
+    (setq syntax-propertize-function 'org-mode-<>-syntax-fix)
+    (syntax-propertize (point-max)))
+
+  (add-hook 'org-mode-hook #'org-setup-<>-syntax-fix)
+
+#+end_src
+
 **** Latex
 ***** TODO Yasnippets de Latex dans org, désactive org bullet, à faire après les yasnippets
 
@@ -526,18 +572,18 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
     (add-to-list 'org-latex-classes
                  '("org-plain-latex"
                    "\\documentclass{article}
-                 [NO-DEFAULT-PACKAGES]
-                 [PACKAGES]
-                 [EXTRA]"
+                   [NO-DEFAULT-PACKAGES]
+                   [PACKAGES]
+                   [EXTRA]"
                    ("\\section{%s}" . "\\section*{%s}")
                    ("\\subsection{%s}" . "\\subsection*{%s}")
                    ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
                    ("\\paragraph{%s}" . "\\paragraph*{%s}")
                    ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
 
-)
+                 )
 
-)
+    )
 
 #+end_src
 **** Options sur les exports (sauf Latex) + Nouveaux exports org-modet
@@ -634,8 +680,8 @@ Il faut dire à org où sont les fichiers avec les ids
 
 #+begin_src emacs-lisp
   ;; (org-roam-update-org-id-locations) ;; =  org-directory and org-roam-directory
-  (org-id-update-id-locations)
 
+  ;; (org-id-update-id-locations) ;;plus besoin normalement
 
   ;; seul transclude en a besoin. Peut peut-être ralentir les choses
 
@@ -645,7 +691,6 @@ Il faut dire à org où sont les fichiers avec les ids
 ***** Les ids des fichiers
 
 #+begin_src emacs-lisp
-
   ;; This implies that when that function is executed, the files whose
   ;; content is searched for IDs (i.e. they are scanned) are
   ;;
@@ -776,6 +821,158 @@ Ce qu'il faut faire :
 #+end_src
 
 
+**** Gestion des métadata
+
+***** Gestion de la dernière date de modification 
+
+#+begin_src emacs-lisp 
+
+  ;;j'enlève la création de ctime, car c'est donné par l'id ! et je remplace la fonction qui obtient le ctime par la partie de l'id qu'il faut (pour plus tard je pense)
+  (use-package org-roam-timestamps
+    :after org-roam
+    :config
+
+    (defun org-roam-timestamps--on-save ()
+      "Set the MTIME property of the current org-roam-node to the current time."
+      (when (org-roam-buffer-p)
+        (let* ((node (org-roam-node-at-point))
+               (file (org-roam-node-file node))
+               (pos (org-roam-node-point node))
+               (level (org-roam-node-level node))
+               (mtime (org-roam-timestamps--get-mtime node)))
+
+          (org-roam-timestamps--add-mtime node mtime)
+          (when (and org-roam-timestamps-timestamp-parent-file (not (eq level 0)))
+            (let* ((pnode (org-roam-timestamps--get-parent-file-node file))
+                   (pmtime (org-roam-timestamps--get-mtime pnode))
+                   (ppos (buffer-end -1)))
+              (org-roam-timestamps--add-mtime pnode pmtime)
+              ))
+          nil)))
+
+
+    (defun org-roam-timestamps-all ()
+      "Go through all nodes and add timestamps to them."
+      (interactive)
+      (when (yes-or-no-p "This will modify all your current notes by adding a ctime and mtime property
+        to all property drawers. We will make a backup of your notes and db first.
+        This might take a second. Are you sure you want to continue?")
+        (let ((backup-dir (expand-file-name "org-roam-timestamp.bak"
+                                            (file-name-directory (directory-file-name org-roam-directory))))
+              (backup-db (expand-file-name "org-roam-db.bak" (file-name-directory org-roam-db-location))))
+          (message "Backing up files to %s" backup-dir)
+          (copy-directory org-roam-directory backup-dir)
+          (message "Backing up db to %s" backup-db)
+          (copy-file org-roam-db-location backup-db))
+        (let ((nodes (org-roam-db-query [:select id :from nodes])))
+          (dolist (node nodes)
+            (let* ((n (org-roam-node-from-id (car node)))
+                   (file (org-roam-node-file n))
+                   (mtime (org-roam-timestamps-decode (org-roam-node-file-mtime n)))
+                   (pos (org-roam-node-point n))
+                   (props (org-roam-node-properties n)))
+              (org-roam-with-file file nil
+                (goto-char pos)
+                (unless (assoc-default "MTIME" props)
+                  (org-roam-property-add "mtime" mtime ))
+                (save-buffer))))))
+      (org-roam-db-sync))
+
+    (defun org-roam-timestamps--get-ctime (pos)
+      "Return the current ctime for the node at point POS."
+      (substring (org-id-get) 0 14)
+      ;; (org-with-wide-buffer
+      ;; (org-entry-get pos "ctime"))
+      )
+
+
+    (defun org-roam-timestamps-clean-mtime ()
+      "Truncate all timestamps to a single value.
+  A modifier pour supprimer tous les mtime si jamais"
+      (interactive)
+      (org-roam-timestamps-mode -1)
+      (let ((nodes (org-roam-db-query [:select id :from nodes])))
+        (dolist (node nodes)
+          (let* ((n (org-roam-node-from-id (car node)))
+                 (file (org-roam-node-file n))
+                 (pos (org-roam-node-point n)))
+            (org-roam-with-file file nil
+              (org-with-wide-buffer
+               (if-let ((mtime (org-roam-timestamps--get-mtime n))
+                        (split (split-string mtime)))
+                   (org-entry-put pos "mtime"  (car split)) ;;cette ligne
+                 (save-buffer)))))))
+      (org-roam-timestamps-mode 1))
+
+    (setq org-roam-timestamps-minimum-gap 3600)
+    (org-roam-timestamps-mode)
+
+
+    )
+
+#+end_src
+
+Ancienne méthode :
+
+#+begin_src emacs-lisp :tangle no
+
+  (use-package time-stamp
+    :straight nil
+    ;; :defer t
+    :config
+    ;; ne pas oublier de le mettre dans le capture
+    ;; :head "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"
+    (setq time-stamp-active t
+          time-stamp-start "\\- Modifié :: [ \t]*"
+          time-stamp-end "$"
+          time-stamp-format "%Y%m%d%H%M%S"  ;; impossible de mettre des nano seconds, ça marchera très bien quand même
+          time-stamp-line-limit 20)
+
+    (add-hook 'before-save-hook 'time-stamp nil)
+    ;; (remove-hook 'before-save-hook 'time-stamp nil)
+    )
+
+
+#+end_src
+
+
+
+
+***** Fonctions pour "Fait"
+
+#+begin_src emacs-lisp
+
+  (defun cp-vulpea-meta-fait-add ()
+    (interactive)
+    (let* (
+           (id (save-excursion (goto-char (point-min)) (org-id-get)))
+           (key "Fait")
+           (timestamp (format-time-string "%Y%m%d%H%M%S"))
+           (fait-p (vulpea-meta-get id key))
+           )
+      (if fait-p
+          (vulpea-meta-set id key (concat (vulpea-meta-get id key) ", " timestamp) t)
+        (vulpea-meta-set id key timestamp t))
+
+      )
+    )
+
+  (defun cp-vulpea-meta-fait-remove ()
+    (interactive)
+    (let* (
+           (id (save-excursion (goto-char (point-min)) (org-id-get)))
+           (key "Fait")
+           (timestamp (format-time-string "%Y%m%d%H%M%S"))
+           (fait-p (vulpea-meta-get id key))
+           )
+      (when fait-p
+        (vulpea-meta-remove id key)
+        )
+      )
+    )
+
+#+end_src
+
 **** Gestion de capture de connaissances
 
 ***** Lieu de mon inbox
@@ -795,13 +992,28 @@ Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
 
 #+begin_src emacs-lisp
   (setq org-capture-templates
-         '(("t" "todo" plain (file capture-inbox-file)
-            "* TODO %?\n%U\n" )))
+        '(
+          ("t" "todo" plain (file capture-inbox-file)
+           (file "../templatesOrgCapture/todo.org"))
+          ("u" "tickler" plain (file capture-inbox-file)
+           (file "../templatesOrgCapture/tickler.org")
+           )
+          ("T" "test" plain (file "/home/utilisateur/Testdedossier/dossierTestQueryDiredRemplace/.caché/caché.org")
+             "* pas de mtn"
+             )
+
+          ;; ("c" "nouvelle connaissance" entry
+          ;; (file capture-inbox-file)
+          ;; (file "../templatesOrgCapture/connaissances.org")
+          ;; :immediate-finish t
+          ;; )
+
+          ))
 #+end_src
 
 Ancien : 
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
 
   ;; quand on donne un truc relatif, alors le org-directory est bien appelé ! Si je mets des fonctions pour les templates à récupéré ça ne marche plus. Obligé de laisser les capture templates dans le dossier braindump et en dehors du dossier org-directory (sinon la bdd dit double id)
@@ -923,7 +1135,7 @@ Ancien :
         )
       )
     )
-  
+
   ;; (add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
 
 #+end_src
@@ -1002,9 +1214,13 @@ refile
 
   ;; dès que la data base se syncronise, je mets à jour mon calendrier
 
-  (with-eval-after-load 'org-roam
-    ;; (advice-add 'org-roam-db-sync :after #'org-icalendar-combine-agenda-files-background)
-    )
+  ;; TODO
+  
+  ;; (advice-add 'org-roam-db-sync :after #'org-icalendar-combine-agenda-files-background)
+
+
+  ;; (advice-remove 'org-roam-db-sync #'org-icalendar-combine-agenda-files-background)
+
 #+end_src
 
 
@@ -1015,16 +1231,100 @@ On peut utiliser la propriété "catégorie", mais c'est long, donc on fait plû
 
 Patch de org agenda pour que ça marche, avec sa bibliothèque vulpea
 
+****** Le format des choses affiché
+#+begin_src emacs-lisp
+
+  (setq org-agenda-prefix-format
+        '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
+          (todo . " %i %(vulpea-agenda-category 12) ")
+          (tags . " %i %(vulpea-agenda-category 12) ")
+          (search . " %i %(vulpea-agenda-category 12) ")))
+
+#+end_src
+
+(setq org-agenda-prefix-format  '((agenda . " %i %-12:c%?-12t% s")
+                                    (todo . " %i %-12:c")
+                                    (tags . " %i %-12:c")
+                                    (search . " %i %-12:c")))
+
+****** Jolie affichage des catégories trop longue, et la catégorie égale le titre - la date
+
+#+begin_src emacs-lisp
+  (defun vulpea-agenda-category (&optional len)
+    "Get category of item at point for agenda.
+
+  Category is defined by one of the following items:
+
+  - CATEGORY property
+  - TITLE keyword
+  - TITLE property
+  - filename without directory and extension
+
+  When LEN is a number, resulting string is padded right with
+  spaces and then truncated with ... on the right if result is
+  longer than LEN.
+
+  Usage example:
+
+    (setq org-agenda-prefix-format
+          '((agenda . \" %(vulpea-agenda-category) %?-12t %12s\")))
+
+  Refer to `org-agenda-prefix-format' for more information."
+    (let* ((file-name (when buffer-file-name
+                        (file-name-sans-extension
+                         (file-name-nondirectory buffer-file-name))))
+           (title (vulpea-buffer-prop-get "title"))
+           (category (org-get-category))
+           (result
+            (or (if (and
+                     title
+                     (string-equal category file-name))
+                    title
+                  category)
+                "")))
+      (if (numberp len)
+          (s-truncate len (s-pad-right len " " result))
+        result)))
+
+#+end_src
 
 
+
+
+****** Voir plus de choses dans l'agenda (org-agenda-log-mode)
+
+[[https://stackoverflow.com/questions/56228430/display-scheduled-routines-actual-done-time-in-agenda-view][vient d'ici]]
+
+On voit : quand c'est fini, clock et les states
+
+#+begin_src emacs-lisp
+
+  ;; ajout des choses à voir avec org-agenda log mode (raccourcis "l" dans l'agenda).
+  ;; permet de voir les différents states notamment
+  (setq org-agenda-log-mode-items '(closed clock state))
+
+  ;; si je veux que cela commence en mode log-mode. Pas sûr que ce soit CETTE variable
+  ;; (setq org-agenda-start-with-log-mode '(closed clock state))
+
+#+end_src
+
+
+***** Gestion de l'agenda (commandes)
 ****** Construction dynamique de mon agenda
 
 Principe : mettre aux notes qui ont un state todo un tag "project", puis parcourir les fichiers de la base de donnée, ajouter dans une liste les fichiers avec le tag "projet", et mettre cette liste comme variable : org-agenda-files. Facile
 
 Ne rajoute pas le tag "projet" au headline dans un fichier qui a comme filetag "project" (logique, car sinon tous les noeuds en dessous ont le tag projet aussi. Seul les fichiers nous intéresse)
+
 #+begin_src emacs-lisp
-  (add-to-list 'org-tags-exclude-from-inheritance "PROJECT")
-  (add-to-list 'org-tags-exclude-from-inheritance "PERSONNE")
+
+  (setq org-tags-exclude-from-inheritance '(
+                                            "PROJET"
+                                            "PERSONNE" ;;ça vraiment ?
+                                            "crypt"
+                                            )
+        )
+
 #+end_src
 
 Pour ajouter des fichiers dans une liste:
@@ -1038,10 +1338,11 @@ Pour ajouter des fichiers dans une liste:
 
   ;; ne pas mettre, empêche le démarrage d'emacs. Pk ?
   (add-hook 'find-file-hook #'vulpea-project-update-tag)
+  
   (add-hook 'before-save-hook #'vulpea-project-update-tag)
 
   (defun vulpea-project-update-tag ()
-    "Update PROJECT tag in the current buffer."
+    "Update PROJET tag in the current buffer."
     (when (and (not (active-minibuffer-window))
                (vulpea-buffer-p))
       (save-excursion
@@ -1049,8 +1350,8 @@ Pour ajouter des fichiers dans une liste:
         (let* ((tags (vulpea-buffer-tags-get))
                (original-tags tags))
           (if (vulpea-project-p)
-              (setq tags (cons "PROJECT" tags))
-            (setq tags (remove "PROJECT" tags)))
+              (setq tags (cons "PROJET" tags))
+            (setq tags (remove "PROJET" tags)))
 
           ;; cleanup duplicates
           (setq tags (seq-uniq tags))
@@ -1099,7 +1400,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
 #+begin_src emacs-lisp
 
   (defun vulpea-project-files ()
-    "Return a list of note files containing 'project' tag." ;
+    "Return a list of note files containing 'PROJET' tag." ;
     (seq-uniq
      (seq-map
       #'car
@@ -1108,16 +1409,24 @@ Now all we have to do is to check if the buffer list contains at least one keywo
                 :from tags
                 :left-join nodes
                 :on (= tags:node-id nodes:id)
-                :where (like tag (quote "%\"PROJECT\"%"))]))))
+                :where (like tag (quote "%\"PROJET\"%"))]))))
 
   (defun vulpea-agenda-files-update (&rest _)
+    (interactive)
     "Update the value of `org-agenda-files'."
     (setq org-agenda-files (vulpea-project-files)))
 
-  (vulpea-agenda-files-update) ;; on l'update une fois au démarrage
+  ;; on skip les fichiers qui ne sont pas accessible
+  (setq org-agenda-skip-unavailable-files t)
+
+  (add-hook 'emacs-startup-hook 'vulpea-agenda-files-update);; on l'update une fois au démarrage
+  ;; (vulpea-agenda-files-update) 
+
 
   (advice-add 'org-agenda :before #'vulpea-agenda-files-update)
   (advice-add 'org-todo-list :before #'vulpea-agenda-files-update)
+
+  (advice-add 'org-roam-db-sync :after #'vulpea-agenda-files-update)
 
 #+end_src
 
@@ -1135,58 +1444,10 @@ Now all we have to do is to check if the buffer list contains at least one keywo
     (save-buffer)))
 #+end_src
 
-****** Le format des choses affiché
-#+begin_src emacs-lisp
-(setq org-agenda-prefix-format
-        '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
-          (todo . " %i %(vulpea-agenda-category 12) ")
-          (tags . " %i %(vulpea-agenda-category 12) ")
-          (search . " %i %(vulpea-agenda-category 12) ")))
-#+end_src
-****** Jolie affichage des catégories trop longue, et la catégorie égale le titre - la date
+****** TODO Agenda custom command
 
 #+begin_src emacs-lisp
-  (defun vulpea-agenda-category (&optional len)
-    "Get category of item at point for agenda.
 
-  Category is defined by one of the following items:
-
-  - CATEGORY property
-  - TITLE keyword
-  - TITLE property
-  - filename without directory and extension
-
-  When LEN is a number, resulting string is padded right with
-  spaces and then truncated with ... on the right if result is
-  longer than LEN.
-
-  Usage example:
-
-    (setq org-agenda-prefix-format
-          '((agenda . \" %(vulpea-agenda-category) %?-12t %12s\")))
-
-  Refer to `org-agenda-prefix-format' for more information."
-    (let* ((file-name (when buffer-file-name
-                        (file-name-sans-extension
-                         (file-name-nondirectory buffer-file-name))))
-           (title (vulpea-buffer-prop-get "title"))
-           (category (org-get-category))
-           (result
-            (or (if (and
-                     title
-                     (string-equal category file-name))
-                    title
-                  category)
-                "")))
-      (if (numberp len)
-          (s-truncate len (s-pad-right len " " result))
-        result)))
-#+end_src
-***** Gestion de l'agenda (commandes) 
-
-****** Agenda custom command
-
-#+begin_src emacs-lisp
   (setq org-agenda-custom-commands
         '(
           (" " "Agenda"
@@ -1195,6 +1456,7 @@ Now all we have to do is to check if the buffer list contains at least one keywo
              ((org-agenda-overriding-header "To refile")
               (org-tags-match-list-sublevels nil)))))
 
+          ;;à supprimer ?
           ("d" "dashboard"
            (
             (todo "RAPPEL" ((org-agenda-overriding-header "Se souvenir de ceci")))
@@ -1216,7 +1478,25 @@ Now all we have to do is to check if the buffer list contains at least one keywo
         )
 #+end_src
 
+
+****** TODO Stuck projet
+
+À rajouter avec org agenda custo command ?
+Se baser sur org-ql
+
+#+begin_src emacs-lisp
+(add-to-list 'org-agenda-custom-commands
+      '("b" "Stuck Projects"
+         ((org-ql-block '(and (tags "@project")
+                              (not (done))
+                              (not (descendants (todo "NEXT")))
+                              (not (descendants (scheduled))))
+                        ((org-ql-block-header "Stuck Projects"))))))
+#+end_src
+
 ****** Faire des requête avec des commandes
+
+[[https://github.com/alphapapa/org-ql/blob/master/examples.org#stuck-projects-block-agenda][voir des exemples ici]]
 
 #+begin_src emacs-lisp
   (use-package org-ql)
@@ -1231,12 +1511,29 @@ Now all we have to do is to check if the buffer list contains at least one keywo
   :config
   (org-yaap-mode 1))
 #+end_src
-
-
 **** Gestion des tâches
 
-***** Gestion des projet
+***** Les keywords
 
+#+begin_src emacs-lisp
+(setq org-todo-keywords
+      '((sequence "TODO(t!)" "|" "DONE(d!)" )))
+#+end_src
+
+
+***** Tracer les états / states des todo dans des tiroirs 
+
+Il faut rajouter "!" dans les org-todo-keywords.
+
+#+begin_src emacs-lisp
+
+  ;; (setq org-log-done 'time) ;; rajoute "CLOSED:" quand on termine une tâche. Pas besoin grâce à la variables org-log-into-drawer
+  (setq org-log-into-drawer t);; le mets dans un propreties
+
+#+end_src
+
+
+***** Gestion des projet
 ****** Empêche les parent d'être coché si les fils ne le sont pas
 
 #+begin_src emacs-lisp
@@ -1247,14 +1544,39 @@ Now all we have to do is to check if the buffer list contains at least one keywo
 
 #+begin_src emacs-lisp
 (require 'org-habit)
-;;pour que le logbook soit dans un tiroir
-
-;;  Pour savoir qd fini une tâche
-(setq org-log-done 'time)
-(setq org-log-into-drawer t);; le mets dans un propreties
 #+end_src
 
-**** Gestion des tags (sauf tag "projet"), voir l'agenda
+
+***** Gestion de sauvegardes des states dans un logbook
+
+**** Gestion des tags (sauf tag PROJET, PERSONNE et LIEU), voir l'agenda
+
+***** Les différents tags
+
+#+begin_src emacs-lisp :tangle no
+
+  ;; faire une hiérarchie. un tag peut apartenir à plusieurs hiérarchie. il faut donc qu'il soit unique pour mes cours (S4SVT par exemple)
+  (setq org-tag-alist '(:startgrouptag
+                        ("GTD")
+                        :grouptags
+                        ("Control")
+                        ("Persp")
+                        :endgrouptag
+                        :startgrouptag
+                        ("Control")
+                        :grouptags
+                        ("Context")
+                        ("Task")
+                        :endgrouptag
+                        ))
+
+#+end_src
+
+***** Tag qui sont pas à 2 km, mais juste après le titre
+
+#+begin_src emacs-lisp
+  (setq org-tags-column 0)
+#+end_src
 
 ***** Nouvelle fonction pour ajout de tag
 
@@ -1272,9 +1594,320 @@ Fait appel à la fonction pour ajouter un tag à la personne
       (vulpea-ensure-filetag)))
 
 #+end_src
+***** Fonction permettant d'enlever le tag BROUILLON
+
+#+begin_src emacs-lisp
+
+  (defun cp-vulpea-buffer-tags-remove-BROUILLON ()
+    "Use all files for org-agenda."
+    (interactive)
+    (vulpea-buffer-tags-remove "BROUILLON"))
+  
+#+end_src
+**** Gestion des polysèmes
+
+***** Fonction permettant de faire la pages de polysémes : 
+
+gestion des homonymes : une page homonyme généré automatiquement. Fonction : scan les notes et dès que trouve "logique (blabla)" et "logique (blublu)", soit créer la page logique homonyme et insère une liste de liens dedans, soit la page est déjà créer et met à jour la liste. Fonction différentes pour mettre à jour (rajoute à la fin quoi)
 
 
-***** Personne
+
+Principe de base :
+=simplifier les choses en stockant directements les notes au lieu des id ?=
+Deux dico : un dico A et un dico B
+Dico A regroupe toutes mes notes, structure : 
+titleDeLaNoteSansLesParenthèses : listeDesIdPossédantsCeTitre
+Dico B regroupe seulements mes notes avec polysèmes (je garde seulements les notes du dico A qui ont listeDesIdPossédantsCeTitre de taille supérieur ou égale à 2). structure :
+titleDeLaNoteSansLesParenthèsesSupérieurÀ2 : listeDesIdPossédantsCeTitre
+
+Test de performances OK :
+
+#+begin_src emacs-lisp :tangle no
+  (setq x 0)
+  (while (< x 100000)
+    ;; (print (format "number is %d" x))
+    (setq x (1+ x)))
+  
+  (defun silly-loop (n)
+    "Return the time, in seconds, to run N iterations of a loop."
+    (let ((t1 (float-time)))
+      (while (> (setq n (1- n)) 0))
+      (- (float-time) t1)))
+
+
+  (silly-loop 10000000)
+#+end_src
+
+
+1. création du dico A en partant de rien comparer chaque title de note à toutes les autres sans les parenthèses
+   #+begin_src emacs-lisp :tangle no
+
+        (defun title-without-parens-and-space (name)
+          (string-trim (substring name 0
+                                  (if (string-match "\\(\(\\)" name)
+                                      (string-match "\\(\(\\)" name) 
+                                    (length name)))))
+
+        (defun cp-hash-for-polyseme ()
+          "Renvoie un dico, avec clé les titre des notes en double moins les parenthèse, en en valeur une liste d'id qui sont les notes en doubles"
+          (let ((nodes (org-roam-db-query [:select [title id] :from notes]))
+                (hash (make-hash-table :test 'equal)))
+            (dolist (node nodes)
+              (let* (
+                     (nameComplete (car node))
+                     ;; on récupère le nom sans les parenthèses !
+                     (name (title-without-parens-and-space nameComplete))
+                     (id (last node))
+                     )
+                (if (gethash name hash)
+                    (puthash name  (push id (gethash name hash)) hash) ;; si ça existe, il faut ajouter à la liste l'id
+                  (puthash name (list id) hash) ;; si ça n'existe pas, il faut ajouter le hash avec une liste du un élément avec l'id
+                  )))
+            ;; on return le hash
+            hash
+            )
+          )
+
+        ;; (xah-print-hash (cp-hash-for-polyseme))
+
+      #+end_src
+
+2. Je créer le dico raccourci B
+
+   #+begin_src emacs-lisp :tangle no
+     
+     (defun cp-dico-B (hash)
+       "on scan le dico, et si la liste fait deux ou plus, on créer la page"
+       (maphash
+        (lambda (k v)
+          (when (< (length v) 2)
+            (remhash k hash)))
+        hash)
+       hash ;; on renvoie hash
+       )
+
+   #+end_src
+
+3. Faut que je stocke les dicos à un endroit. En effet, je ne veux pas à avoir à les refaire à chaque lancement d'emacs. Les stock avec le kill d'emacs je pense
+   
+   #+begin_src emacs-lisp :tangle no
+
+     (unless (file-directory-p (expand-file-name "braindump/" no-littering-var-directory))
+       (mkdir (expand-file-name "braindump/" no-littering-var-directory))
+       )
+     (setq braindump-configuration-directory (expand-file-name "braindump/" no-littering-var-directory))
+
+     (unless (file-exists-p (expand-file-name "hash-for-polyseme.el" braindump-configuration-directory))
+       (with-temp-file (expand-file-name "hash-for-polyseme.el" braindump-configuration-directory)
+         (insert ""))
+       )
+     (setq braindump-configuration-directory-hash (expand-file-name "hash-for-polyseme.el" braindump-configuration-directory))
+
+
+
+     (defun print-to-file (filename data)
+       (with-temp-file filename
+         (prin1 data (current-buffer))))
+
+     (defun read-from-file (filename)
+       (with-temp-buffer
+         (insert-file-contents filename)
+         (cl-assert (eq (point) (point-min)))
+         (read (current-buffer))))
+
+     (setq malist '(1 2 4))
+
+     ;; Usage:
+
+
+     (setq monHash (read-from-file braindump-configuration-directory-hash))
+           (if
+               (cp-hash-for-polyseme)
+
+               )
+
+           )
+
+     (print-to-file braindump-configuration-directory-hash monHash)
+     ;; (1 2 "foo" (quote bar))
+     (read-from-file braindump-configuration-directory-hash)
+     ;; (1 2 "foo" (quote bar))
+
+     ;;pour quand les stocker
+     ;; (add-hook 'kill-emacs-hook #'org-icalendar-combine-agenda-files-foreground)
+
+  #+end_src
+4. TODO Fonction de mise à jour de mon dico A. Elle consiste à : 
+   Prendre mon dico A, et appliquer la condition de la fonction de création du dico
+5. Recréation du dico B, si la variable B est modifié, alors je dois recréer mes pages
+   #+begin_src emacs-lisp :tangle no
+
+     ;;ceci marche dés que je touche à la variable, pas seulement si je la modifie.
+     ;; (defun my-watch (symbol newval op where)
+     ;; (message "SYM: %S, VAL: %S, OP: %S, WHERE: %S" symbol newval op where))
+     ;; (add-variable-watcher 'teste #'my-watch)
+
+     ;;ceci fonctionne :
+
+     (setq dico-B-ancien dico-B)
+    (setq dico-B new-dico-from-maj)
+     ;;puis on compare si dico dico-B = dico-B-ancien en les transformant en liste et avec la condition d'après
+
+
+     (setq myHash
+           #s(hash-table
+              size 30
+              test equal
+              data (
+                    "joe" 3
+                    "jane" 9
+                    "liz" 5 )))
+
+     (setq myHash2
+           #s(hash-table
+              size 30
+              test equal
+              data (
+                    "joe" 3
+                    "jane" 9
+                    "liz" 5 )))
+
+
+     (defun xah-hash-to-list (hash-table)
+       "Return a list that represent the HASH-TABLE
+          Each element is a list: (list key value).
+          See also, emacs 24.4's new functions.
+           (require 'subr-x)
+           `hash-table-keys'
+           `hash-table-values'
+          http://ergoemacs.org/emacs/elisp_hash_table.html
+          Version 2015-04-25"
+       (let (result)
+         (maphash
+          (lambda (k v)
+            (push (list k v) result))
+          hash-table)
+         result))
+
+     (if (equal (xah-hash-to-list myHash) (xah-hash-to-list myHash2))
+         (message "vrai")
+       (message "faux")
+       )
+
+
+
+
+
+   #+end_src
+
+6. pour recréer ou créer une page de polysème :
+   Pour créer la note : 
+   #+begin_src emacs-lisp :tangle no
+     (vulpea-create
+      "Rich note"
+      "pages/%<%Y%m%d%H%M%S>-${slug}.org"
+      :properties '(("COUNTER" . "1")
+                    ("STATUS" . "ignore")
+                    ("ROAM_ALIASES" . "\"Very rich note with an alias\""))
+      :tags '("documentation" "showcase")
+      :head "#+author: unknown\n#+date: today"
+      :body "It was a very %?nice day.\n\nBut I didn't feel that."
+      ;; :immediate-finish t
+      )
+   #+end_src
+   1. voir si la page existe, créer si elle existe pas (dans le dossier polysème)
+   2. Si elle existe pas, mettre un truc de ce style : 
+      #+begin_example
+   PROPRIÉTÉ
+   Title : Mercure
+   (Description du terme)
+   blabla
+   Mercure vient du latin blabla.
+
+
+
+   * "Le concept X peut posséder ces différentes significations selon le contexte : "
+   Ce qu'i' y a au dessus de cette ligne sera modifié par moi
+    Ce qui y a en dessous de cette ligen sera généré automatiquement
+
+      #+end_example
+   3. mettre en heading quelque chose comme :
+      "Le concept X peut posséder ces différentes significations selon le contexte : "
+      Puis, clean la suite de ce titre
+   4. revenir sur le titre
+   5. insérer en dessous du heading, pour chaque valeur de la liste, un lien vers les pages :
+
+      #+begin_example
+      * "Le concept X peut posséder ces différentes significations selon le contexte : "
+   - liste
+   - de
+   - là où la chaîne de caractère "mercure" est présente
+   - d'abord ceux en premier
+   - Mercure (dieu)
+   - Mercure (planète)
+      #+end_example
+
+7. insérer dans les notes relié la métadada "polysème :: page vers Mercure"
+   Je prends mon dico B, et pour chaque note clé, j'ajoute à la note avec id une métadata
+
+   #+begin_src emacs-lisp :tangle no
+     ;; un truc de ce style :
+     ;; transformer le dico en liste je pense, cera plus simple
+     (dolist (node nodes)
+       (vulpea-meta-set (last notes) "Polysème"
+                        ;;insérer le lien vers la page
+                        )
+       )
+
+
+   #+end_src
+8. maj : 
+   1. comparer la nouvelle notes à toutes les autres
+   2. cas nouveau polysème
+   3. cas ancien polysème
+9. 
+
+
+
+
+
+***** Fonction permettant de supprimer les parenthèses lors de l'insertion de polysèmes 
+
+Pratique pour pas lire à chaque fois "Mercure (dieu)" alors que je sais très bien qu'avec le contexte c'est le dieu.
+
+#+begin_src emacs-lisp
+
+  (defun delete-parens-note-after-insertion()
+    "Permet de supprimer les parenthèse. Attention, ne marche qu'après l'insertion !"
+    (interactive)
+    (save-excursion
+      (let
+          (($p2 (point))
+           ($p1 (search-backward "[")))
+        (save-restriction
+          (narrow-to-region $p1 $p2)
+          (when (search-forward "(" nil t) ;;cas où je trouve la parenthèse
+            (unless (boundp 'delete-parens-for-node) ;; si pas de variable local activé
+              (when (y-or-n-p "Insertion d'une note avec des parenthèses, voulez vous les supprimer ? Si oui, vous n'aurez plus cette demande dans le buffer actuel la prochaine fois")
+                (defvar-local delete-parens-for-node t)
+                )
+              )
+            (when (boundp 'delete-parens-for-node)
+              (xah-delete-backward-char-or-bracket-text)
+              (xah-fly-delete-spaces)
+              )))))
+    )
+
+  ;;on le "hook"
+  (advice-add 'vulpea-insert :after #'delete-parens-note-after-insertion)
+
+#+end_src
+
+
+
+**** Gestion des personnes et des lieux
+
+***** Personne et lieu
 
 Cela permet de faire des projets également pour des personnes (Nell hehe)
 Si je connais la personne, alors je la tag avec people. Si j'ai des choses en rapport à faire avec elle, alors je lui mets un tag "@NomDeLaPersonne"
@@ -1286,27 +1919,33 @@ Chaque personne à son fichier org roam.
 Pour appeler une fonction qui ajoute les tags, et si jamais le tag people est mis, alors ajoute automatiquement le tag de la personne au fichier !!!  Pratique
 
 
+Même raisonnement pour les lieux
 
 ****** Créer automatiquement le tag "NomPersonne" si la personne à le tag people
 
 Appeler dans vulpea-tags-add
 
 #+begin_src emacs-lisp
-    (defun vulpea-ensure-filetag ()
-      "Add respective file tag if it's missing in the current note."
-      (let ((tags (vulpea-buffer-tags-get))
-            (tag (vulpea--title-as-tag)))
-        (when (and (seq-contains-p tags "PERSONNE")
-                   (not (seq-contains-p tags tag)))
-          (vulpea-buffer-tags-add tag))))
+  (defun vulpea-ensure-filetag ()
+    "Add respective file tag if it's missing in the current note."
+    (let ((tags (vulpea-buffer-tags-get))
+          (tag (vulpea--title-as-tag)))
+      (when (and (seq-contains-p tags "PERSONNE")
+                 (not (seq-contains-p tags tag)))
+        (vulpea-buffer-tags-add tag))
 
-    (defun vulpea--title-as-tag ()
-      "Return title of the current note as tag."
-      (vulpea--title-to-tag (vulpea-buffer-title-get)))
+      (when (and (seq-contains-p tags "LIEU")
+                 (not (seq-contains-p tags tag)))
+        (vulpea-buffer-tags-add tag))
+      ))
 
-    (defun vulpea--title-to-tag (title)
-      "Convert TITLE to tag."
-      (concat "@" (s-replace " " "" title)))
+  (defun vulpea--title-as-tag ()
+    "Return title of the current note as tag."
+    (vulpea--title-to-tag (vulpea-buffer-title-get)))
+
+  (defun vulpea--title-to-tag (title)
+    "Convert TITLE to tag."
+    (concat "@" (s-replace " " "" title)))
 
 #+end_src
 
@@ -1314,64 +1953,237 @@ Appeler dans vulpea-tags-add
 
 Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo, insère le tag automatiquement
 #+begin_src emacs-lisp
-(defun my-vulpea-insert-handle (note)
-  "Hook to be called on NOTE after `vulpea-insert'."
-  (when-let* ((title (vulpea-note-title note))
-              (tags (vulpea-note-tags note)))
-    (when (seq-contains-p tags "PERSONNE")
-      (save-excursion
-        (ignore-errors
-          (org-back-to-heading)
-          (when (eq 'todo (org-element-property
-                           :todo-type
-                           (org-element-at-point)))
-            (org-set-tags
-             (seq-uniq
-              (cons
-               (vulpea--title-to-tag title)
-               (org-get-tags nil t))))))))))
 
-(defun vulpea--title-to-tag (title)
-  "Convert TITLE to tag."
-  (concat "@" (s-replace " " "" title)))
+  (defun my-vulpea-insert-handle (note)
+    "Hook to be called on NOTE after `vulpea-insert'."
+    (when-let* ((title (vulpea-note-title note))
+                (tags (vulpea-note-tags note)))
+      (when (seq-contains-p tags "PERSONNE")
+        (save-excursion
+          (ignore-errors
+            (org-back-to-heading)
+            (when (eq 'todo (org-element-property
+                             :todo-type
+                             (org-element-at-point)))
+              (org-set-tags
+               (seq-uniq
+                (cons
+                 (vulpea--title-to-tag title)
+                 (org-get-tags nil t))))))))
 
-(add-hook 'vulpea-insert-handle-functions
-          #'my-vulpea-insert-handle)
+
+      (when (seq-contains-p tags "LIEU")
+        (save-excursion
+          (ignore-errors
+            (org-back-to-heading)
+            (when (eq 'todo (org-element-property
+                             :todo-type
+                             (org-element-at-point)))
+              (org-set-tags
+               (seq-uniq
+                (cons
+                 (vulpea--title-to-tag title)
+                 (org-get-tags nil t))))))))
+
+
+      ))
+
+  (defun vulpea--title-to-tag (title)
+    "Convert TITLE to tag."
+    (concat "@" (s-replace " " "" title)))
+
+  (add-hook 'vulpea-insert-handle-functions
+            #'my-vulpea-insert-handle)
+
 #+end_src
 
-
-
-
-***** Fonction qui demande TOUTES les tâches associé à une personne
+****** Fonction qui demande TOUTES les tâches associé à une personne
 
 #+begin_src emacs-lisp
-(defun vulpea-agenda-person ()
-  "Show main `org-agenda' view."
-  (interactive)
-  (let* ((person (vulpea-select
-                  "Person"
-                  :filter-fn
-                  (lambda (note)
-                    (seq-contains-p (vulpea-note-tags note)
-                                    "PERSONNE"))))
-         (node (org-roam-node-from-id (vulpea-note-id person)))
-         (names (cons (org-roam-node-title node)
-                      (org-roam-node-aliases node)))
-         (tags (seq-map #'vulpea--title-to-tag names))
-         (query (string-join tags "|")))
-    (dlet ((org-agenda-overriding-arguments (list t query)))
-      (org-agenda nil "M"))))
+  (defun vulpea-agenda-personne ()
+    "Show main `org-agenda' view."
+    (interactive)
+    (let* ((person (vulpea-select
+                    "Person"
+                    :filter-fn
+                    (lambda (note)
+                      (seq-contains-p (vulpea-note-tags note)
+                                      "PERSONNE"))))
+           (node (org-roam-node-from-id (vulpea-note-id person)))
+           (names (cons (org-roam-node-title node)
+                        (org-roam-node-aliases node)))
+           (tags (seq-map #'vulpea--title-to-tag names))
+           (query (string-join tags "|")))
+      (dlet ((org-agenda-overriding-arguments (list t query)))
+        (org-agenda nil "M"))))
+
+
+  (defun vulpea-agenda-lieu ()
+    "Show main `org-agenda' view."
+    (interactive)
+    (let* ((person (vulpea-select
+                    "Person"
+                    :filter-fn
+                    (lambda (note)
+                      (seq-contains-p (vulpea-note-tags note)
+                                      "LIEU"))))
+           (node (org-roam-node-from-id (vulpea-note-id person)))
+           (names (cons (org-roam-node-title node)
+                        (org-roam-node-aliases node)))
+           (tags (seq-map #'vulpea--title-to-tag names))
+           (query (string-join tags "|")))
+      (dlet ((org-agenda-overriding-arguments (list t query)))
+        (org-agenda nil "M"))))
+
 #+end_src
 
 
-**** Gestion org transclution
+
+****** Fonction appelé lors de la création de la capture pour permettre de créer un lieu ou d'un contact/personne
+
+#+begin_src emacs-lisp
+
+  (defun cp/org-roam-property-file-add (prop val)
+    "Add VAL value to PROP property for the node at point.
+          Both, VAL and PROP are strings."
+    (let* ((p (org-entry-get (point-min) prop))
+           (lst (when p (split-string-and-unquote p)))
+           (lst (if (memq val lst) lst (cons val lst)))
+           (lst (seq-uniq lst)))
+      (save-excursion
+        (goto-char (point-min))
+        (org-set-property prop (combine-and-quote-strings lst))
+        val
+        )
+      ))
+
+  ;;  TODO : (read-string "Enter name:") renvoie un string
+  (defun cp/add-other-auto-props-to-org-roam-properties ()
+    ;; if the file already exists, don't do anything, otherwise...
+    ;; if there's also a CREATION_TIME property, don't modify it
+    (when (member "PERSONNE" (vulpea-buffer-tags-get))
+      (cp/org-roam-property-file-add "VERSION" "3.0")
+      (cp/org-roam-property-file-add "EMAIL" "")
+      (cp/org-roam-property-file-add "EMAIL_HOME" "")
+      (cp/org-roam-property-file-add "EMAIL_WORK" "")
+      (cp/org-roam-property-file-add "PHONE" "")
+      (cp/org-roam-property-file-add "CELL" "")
+      (cp/org-roam-property-file-add "LANDLINE_HOME" "")
+      (cp/org-roam-property-file-add "LANDLINE_WORK" "")
+      (cp/org-roam-property-file-add "TITLE" "")
+      (cp/org-roam-property-file-add "ORG" "")
+      (cp/org-roam-property-file-add "ADDRESS_HOME" "")
+      (cp/org-roam-property-file-add "ADDRESS_WORK" "")
+      (cp/org-roam-property-file-add "BIRTHDAY" "")
+      (cp/org-roam-property-file-add "URL" "")
+      (cp/org-roam-property-file-add "NOTE" "")
+      (cp/org-roam-property-file-add "CATEGORIES" "")
+      (let
+          ((note (vulpea-db-get-by-id (vulpea-db-get-id-by-file (buffer-file-name))))
+           )
+        (add-contact-to-file-of-contact note)
+        )
+
+      ;;on met à jour les tags après l'insertion des options
+      (vulpea-ensure-filetag)
+
+      )
+    (when (member "LIEU" (vulpea-buffer-tags-get))
+
+
+      ;;on met à jour les tags après l'insertion des options
+      ;; (vulpea-ensure-filetag)
+      )
+
+    )
+
+  ;;on hook après la capture
+  (add-hook 'org-capture-after-finalize-hook #'cp/add-other-auto-props-to-org-roam-properties)
+
+  ;; (remove-hook 'org-roam-capture-new-node-hook #'cp/add-other-auto-props-to-org-roam-properties)
+
+#+end_src
+
+
+
+****** On ajoute les personnes au fichiers pour pouvoir exporter en vcard dans le fichier
+
+
+1. aller dans inbox
+2. créer un sous titre
+3. ajouter la ligne avec le bon lien !
+   #+transclude: [[id:20220621120442360949][test contac]] :lines 0-20
+4. il faut le hook avec l'autre fonction, voir même la lancer en même temps dans "when personne" !
+
+#+begin_src emacs-lisp
+
+  (setq file-of-contact (expand-file-name (concat org-roam-directory "creations/20220621120424-liste_de_mes_contacts_pour_org_contact.org")))
+  (defun add-contact-to-file-of-contact (note)
+      (save-window-excursion
+        (find-file file-of-contact)
+        (search-forward "Inbox" nil t)
+        (org-insert-heading-after-current)
+        ;; (org-metaright)
+        (insert (vulpea-note-title note))
+        (newline)
+        ;;on insère le lien, je pourrais concat mais flemme
+        (insert ":PROPERTIES:")
+        (newline)
+        (insert "#+transclude:")
+        ;;pour insérer la note
+        (progn
+          (insert (org-link-make-string
+                   (concat " id:" (vulpea-note-id note))
+                   (vulpea-note-title note)))
+          (run-hook-with-args
+           'vulpea-insert-handle-functions
+           note))
+        (insert " :lines 3-18")
+        (newline)
+        (insert ":END:")
+        )
+    )
+
+#+end_src
+
+
+****** Fonction pour exporter mes contacts
+#+begin_src emacs-lisp
+
+  (use-package org-vcard
+    :init
+    ;;la version utilisée (pour pouvoir y envoyer sur google)
+    (setq org-vcard-default-version "3.0")
+    :config
+    (setq org-vcard-default-export-file (concat org-roam-directory "Contacts.vcf"))
+    )
+
+
+  (fset 'cp/export-org-contact-macro
+        (kmacro-lambda-form [?a ?o ?r ?g ?- ?v ?c ?a ?r ?d ?- ?e ?x ?p ?o ?r ?t return ?b ?u return ?f ?i ?l return home ?b ?p ?n ?u ?C ?o ?n ?t ?a ?c ?t ?s ?. ?v ?c ?f return] 0 "%d"))
+
+
+  (defun cp/function-to-export-org-contact ()
+    (interactive)
+    (save-window-excursion
+      (find-file file-of-contact)
+      (cp/export-org-contact-macro)
+      )
+    )
+
+
+#+end_src
+
+**** TODO maj Insérer du texte dans un note en fonction d'une autre 
 
 Dépendant des ids dans id-locations.el
 
 #+begin_src emacs-lisp
-
-(use-package org-transclusion)
-
+  (use-package org-transclusion
+    :config
+    ;;pour exporter les propriétés
+    (setq org-transclusion-exclude-elements nil)
+    )
 #+end_src
 
 **** Gestion des fichiers et des dossiers en pièce jointe (org-attach)
@@ -1589,7 +2401,57 @@ Patch de la fonction pour pouvoir attach des dossiers
   (require 'org-protocol)
 #+end_src
 
-**** Publier son site
+**** Gestion du cryptage
+
+Pour crypter automatiquement : epa + tag "crypt" sur des arbres org-mode
+
+***** TODO EPA
+
+Edit .gnupg/gpg-agent.conf (create it if necessary) by adding the following:
+allow-emacs-pinentry
+
+#+begin_src emacs-lisp :tangle no
+
+  (use-package epa-file
+    :straight nil ;; included with Emacs
+    ;; :custom
+    ;; (epa-file-select-keys 'silent)
+    :config
+    (epa-file-enable)
+    ;; (setq epa-file-encrypt-to '("my@email.address.org"))
+    (when termux-p
+      (setq epa-pinentry-mode 'loopback)
+      (setq epg-pinentry-mode 'loopback)
+
+
+      ;; autre solution/chose à faire : 
+      (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")
+      )
+    )
+
+#+end_src
+
+***** Org
+
+
+#+begin_src emacs-lisp
+
+  (use-package org-crypt
+    :straight nil  ;; included with org-mode
+    :after org
+    :custom
+    ;; (org-crypt-key "my@email.address.org")
+    (org-crypt-key nil)
+    :config
+    (org-crypt-use-before-save-magic)
+    ;; org-tags-exclude-from-inheritance '("crypt")
+    )
+
+
+#+end_src
+
+
+**** TODO Publier son site un jour
 **** Fin du when
 #+begin_src emacs-lisp
 )
@@ -1622,61 +2484,20 @@ Patch de la fonction pour pouvoir attach des dossiers
   :config
 #+end_src
 
+***** Mise à jour de la org-roam-db sur mes appareil si il y a un changement
 
-***** Test termux, plus besoin 
+#+begin_src emacs-lisp
 
-#+begin_src emacs-lisp :tangle no
-  
-  (when nil
+  (defun org-roam-db-sync-when-change (event)
+    (message "Mise à jour de la base de donnée d'org-roam")
+    (org-roam-db-sync)  
+    )
 
-    ;; this is a chunglak's hack to get sqlite to work on Android with org-roam v2:
-    ;; from: https://github.com/org-roam/org-roam/issues/1605#issuecomment-885997237
-    (defun org-roam-db ()
-      "Entrypoint to the Org-roam sqlite database.
-  Initializes and stores the database, and the database connection.
-  Performs a database upgrade when required."
-      (unless (and (org-roam-db--get-connection)
-                   (emacsql-live-p (org-roam-db--get-connection)))
-        (let ((init-db (not (file-exists-p org-roam-db-location))))
-          (make-directory (file-name-directory org-roam-db-location) t)
-          (let ((conn (emacsql-sqlite3 org-roam-db-location)))
-            (emacsql conn [:pragma (= foreign_keys ON)])
-            (set-process-query-on-exit-flag (emacsql-process conn) nil)
-            (puthash (expand-file-name org-roam-directory)
-                     conn
-                     org-roam-db--connection)
-            (when init-db
-              (org-roam-db--init conn))
-            (let* ((version (caar (emacsql conn "PRAGMA user_version")))
-                   (version (org-roam-db--upgrade-maybe conn version)))
-              (cond
-               ((> version org-roam-db-version)
-                (emacsql-close conn)
-                (user-error
-                 "The Org-roam database was created with a newer Org-roam version.  "
-                 "You need to update the Org-roam package"))
-               ((< version org-roam-db-version)
-                (emacsql-close conn)
-                (error "BUG: The Org-roam database scheme changed %s"
-                       "and there is no upgrade path")))))))
-      (org-roam-db--get-connection))
-    (defun org-roam-db--init (db)
-      "Initialize database DB with the correct schema and user version."
-      (emacsql-with-transaction db
-        (emacsql db "PRAGMA foreign_keys = ON") ;; added
-        (emacsql db [:pragma (= foreign_keys ON)])
-        (pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
-          (emacsql db [:create-table $i1 $S2] table schema))
-        (pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
-          (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
-        (emacsql db (format "PRAGMA user_version = %s" org-roam-db-version))))
-    ;; end chunglak hack
-
-    (org-roam-setup)
+  (require 'filenotify)
+  (file-notify-add-watch (concat braindump-directory "org/pages")
+                         '(attribute-change) 'org-roam-db-sync-when-change)
 
 
-
-    )  
 
 #+end_src
 
@@ -1695,9 +2516,14 @@ Patch de la fonction pour pouvoir attach des dossiers
     (add-to-list 'company-backends 'company-capf) ;;completion avec org-roam
     )
 
-  (add-hook 'org-mode-hook 'company-mode)
-  (add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
 
+  (with-eval-after-load 'company-box
+
+    (add-hook 'org-mode-hook 'company-mode)
+    (add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
+
+    )
+  
   ;; syncro automatique avec les fichiers
   (org-roam-db-autosync-mode)
 
@@ -1710,17 +2536,22 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 #+end_src
 
-
-
-
 ***** Org-roam capture
 
 #+begin_src emacs-lisp
 
   ;;ajout du tag BROUILLON tant que c'est pas fini
   (defun jethro/tag-new-node-as-draft ()
-    (org-roam-tag-add '("BROUILLON")))
+    (when
+        ;; (not (member (buffer-file-name) (org-roam-dailies--list-files)))
+        (string-equal (expand-file-name default-directory)
+                      (concat org-roam-directory org-roam-dailies-directory))
+      (org-roam-tag-add '("BROUILLON"))
+      )
+    ;; (org-roam-tag-add '("BROUILLON"))
+    )
   (add-hook 'org-roam-capture-new-node-hook #'jethro/tag-new-node-as-draft)
+
 
   (setq org-roam-capture-templates
         '(
@@ -1728,27 +2559,41 @@ Patch de la fonction pour pouvoir attach des dossiers
            :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+title: ${title}\n")
            :unnarrowed t)
-          ("i" "inbox" entry "* %?"
-           :target
-           (node  "Inbox")
-           ;; :unnarrowed t
-           )
-          ("m" "main" plain
-           "%?"
-           :target (file+head "main/${slug}.org"
+          ("p" "connaissances multiples à trier ds 2jours" plain (file "../templatesOrgCapture/connaissance.org")
+           :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+title: ${title}\n")
-           :immediate-finish t
            :unnarrowed t)
-          ("r" "reference" plain "%?"
-           :target
-           (file+head "reference/${title}.org" "#+title: ${title}\n")
-           :immediate-finish t
+
+          ("l" "lien simple" plain (file "../templatesOrgCapture/lien.org")
+           :target (file+head "liens/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")
+           :unnarrowed t
+           :immediate-finish t)
+          ("s" "simple/basique" plain (file "../templatesOrgCapture/simple.org")
+           :target (file+head "liens/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")
+           :unnarrowed t
+           :immediate-finish t)
+          ("c" "contact" plain (file "../templatesOrgCapture/contact.org")
+           :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")
            :unnarrowed t)
-          ("a" "article" plain "%?"
-           :target
-           (file+head "articles/${title}.org" "#+title: ${title}\n#+filetags: :article:\n")
-           :immediate-finish t
-           :unnarrowed t)
+          ;; ("m" "main" plain
+          ;; "%?"
+          ;; :target (file+head "main/${slug}.org"
+          ;; "#+title: ${title}\n")
+          ;; :immediate-finish t
+          ;; :unnarrowed t)
+          ;; ("r" "reference" plain "%?"
+          ;; :target
+          ;; (file+head "reference/${title}.org" "#+title: ${title}\n")
+          ;; :immediate-finish t
+          ;; :unnarrowed t)
+          ;; ("a" "article" plain "%?"
+          ;; :target
+          ;; (file+head "articles/${title}.org" "#+title: ${title}\n#+filetags: :article:\n")
+          ;; :immediate-finish t
+          ;; :unnarrowed t)
           )
         )
 
@@ -1759,6 +2604,11 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+begin_src emacs-lisp
   ;;défini la capture de mon journal
   (setq org-roam-dailies-directory "journals/")
+
+  (setq org-roam-dailies-capture-templates  '(
+                                              ("d" "default" entry "* %<%H:%M> %?" :target
+                                               (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+                                              ))
 #+end_src
 
 ***** Buffer des backlinks
@@ -1867,6 +2717,30 @@ Patch de la fonction pour pouvoir attach des dossiers
 #+end_src
 
 
+***** On n'ajoute pas une citation déjà mise ailleurs
+
+#+begin_src emacs-lisp
+
+  (defun cp/org-roam-ref-add-check (keys-entries)
+    (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
+    (let ((title (citar--format-entry-no-widths (cdr keys-entries)
+                                                "${author editor} :: ${title}"))
+
+          (citation-key (car keys-entries))
+          )
+      (when (member `(,citation-key) ;; ` = liste, mais permet d'évaluer la variable juste aprèsle,
+                    (org-roam-db-query
+                     [:select ref
+                              :from refs
+                              :left-join nodes
+                              :on (= refs:node-id nodes:id)]))
+        (user-error "La référence est déjà mise dans un autre noeud pour la ROAM_REFS"))
+      ))
+;;  (advice-add 'org-roam-ref-add :before #'cp/org-roam-ref-add-check)
+  ;; (advice-remove 'org-roam-ref-add #'cp/org-roam-ref-add-check)
+
+
+#+end_src
 
 **** Fin de use-package org-roam
 #+begin_src emacs-lisp
@@ -1876,9 +2750,186 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 *** Fonctionnalité en plus grâce à l'utilisation d' org-roam
 
-***** Deft, pour chercher dans toutes les notes d'org-roam
+***** Gestion des noeuds
+
+****** Quand on-change le titre, ça change le nom du fichier
+
+#+begin_src emacs-lisp :tangle no
+
+  (defun org-roam-rename-file-with-new-title ()
+    (when-let*
+        ((is-roam-file (org-roam-file-p old-file))
+         (is-not-a-key ())
+         (old-file (buffer-file-name))
+
+         (file-node (save-excursion
+                      (goto-char 1)
+                      (org-roam-node-at-point)))
+         (date (substring (number-to-string  (read
+                                              (split-string
+                                               (org-roam-node-id
+                                                (save-excursion
+                                                  (goto-char 1)
+                                                  (org-roam-node-at-point))) "-"))) 0 14))
+         (slug (org-roam-node-slug file-node))
+         (new-file (expand-file-name (concat date "-" slug ".org")))
+         (different-name? (not (string-equal old-file new-file))))
+      (when (not (member old-file (org-roam-dailies--list-files)))
+
+        ;; ;; on le fait que si c'est pas dans le journal ou si c'est pas une clé!
+        (rename-buffer new-file)
+        (rename-file old-file new-file)
+        (set-visited-file-name new-file)
+        (set-buffer-modified-p nil)
+        )
+      ))
+
+  ;; (add-hook 'after-save-hook 'org-roam-rename-file-with-new-title)
+  ;; (remove-hook 'after-save-hook 'org-roam-rename-file-with-new-title)
+
+#+end_src
+
+
+****** Quand on ajoute un ref, proprose directement si citar configuré
+
+
 
 #+begin_src emacs-lisp
+
+  (defun citar-org-return-citation (keys &optional style)
+    "Inspiré de citar-org-insert-citation. Au lieu d'insérer, renvoie"
+    (let ((context (org-element-context)))
+      (when style
+        (let ((raw-style
+               (citar-org-select-style)))
+          (setq style
+                (if (string-equal raw-style "") raw-style
+                  (concat "/" raw-style)))))
+      (if-let ((citation (citar-org--citation-at-point context)))
+          (when-let ((keys (seq-difference keys (org-cite-get-references citation t)))
+                     (keystring (mapconcat (lambda (key) (concat "@" key)) keys "; "))
+                     (begin (org-element-property :contents-begin citation)))
+            (if (<= (point) begin)
+                (org-with-point-at begin
+                  (insert keystring ";"))
+              (let ((refatpt (citar-org--reference-at-point)))
+                (org-with-point-at (or (and refatpt (org-element-property :end refatpt))
+                                       (org-element-property :contents-end citation))
+                  (if (char-equal ?\; (char-before))
+                      (insert-before-markers keystring ";")
+                    (insert-before-markers ";" keystring))))))
+        (format "[cite%s:%s]" (or style "")
+                (mapconcat (lambda (key) (concat "@" key)) keys "; "))
+        )))
+  
+  (defun cp/org-roam-ref-add (ref)
+    "Add REF to the node at point."
+    (interactive (list (citar-org-return-citation (citar--extract-keys (citar-select-refs)))))
+    (let ((node (org-roam-node-at-point 'assert)))
+      (save-excursion
+        (goto-char (org-roam-node-point node))
+        (org-roam-property-add "ROAM_REFS" ref))))
+
+#+end_src
+
+
+****** Lors de l'ajout d'un noeud, permet de remplacer dans les org-files les unlinked references par le titre
+
+
+
+#+begin_src emacs-lisp
+
+  (defun cp/org-roam-unlinked-references-find-and-replace ()
+    (message "Check unlinked references")
+    (save-window-excursion
+      (let* ((note (vulpea-db-get-by-id (org-id-get)))
+             (id (vulpea-note-id note))
+             (title (vulpea-note-title note))
+             (FROM-STRING title) 
+             (TO-STRING (concat "[[id:" id "][" title "]]")))
+        (dolist (file (org-roam-list-files))
+          (find-file file)
+          (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
+            (save-excursion
+              (goto-char (point-min))
+              (while (re-search-forward
+                      (concat "\\([ ]\\|^\\)" title "\\([ ]\\|$\\)")
+                      nil t)
+                (goto-char (match-beginning 0))
+                (skip-chars-forward " ")
+                (search-forward FROM-STRING)
+
+                (when (y-or-n-p "Remplacé le texte par un lien vers le nouveau titre ?")
+
+                  ;; obligé de faire ça à cause du y-or-n-p qui me brise mon match. Je pourrais juste mettre (search-forward FROM-STRING) ici, mais si je remplace pas le texte, boucle infini
+                  (search-backward FROM-STRING)
+                  (goto-char (match-end 0))
+
+                  (replace-match TO-STRING)
+                  (message "Texte remplacé")
+                  )))
+            ;; ancien ;;(query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
+            (save-buffer)
+            ))))
+    (message "Fin check unlinked references")
+    )
+
+  (add-hook 'org-capture-after-finalize-hook #'(lambda () (when (member (buffer-file-name) (org-roam-list-files)) (cp/org-roam-unlinked-references-find-and-replace))))
+
+
+#+end_src
+****** Permet de rename un noeud partout !
+
+
+
+#+begin_src emacs-lisp
+
+    ;; todo : utiliser ceci
+    ;; (title-without-parens-and-space "testetau   ()")
+
+
+  (defun cp/org-roam-rename-and-replace ()
+    (interactive)
+    (save-window-excursion
+      (let* ((note (vulpea-select-from "la note à changer de nom" (vulpea-db-query)))
+             (id (vulpea-note-id note))
+             (title (vulpea-note-title note))
+             (new-title (read-string "nouveau nom "))
+             (FROM-STRING (concat "[[id:" id "][" title "]]")) 
+             (TO-STRING (concat "[[id:" id "][" new-title "]]")))
+        ;; on rename dans le fichier de base
+        (find-file (vulpea-db-get-file-by-id id))
+        (vulpea-buffer-title-set new-title)
+        ;; pour les autres fichiers
+        (dolist (file (org-roam-list-files))
+          (find-file file)
+          (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
+            (query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
+            (save-buffer)
+            )))))
+  
+
+
+#+end_src
+
+
+
+****** Voir l'historique d'un fichier (avec magit)
+
+#+begin_src emacs-lisp
+
+  (defun cp/history-of-a-node (&optional file)
+      (interactive (list (vulpea-db-get-file-by-id (vulpea-note-id (vulpea-select-from "la note à changer de nom" (vulpea-db-query))))))
+      (find-file file)
+      (magit-log-buffer-file)
+      (delete-other-windows)
+      )
+
+#+end_src
+
+***** Deft, pour chercher dans toutes les notes d'org-roam, remplacé par consult org-roam
+
+#+begin_src emacs-lisp :tangle no
   (use-package deft
     :after org-roam
     :config
@@ -1888,6 +2939,16 @@ Patch de la fonction pour pouvoir attach des dossiers
           deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
           deft-use-filename-as-title t)
     )
+#+end_src
+
+***** Consult org-roam
+
+#+begin_src emacs-lisp 
+  (use-package consult-org-roam
+     :config
+     ;; Activate the minor-mode
+     (consult-org-roam-mode 1)
+     (setq consult-org-roam-grep-func #'consult-ripgrep))
 #+end_src
 
 
@@ -1930,6 +2991,11 @@ Se trouve à cette adresse http://127.0.0.1:35901/
     )
 
 #+end_src
+
+
+
+
+
 
 
 
@@ -1985,6 +3051,7 @@ ou bien juste :
 
 (Pour la conversion de org-ref à org-cite, il suffit juste d'enlever une paire de crochet au références de org-ref, puis de remplacer le "&" par "@", et de moddifier le print_biblio en 
 [[bibliography:../biblio.bib] ] , logique quoi et assez simple à faire je pense)
+
 *** Citar, les propositions avec citar-insert-citation
 
 #+begin_src emacs-lisp
@@ -1994,7 +3061,7 @@ ou bien juste :
     ;; :after oc-csl all-the-icons
     :custom
     ;;lieu de ma bibliographie
-    (citar-bibliography (list (concat bibliography-directory "biblio.bib")))
+    (citar-bibliography bibliography-file-list)
     :config
     ;; pour complété avec consult yeah, pas besoin
     ;; (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
@@ -2015,7 +3082,97 @@ ou bien juste :
             (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
 
     ;; automatiquement refresh lorque l'on modifie la bibliographie
-    (setq citar-filenotify-callback 'refresh-cache)
+    (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
+
+    ;;ancien et test    
+    ;; (require 'filenotify)
+    ;; (file-notify-add-watch "/home/utilisateur/biblio.bib"
+    ;; '(attribute-change) 'citar-refresh)
+
+    ;; (dolist (bibliography-file bibliography-file-list)
+    ;; (file-notify-add-watch bibliography-file
+    ;; '(attribute-change) 'citar-refresh)
+    ;; )
+
+    ;; (require 'filenotify)
+    ;; (setq citar-filenotify-callback 'refresh-cache)
+    ;; (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
+    ;; (defun gen-bib-cache-idle ()
+    ;; "Generate bib item caches with idle timer"
+    ;; (run-with-idle-timer 0.5 nil #'citar-refresh))
+    ;; (add-hook 'LaTeX-mode-hook #'gen-bib-cache-idle)
+    ;; (add-hook 'org-mode-hook #'gen-bib-cache-idle)
+
+
+    ;;patch pour ajouter des citations dans le mini-buffer avec le style POUR ORG-MODE SEULEMENT 
+    (defcustom citar-major-mode-functions
+      '(((org-mode) .
+         ((local-bib-files . citar-org-local-bib-files)
+          (insert-citation . citar-org-insert-citation)
+          (insert-edit . citar-org-insert-edit)
+          (key-at-point . citar-org-key-at-point)
+          (citation-at-point . citar-org-citation-at-point)
+          (list-keys . citar-org-list-keys)))
+        ((latex-mode) .
+         ((local-bib-files . citar-latex-local-bib-files)
+          (insert-citation . citar-latex-insert-citation)
+          (insert-edit . citar-latex-insert-edit)
+          (key-at-point . citar-latex-key-at-point)
+          (citation-at-point . citar-latex-citation-at-point)
+          (list-keys . reftex-all-used-citation-keys)))
+        ((markdown-mode) .
+         ((insert-keys . citar-markdown-insert-keys)
+          (insert-citation . citar-markdown-insert-citation)
+          (insert-edit . citar-markdown-insert-edit)
+          (key-at-point . citar-markdown-key-at-point)
+          (citation-at-point . citar-markdown-citation-at-point)
+          (list-keys . citar-markdown-list-keys)))
+
+        ;;patch début ici
+        ((minibuffer-mode) .
+         ( (insert-citation . citar-org-insert-citation)
+           ))
+        ;;patch fin ici
+
+        (t .
+           ((insert-keys . citar--insert-keys-comma-separated))))
+      "The variable determining the major mode specific functionality.
+
+                  It is alist with keys being a list of major modes.
+
+                  The value is an alist with values being functions to be used for
+                  these modes while the keys are symbols used to lookup them up.
+                  The keys are:
+
+                  local-bib-files: the corresponding functions should return the list of
+                  local bibliography files.
+
+                  insert-keys: the corresponding function should insert the list of keys given
+                  to as the argument at point in the buffer.
+
+                  insert-citation: the corresponding function should insert a
+                  complete citation from a list of keys at point.  If the point is
+                  in a citation, new keys should be added to the citation.
+
+                  insert-edit: the corresponding function should accept an optional
+                  prefix argument and interactively edit the citation or key at
+                  point.
+
+                  key-at-point: the corresponding function should return the
+                  citation key at point or nil if there is none.  The return value
+                  should be (KEY . BOUNDS), where KEY is a string and BOUNDS is a
+                  pair of buffer positions indicating the start and end of the key.
+
+                  citation-at-point: the corresponding function should return the
+                  keys of the citation at point, or nil if there is none.  The
+                  return value should be (KEYS . BOUNDS), where KEYS is a list of
+                  strings and BOUNDS is pair of buffer positions indicating the
+                  start and end of the citation.
+
+                  list-keys: the corresponding function should return the keys
+                  of all citations in the current buffer."
+      :group 'citar
+      :type 'alist)
     )
 
 #+end_src
@@ -2037,7 +3194,7 @@ ou bien juste :
       (plist-put org-hugo-citations-plist :bibliography-section-heading "References"))
 
     :config
-    (setq org-cite-global-bibliography (list (concat bibliography-directory "biblio.bib"))) ;; pour que org-cite sache où est ma biblio
+    (setq org-cite-global-bibliography bibliography-file-list) ;; pour que org-cite sache où est ma biblio
 
     
     (require 'oc-csl)
@@ -2076,9 +3233,38 @@ ou bien juste :
 #+end_src
 *** Trouver si une citation est affilié à un noeud. Si oui, alors bug lol y'a plus qu'à la trouver ! Permet aussi d'ajouter les sources
 
-
+Pas besoin normalement
 [cite:@${citekey}]
+
 #+begin_src emacs-lisp
+
+  (with-eval-after-load 'citar
+
+
+      (defun jethro/org-roam-node-from-cite (keys-entries)
+      (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
+      (let ((title (citar--format-entry-no-widths (cdr keys-entries)
+                                                  "${author editor} :: ${title}")))
+        (org-roam-capture- :templates
+                           '(("r" "reference" plain "%?" :if-new
+                              (file+head "reference/${citekey}.org"
+                                         ":PROPERTIES:
+:ROAM_REFS: [cite:@${citekey}]
+:END:
+#+title: ${title}\n")
+                              :immediate-finish t
+                              :unnarrowed t))
+                           :info (list :citekey (car keys-entries))
+                           :node (org-roam-node-create :title title)
+                           :props '(:finalize find-file))))
+
+                )
+  
+#+end_src
+
+
+ancien : 
+#+begin_src emacs-lisp :tangle no
 
             (with-eval-after-load 'citar
 

@@ -44,7 +44,9 @@ Pas vraiment trier ici
      ;; Highlight BUG FIXME TODO NOTE keywords in the source code.
      (add-hook 'find-file-hook
                (lambda()
-                 (highlight-phrase "\\(BUG\\|FIXME\\|TODO\\|NOTE\\):")))
+                 (highlight-phrase "\\(BUG\\|FIXME\\|TODO
+   ;;   \\|NOTE
+   \\):")))
 
 
      )
@@ -53,7 +55,7 @@ Pas vraiment trier ici
 
 
 
-** Correcteur grammaire fr
+** TODO Correcteur grammaire fr
 
 Ne pas mettre de :config pour cette config, car ne marche pas sinon
 

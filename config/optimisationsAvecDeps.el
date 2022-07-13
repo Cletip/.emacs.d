@@ -37,7 +37,9 @@
   ;; Highlight BUG FIXME TODO NOTE keywords in the source code.
   (add-hook 'find-file-hook
             (lambda()
-              (highlight-phrase "\\(BUG\\|FIXME\\|TODO\\|NOTE\\):")))
+              (highlight-phrase "\\(BUG\\|FIXME\\|TODO
+;;   \\|NOTE
+\\):")))
 
 
   )

@@ -1,8 +1,13 @@
-;;;; Emacs Bookmark Format Version 1;;;; -*- coding: utf-8-emacs; mode: lisp-data -*-
+;;;; Emacs Bookmark Format Version 1;;;; -*- coding: no-conversion; mode: lisp-data -*-
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-((".emacs.dAvantBraindump"
+(("straight"
+ (filename . "~/.emacs.d/straight/")
+ (front-context-string . "build-cache.el\n ")
+ (rear-context-string . " juil.  2 22:52 ")
+ (position . 345))
+(".emacs.dAvantBraindump"
  (filename . "~/.dotfiles/.emacs.dAvantBraindump/")
  (front-context-string . "config\n  -rw-rw-")
  (rear-context-string . " juin  16 11:09 ")
@@ -33,10 +38,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20220620213457-quatrieme_mur.org")
- (front-context-string . "\nIl s'agit d'un ")
- (rear-context-string . "parc monjuzet\n\n\n")
- (position . 186))
+ (filename . "~/braindump/org/inbox-localhost.org")
+ (front-context-string . "* TODO pour gpg ")
+ (rear-context-string . "ue 09:18]\n:END:\n")
+ (position . 1779))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")
@@ -62,11 +67,6 @@
  (front-context-string . "keymap.c\n  -rw-r")
  (rear-context-string . " avril 14 17:45 ")
  (position . 383))
-("g my-abbrev.el"
- (filename . "~/.dotfiles/.emacs.d/lisp/my-abbrev.el")
- (front-context-string . "\n    \n    ;; net")
- (rear-context-string . "0302@gmail.com\")")
- (position . 254))
 ("y emacs.dyoutube"
  (filename . "~/mesdocuments/personnel/informatique/emacs/emacs.dyoutube/")
  (front-context-string . "README.org\n  drw")
