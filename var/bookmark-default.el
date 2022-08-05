@@ -48,10 +48,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20220621120442-test_contact.org")
- (front-context-string . "* TODO un tickle")
- (rear-context-string . "05 Fri 20:06>\n*\n")
- (position . 1035))
+ (filename . "~/braindump/org/pages/6ee74a27-b5f8-4950-88e4-be954077aa98.org")
+ (front-context-string . "- Origine :: \n- ")
+ (rear-context-string . "enthèse (salut)\n")
+ (position . 85))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

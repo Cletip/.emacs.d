@@ -1164,7 +1164,7 @@ Refer to `org-agenda-prefix-format' for more information."
   (interactive)
   (vulpea-buffer-tags-remove "BROUILLON"))
 
-(defun delete-parens-note-after-insertion()
+(defun delete-parens-note-after-insertion(_)
   "Permet de supprimer les parenthèse. Attention, ne marche qu'après l'insertion !"
   (interactive)
   (save-excursion
@@ -1175,18 +1175,23 @@ Refer to `org-agenda-prefix-format' for more information."
         (narrow-to-region $p1 $p2)
         (when (search-forward "(" nil t) ;;cas où je trouve la parenthèse
           (unless (boundp 'delete-parens-for-node) ;; si pas de variable local activé
-            (when (y-or-n-p "Insertion d'une note avec des parenthèses, voulez vous les supprimer ? Si oui, vous n'aurez plus cette demande dans le buffer actuel la prochaine fois")
-              (defvar-local delete-parens-for-node t)
-              )
+            (defvar-local delete-parens-for-node nil)
             )
-          (when (boundp 'delete-parens-for-node)
+          (when (and (not delete-parens-for-node) (y-or-n-p "Insertion d'une note avec des parenthèses, voulez vous les supprimer ? Si oui, vous n'aurez plus cette demande dans le buffer actuel la prochaine fois"))
+            (setq-local delete-parens-for-node t)
+            )
+          (when delete-parens-for-node
             (xah-delete-backward-char-or-bracket-text)
             (xah-fly-delete-spaces)
             )))))
   )
 
 ;;on le "hook"
-(advice-add 'vulpea-insert :after #'delete-parens-note-after-insertion)
+;; (advice-add 'vulpea-insert :after #'delete-parens-note-after-insertion)
+;; (advice-remove 'vulpea-insert  #'delete-parens-note-after-insertion)
+
+(add-hook 'vulpea-insert-handle-functions #'delete-parens-note-after-insertion)
+;; (remove-hook 'vulpea-insert-handle-functions #'delete-parens-note-after-insertion)
 
 (defun vulpea-ensure-filetag ()
   "Add respective file tag if it's missing in the current note."
@@ -1808,6 +1813,75 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     (magit-log-buffer-file)
     (delete-other-windows)
     )
+
+(defun cp/vulpea-get-id-at-point()
+  "renvoie l'id du noeud au point actuel"
+  (let ((id (org-id-get)))
+    ;; tant que actuelle pas d'id, alors on monte,
+    (save-excursion
+      (while (and (ignore-errors (outline-up-heading 1 t)) (not id))
+        (when (org-id-get)
+          (setq id (org-id-get)))
+        )
+      ;; sinon on prend l'id du buffer
+      (unless id
+        (save-excursion
+          (goto-char (point-min))
+          (setq id (org-id-get)))
+        ))
+    id
+    ))
+
+(defun cp/vulpea-links-to()
+  "Renvoie une liste de note présent dans le noeud"
+  (let (end)
+    (dolist (id (remove nil
+                        (mapcar
+                         (lambda (x)
+                           (when (string-equal (car x) "id")
+                             (cdr x))
+                           )
+                         (vulpea-note-links (vulpea-db-get-by-id
+                                             (cp/vulpea-get-id-at-point)
+                                             ))
+                         )))
+      ;; (message "test %S"(vulpea-db-get-by-id id))
+      (push (vulpea-db-get-by-id id) end)
+      )
+    end
+    )
+  )
+
+
+(defun cp/vulpea-find-backlink-and-links ()
+  "Select and find a note linked to current note."
+  (interactive)
+  (let* ((node (org-roam-node-at-point 'assert))
+         (backlinks (vulpea-db-query-by-links-some
+                     (list (cons "id"
+                                 (org-roam-node-id node)))))
+         (links-to (cp/vulpea-links-to))
+         )
+    (unless (or backlinks links-to)
+      (user-error "Pas de lien vers ni de backlinks"))
+    ;; (message "les deux %S" (append test backlinks))
+    ;; (message "back %S" backlinks)
+    (vulpea-find
+     :candidates-fn (lambda (_) (append
+                                 backlinks
+                                 ;; '(#s(vulpea-note "20220728120707052420" "/home/utilisateur/braindump/org/pages/20220728120707-test_nom_simpl.org" 0 "Liens vers :" nil nil nil (("id" . "20220617105540968308") ("id" . "20220617115633324937") ("id" . "20220623142208004885") ("id" . "20220616193340664791")) (("CATEGORY" . "20220728120707-test_nom_simpl") ("ID" . "20220728120707052420") ("BLOCKED" . "") ("FILE" . "/home/utilisateur/braindump/org/pages/20220728120707-test_nom_simpl.org") ("PRIORITY" . "D")) (("linkInTitle" "[[id:20220617105540968308][Git]]" "[[id:20220617115633324937][Page de Test]]" "[[id:20220623142208004885][Histoire de la chine]]" "[[id:20220616193340664791][Comment faire un second cerveau]]"))))
+                                 links-to))
+     :require-match t)))
+
+(defun test()
+  (interactive)
+  (if (member (buffer-file-name) (org-roam-list-files))
+      (while t
+        (cp/vulpea-find-backlink-and-links)
+        )
+    (message "il faut être dans un buffer org-mode")
+    )
+  )
 
 (defun cp/org-roam-ref-add-check (keys-entries)
   (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
