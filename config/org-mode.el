@@ -34,12 +34,7 @@
 
 (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
 
-(defun org-summary-todo (n-done n-not-done)
-  "Switch entry to DONE when all subentries are done, to TODO otherwise."
-  (let (org-log-done org-log-states)   ; turn off logging
-    (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
 
-(add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 
 (defun my/org-checkbox-todo ()
         "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
@@ -80,23 +75,6 @@
 (add-to-list 'org-structure-template-alist '("json" . "src json"))
 
 (use-package org-sidebar)
-
-;;chargement d'une bibliothèque
-;; (add-to-list 'org-modules 'org-fold)
-
-(defun org-meta-return (&optional arg)
-  "Insert a new heading or wrap a region in a table.
-  Calls `org-insert-heading', `org-insert-item' or
-  `org-table-wrap-region', depending on context.  When called with
-  an argument, unconditionally call `org-insert-heading'."
-  (interactive "P")
-  ;; (org-fold-check-before-invisible-edit 'insert)
-  (or (run-hook-with-args-until-success 'org-metareturn-hook)
-      (call-interactively (cond (arg #'org-insert-heading)
-                                (current-prefix-arg #'org-insert-heading)
-                                ((org-at-table-p) #'org-table-wrap-region)
-                                ((org-in-item-p) #'org-insert-item)
-                                (t #'org-insert-heading-after-current)))))
 
 (setq-default org-catch-invisible-edits nil)
 
@@ -378,89 +356,6 @@ Add this function to `org-mode-hook'."
 ;; Update ID file .org-id-locations on startup
 ;; (org-id-update-id-locations)
 
-;;j'enlève la création de ctime, car c'est donné par l'id ! et je remplace la fonction qui obtient le ctime par la partie de l'id qu'il faut (pour plus tard je pense)
-(use-package org-roam-timestamps
-  :after org-roam
-  :config
-
-  (defun org-roam-timestamps--on-save ()
-    "Set the MTIME property of the current org-roam-node to the current time."
-    (when (org-roam-buffer-p)
-      (let* ((node (org-roam-node-at-point))
-             (file (org-roam-node-file node))
-             (pos (org-roam-node-point node))
-             (level (org-roam-node-level node))
-             (mtime (org-roam-timestamps--get-mtime node)))
-
-        (org-roam-timestamps--add-mtime node mtime)
-        (when (and org-roam-timestamps-timestamp-parent-file (not (eq level 0)))
-          (let* ((pnode (org-roam-timestamps--get-parent-file-node file))
-                 (pmtime (org-roam-timestamps--get-mtime pnode))
-                 (ppos (buffer-end -1)))
-            (org-roam-timestamps--add-mtime pnode pmtime)
-            ))
-        nil)))
-
-
-  (defun org-roam-timestamps-all ()
-    "Go through all nodes and add timestamps to them."
-    (interactive)
-    (when (yes-or-no-p "This will modify all your current notes by adding a ctime and mtime property
-      to all property drawers. We will make a backup of your notes and db first.
-      This might take a second. Are you sure you want to continue?")
-      (let ((backup-dir (expand-file-name "org-roam-timestamp.bak"
-                                          (file-name-directory (directory-file-name org-roam-directory))))
-            (backup-db (expand-file-name "org-roam-db.bak" (file-name-directory org-roam-db-location))))
-        (message "Backing up files to %s" backup-dir)
-        (copy-directory org-roam-directory backup-dir)
-        (message "Backing up db to %s" backup-db)
-        (copy-file org-roam-db-location backup-db))
-      (let ((nodes (org-roam-db-query [:select id :from nodes])))
-        (dolist (node nodes)
-          (let* ((n (org-roam-node-from-id (car node)))
-                 (file (org-roam-node-file n))
-                 (mtime (org-roam-timestamps-decode (org-roam-node-file-mtime n)))
-                 (pos (org-roam-node-point n))
-                 (props (org-roam-node-properties n)))
-            (org-roam-with-file file nil
-              (goto-char pos)
-              (unless (assoc-default "MTIME" props)
-                (org-roam-property-add "mtime" mtime ))
-              (save-buffer))))))
-    (org-roam-db-sync))
-
-  (defun org-roam-timestamps--get-ctime (pos)
-    "Return the current ctime for the node at point POS."
-    (substring (org-id-get) 0 14)
-    ;; (org-with-wide-buffer
-    ;; (org-entry-get pos "ctime"))
-    )
-
-
-  (defun org-roam-timestamps-clean-mtime ()
-    "Truncate all timestamps to a single value.
-A modifier pour supprimer tous les mtime si jamais"
-    (interactive)
-    (org-roam-timestamps-mode -1)
-    (let ((nodes (org-roam-db-query [:select id :from nodes])))
-      (dolist (node nodes)
-        (let* ((n (org-roam-node-from-id (car node)))
-               (file (org-roam-node-file n))
-               (pos (org-roam-node-point n)))
-          (org-roam-with-file file nil
-            (org-with-wide-buffer
-             (if-let ((mtime (org-roam-timestamps--get-mtime n))
-                      (split (split-string mtime)))
-                 (org-entry-put pos "mtime"  (car split)) ;;cette ligne
-               (save-buffer)))))))
-    (org-roam-timestamps-mode 1))
-
-  (setq org-roam-timestamps-minimum-gap 3600)
-  (org-roam-timestamps-mode)
-
-
-  )
-
 (defun cp-vulpea-meta-fait-add ()
   (interactive)
   (let* (
@@ -498,12 +393,15 @@ A modifier pour supprimer tous les mtime si jamais"
       '(
         ("t" "todo" plain (file capture-inbox-file)
          (file "../templatesOrgCapture/todo.org"))
-        ("u" "tickler" plain (file capture-inbox-file)
+        ("u" "tickler" entry
+         (function cp/vulpea-capture-tickler-target)
          (file "../templatesOrgCapture/tickler.org")
+         :immediate-finish t
          )
-        ("T" "test" plain (file "/home/utilisateur/Testdedossier/dossierTestQueryDiredRemplace/.caché/caché.org")
-           "* pas de mtn"
-           )
+        ("T" "test" entry
+         (function cp/vulpea-capture-tickler-target)
+         "* TODO %^{Nom du tickler} :tickler:\nSCHEDULED: %^T\n%?"
+         )
 
         ;; ("c" "nouvelle connaissance" entry
         ;; (file capture-inbox-file)
@@ -549,6 +447,112 @@ A modifier pour supprimer tous les mtime si jamais"
 
 ;; (add-hook 'org-capture-after-finalize-hook 'cp/org-capture-finalize)
 
+(defun cp/vulpea-capture-tickler-target ()
+  "Return a target for a meeting capture."
+  (let ((person (vulpea-select
+                "Où va le tickler selectionné : ")))
+    ;; unfortunately, I could not find a way to reuse
+    ;; `org-capture-set-target-location'
+    (if (vulpea-note-id person)
+        (let ((path (vulpea-note-path person)))
+          (set-buffer (org-capture-target-buffer path))
+          ;; Org expects the target file to be in Org mode, otherwise
+          ;; it throws an error. However, the default notes files
+          ;; should work out of the box. In this case, we switch it to
+          ;; Org mode.
+          (unless (derived-mode-p 'org-mode)
+            (org-display-warning
+             (format
+              "Capture requirement: switching buffer %S to Org mode"
+              (current-buffer)))
+            (org-mode))
+
+          (org-capture-put-target-region-and-position)
+          (widen)
+          )
+      ;;cas si personne trouvé, alors ça va direct dans l'inbox
+      (let ((path capture-inbox-file))
+        (set-buffer (org-capture-target-buffer path))
+        (org-capture-put-target-region-and-position)
+        (widen)))))
+
+;; plus besoin de cette fonction
+(defun cp/vulpea-capture-tickler-template ()
+  "Return a template for a meeting capture."
+  (let ((anote (vulpea-select
+                "Où va le tickler selectionné : ")))
+    (org-capture-put :target-tickler anote)
+    "* TODO %^{Nom du tickler} :tickler:\nSCHEDULED: %^T\n%?"))
+
+(defun vulpea-capture-meeting-template ()
+  "Return a template for a meeting capture."
+  (let ((person (vulpea-select
+                 "Person"
+                 :filter-fn
+                 (lambda (note)
+                   (let ((tags (vulpea-note-tags note)))
+                     (seq-contains-p tags "people"))))))
+    (org-capture-put :meeting-person person)
+    (if (vulpea-note-id person)
+        "* MEETING [%<%Y-%m-%d %a>] :REFILE:MEETING:\n%U\n\n%?"
+      (concat "* MEETING with "
+              (vulpea-note-title person)
+              " on [%<%Y-%m-%d %a>] :MEETING:\n%U\n\n%?"))))
+
+(defun vulpea-capture-meeting-target ()
+  "Return a target for a meeting capture."
+  (let ((person (org-capture-get :meeting-person)))
+    ;; unfortunately, I could not find a way to reuse
+    ;; `org-capture-set-target-location'
+    (if (vulpea-note-id person)
+        (let ((path (vulpea-note-path person))
+              (headline "Meetings"))
+          (set-buffer (org-capture-target-buffer path))
+          ;; Org expects the target file to be in Org mode, otherwise
+          ;; it throws an error. However, the default notes files
+          ;; should work out of the box. In this case, we switch it to
+          ;; Org mode.
+          (unless (derived-mode-p 'org-mode)
+            (org-display-warning
+             (format
+              "Capture requirement: switching buffer %S to Org mode"
+              (current-buffer)))
+            (org-mode))
+          (org-capture-put-target-region-and-position)
+          (widen)
+          (goto-char (point-min))
+          (if (re-search-forward
+               (format org-complex-heading-regexp-format
+                       (regexp-quote headline))
+               nil t)
+              (beginning-of-line)
+            (goto-char (point-max))
+            (unless (bolp) (insert "\n"))
+            (insert "* " headline "\n")
+            (beginning-of-line 0)))
+      (let ((path vulpea-capture-inbox-file))
+        (set-buffer (org-capture-target-buffer path))
+        (org-capture-put-target-region-and-position)
+        (widen)))))
+
+;;pour voir le chemin lors du refile
+(setq org-outline-path-complete-in-steps nil)
+;; permet de déplacer avec un niveau de titre 1 ! (dans tickler par exemple)
+(setq org-refile-use-outline-path (quote file))
+
+
+
+(setq org-refile-targets
+      '(
+        ;;refile dans le buffer courant jusqu'au niveau 7
+        (nil :maxlevel . 7)
+        ;;refile dans tous les fichiers de l'agenda jusqu'au niveau 5
+        ;; (org-agenda-files :maxlevel . 5) ;;c'est déjà orgzly-directory-all-org-files
+        ;;refile dans mes notes
+        (org-roam-list-files :maxlevel . 1)
+        )
+      )
+
 ;; Nouvelle touche pour mieux naviguer avec xah
 (define-key org-agenda-mode-map [remap next-line] #'org-agenda-next-item)
 (define-key org-agenda-mode-map [remap previous-line] #'org-agenda-previous-item)
@@ -573,6 +577,49 @@ A modifier pour supprimer tous les mtime si jamais"
 ;;vue de l'agenda sur X jours
 (setq org-agenda-span 8)
 
+;; permet de mettre  A B C nil priorité dans l'ordre
+;; une tâche qui n'a pas de priorité "possède" donc une priorité négative
+(setq cp/org-default-priority (+ org-priority-lowest 1))
+(setq org-default-priority cp/org-default-priority)
+
+;; on ne commence par par -1 pour mettre une priorité
+(setq org-priority-start-cycle-with-default nil)
+
+(defun cp/org-get-priority-p(s)
+  "Renvoie vrai si il y a un ancêtre qui à une priorité, peut être en récursive un jour"
+  (interactive)
+  (save-excursion
+    (while (ignore-errors (outline-up-heading 1 t)))
+    (let (($p1 (progn (beginning-of-line) (point)))
+          ;; ($p2 (progn (cp/org-goto-end-of-heading) (point)))
+          ($p2 (progn (end-of-line) (point)))
+          result)
+      (save-restriction
+        (narrow-to-region $p1 $p2)
+        (goto-char $p1)
+        (when (re-search-forward ".*?\\(\\[#\\([A-Z0-9]+\\)\\] ?\\)" nil t)
+          (setq result t))))))
+
+;; ne marche pas ? normal car je veux la priorité, pas les propriétés...
+;; (setq org-use-property-inheritance t)
+
+;; marche, mais seulement pour les fonctionnalité qui appelle org-priority-get-priority-function (donc presque tout)
+(defun my/org-inherited-priority (s)
+  (save-excursion
+    (cond
+     ;; Priority cookie in this heading
+     ((string-match org-priority-regexp s)
+      (* 1000 (- org-priority-lowest
+                 (org-priority-to-value (match-string 2 s)))))
+     ;; No priority cookie, but already at highest level
+     ((not (org-up-heading-safe))
+      (* 1000 (- org-priority-lowest org-priority-default)))
+     ;; Look for the parent's priority
+     (t
+      (my/org-inherited-priority (org-get-heading))))))
+
+(setq org-priority-get-priority-function #'my/org-inherited-priority)
+
 ;;Lieu de l'export org-icalendar-combine-agenda-files
 (setq org-icalendar-combined-agenda-file (expand-file-name "agendapourgoogle.ics" braindump-directory))
 
@@ -585,6 +632,10 @@ A modifier pour supprimer tous les mtime si jamais"
 (setq org-icalendar-use-deadline '(event-if-not-todo
                                    event-if-todo-not-done
                                    ))
+
+
+;; ne pas exporter les tickler
+(setq org-icalendar-exclude-tags '("tickler"))
 
 
 ;;fonction export en background + message pour vérif que ça marche
@@ -613,10 +664,12 @@ A modifier pour supprimer tous les mtime si jamais"
 ;; (advice-remove 'org-roam-db-sync #'org-icalendar-combine-agenda-files-background)
 
 (setq org-agenda-prefix-format
-      '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
-        (todo . " %i %(vulpea-agenda-category 12) ")
-        (tags . " %i %(vulpea-agenda-category 12) ")
-        (search . " %i %(vulpea-agenda-category 12) ")))
+        '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
+          (todo . " %i %(vulpea-agenda-category 12) ")
+          (tags . " %i %(vulpea-agenda-category 12) ")
+          (search . " %i %(vulpea-agenda-category 12) ")))
+
+;; (todo . " %i %(vulpea-agenda-category 12) %(let ((scheduled (org-get-scheduled-time (point)))) (if scheduled (format-time-string \"Schedulded to <%Y-%m-%d-%H-%M %a>\" scheduled) \"\"))")
 
 (defun vulpea-agenda-category (&optional len)
   "Get category of item at point for agenda.
@@ -743,6 +796,10 @@ Refer to `org-agenda-prefix-format' for more information."
 
 (advice-add 'org-roam-db-sync :after #'vulpea-agenda-files-update)
 
+(use-package org-super-agenda
+  :config
+  (org-super-agenda-mode))
+
 (setq org-agenda-custom-commands
       '(
         (" " "Agenda"
@@ -772,6 +829,273 @@ Refer to `org-agenda-prefix-format' for more information."
         )
       )
 
+
+;;(org-agenda-skip-if SUBTREE CONDITIONS)
+(setq org-agenda-custom-commands
+      '(("t" "Dashboard"
+         (
+          (agenda)
+          (todo "TODO"
+                ((org-agenda-overriding-header "Les deux  : first task et projet")
+                 (org-agenda-skip-function 'cp/super-org-agenda-skip-function-first-task)
+                 (org-agenda-todo-ignore-scheduled t)
+                 ))
+          (todo "TODO"
+                ((org-agenda-overriding-header "Tous mes projets en cours")
+                 ;; (org-tags-match-list-sublevels nil) ;;skip les subtask
+                 (org-agenda-skip-function 'cp/org-agenda-skip-function-for-project)
+                 ))
+          (todo "TODO"
+                ((org-agenda-overriding-header "Prochaines tâches pas dans les projets")
+                 ;; (org-tags-match-list-sublevels nil) ;;skip les subtask
+                 (org-agenda-skip-function 'cp/org-agenda-skip-function-next-task-not-project)
+                 ))
+          (todo "TODO"
+                ((org-agenda-overriding-header "Liste de mes prochaines tâche à faire pour un projet")
+                 (org-agenda-skip-function 'cp/org-agenda-skip-function-first-task)
+                 ))
+
+          ))
+        ("s" "Liste des projets à faire TODO"
+         (
+          ;; (agenda "")
+          (stuck "")
+          (org-ql-block '(and (tags "project")
+                              (not (done))
+                              (not (ancestors))
+                              ;; (not (descendants (todo "TODO"))) TODO here : trouver la tâche suivante, et elle n'est n'y schedulded ni todo, 
+                              )
+                        ((org-ql-block-header "Stuck projet"))
+                        )
+          (todo "" ((org-super-agenda-groups
+                     '((:name "Test"  ; Disable super group header
+                              :children todo)
+                       (:name "Priority >= C items underlined, on black background"
+                              :not (:priority>= "C"))
+                       (:priority<= "B"
+                                    ;; Show this section after "Today" and "Important", because
+                                    ;; their order is unspecified, defaulting to 0. Sections
+                                    ;; are displayed lowest-number-first.
+                                    :order 1)
+                       (:discard (:anything t))))))
+
+          ))
+
+        ("A" "En fonction d'un tag"
+         (
+          ;; (agenda "")
+          (tags-todo (cp/org-get-one-of-all-tags)
+                     ((org-agenda-overriding-header "Les deux  : first task et projet")
+                      (org-agenda-skip-function 'cp/super-org-agenda-skip-function-first-task)
+                      ))
+          ))
+
+        ("o" "Agenda and Office-related tasks"
+         ((agenda "")
+          (tags-todo "work")
+          (tags "home|office")
+          (org-ql-block '(and (todo "TODO")
+                              (tags "projet")
+                              (not (ancestors))
+                              )
+                        ((org-ql-block-header "Liste des projets non fini")))
+          (org-ql-block '(and (todo "TODO")
+                              (tags "WORK")
+                              )
+                        ((org-ql-block-header "Liste des Révisions, à suppr car pas trié par org-ql. Faire une requête org-ql à la place ?")))
+
+
+          ))))
+
+(defun cp/org-agenda-skip-function-for-project ()
+  "On skip dès qu'on peut avec \"cond\""
+  (when
+      (cp/org-agenda-skip-function-for-project-cond)
+    (save-excursion (org-end-of-subtree t))
+    )
+  )
+
+(defun cp/org-agenda-skip-function-for-project-cond()
+  (cond (
+         ;;je ne veux voir le premier heading, car c'est mon projet
+         (not (eq (org-current-level) 1)) t)      
+        ;; si pas de priorité alors on skip, car pas besoin de les voir
+        ((not (cp/org-get-priority-p (match-string 0))) t)       
+        ;;si il n'a pas de fils, je le skip 
+        ((not (save-excursion (org-goto-first-child))) t)              
+        )
+  )
+
+(defun org-current-is-todo ()
+  (string= "TODO" (org-get-todo-state)))
+
+(defun cp/org-agenda-skip-function-first-task ()
+  "On skip dès qu'on peut avec \"cond\""
+  (when
+      (cp/org-agenda-skip-function-first-task-cond)
+    ;; on va voir la prochaine entrée, ou bien bout du fichier si ya plus rien
+    (or (outline-next-heading)
+        (goto-char (point-max)))
+    )
+  )
+
+(defun cp/org-agenda-skip-function-first-task-cond()
+  (cond
+   ;; pas todo
+   ((not (org-current-is-todo)) t)
+   ;; si niveau 1 et qu'il n'a pas de fils
+   ((and (eq (org-current-level) 1) (not (save-excursion (org-goto-first-child)))) t)
+
+   ;; si il a des fils (pas sûr, cela me donner "les parents") dans mes commandes, mais lorsque je scheduldais, ça garder les parents. (Il faudrait faire un truc spécial "si pas de fils schedulded") Idem pour la priorité : si une tâche next avait une priorité différentes du projet... ça n'aller pas.
+   ((save-excursion (org-goto-first-child)) t)
+
+   ;; si pas de priorité
+   ((not (cp/org-get-priority-p (match-string 0))) t)
+   ;; si le frère précédent existe et est en todo
+   ((let (should-skip-entry)
+      (save-excursion
+        ;; If previous sibling exists and is TODO,
+        ;; skip this entry
+        (while (and (not should-skip-entry) (org-goto-sibling t) (not (eq (org-current-level) 1)))
+          (when (org-current-is-todo)
+            (setq should-skip-entry t))))
+      should-skip-entry
+      )
+    t)
+   ;; si un ancêtre avec un todo existe ET que cette ancêtre possède sibling précédent avec un TODO, alors skip
+   ((let (should-skip-entry
+          (num-ancestors (org-current-level))
+          (ancestor-level 1))
+      (while (and (not should-skip-entry) (<= ancestor-level num-ancestors))
+        (save-excursion
+          ;; When ancestor (parent, grandparent, etc) exists
+          (when (ignore-errors (outline-up-heading ancestor-level t))
+            ;; j'ai rajouter ici que le heading doit être différent de 1, comme ça on ne skip pas les tâches qui ont un projet avec un todo... mais pourquoi ? c'est dans cette boucle while le pb
+            ;;parce qu'on regarde les oncles jusqu'au niveau 1, et donc, quand ya un todo avant, on annule les suivant! Il faut donc arrerter de checker les oncle au plus haut niveau !
+            (when (not (eq (org-current-level) 1))
+              ;; Else if ancestor is TODO, check previous siblings of
+              ;; ancestor ("uncles"); if any of them are TODO, skip
+              (when (org-current-is-todo)
+                (while (and (not should-skip-entry) (org-goto-sibling t))
+                  (when (org-current-is-todo)
+                    (setq should-skip-entry t)))))
+            ))
+        (setq ancestor-level (1+ ancestor-level))
+        )
+      should-skip-entry)
+    t)
+
+   )
+
+  )
+
+(defun cp/org-agenda-skip-function-next-task-not-project ()
+  "On skip dès qu'on peut avec \"cond\""
+  (when
+      (cp/org-agenda-skip-function-next-task-not-project-cond)
+    (save-excursion (org-end-of-subtree t))
+    )
+  )
+
+
+(defun cp/org-agenda-skip-function-next-task-not-project-cond()
+  (cond (;;je veux voir les premiers heading seulement
+         (not (eq (org-current-level) 1)) t)      
+        ;; si pas de priorité alors on skip, car pas besoin de les voir
+        ((not (cp/org-get-priority-p (match-string 0))) t)
+        ;;si il a un fils, je le skip 
+        ((save-excursion (org-goto-first-child)) t)              
+        )
+  )
+
+(defun cp/super-org-agenda-skip-function-first-task ()
+  "On skip dès qu'on peut avec \"cond\""
+  (when (and
+         (cp/org-agenda-skip-function-next-task-not-project-cond)
+         (cp/org-agenda-skip-function-first-task-cond)
+         )
+    (or (outline-next-heading)
+        (goto-char (point-max)))
+    )
+  )
+
+(defun cp/org-get-one-of-all-tags()
+  "Renvoie un strig d'un des tags de org-agenda-files"
+  (let* (
+         ;;vive cette variable
+         (org-complete-tags-always-offer-all-agenda-tags t)
+
+         (all-tags (org-get-tags))
+         (table (setq org-last-tags-completion-table
+                      (org--tag-add-to-alist
+                       (and org-complete-tags-always-offer-all-agenda-tags
+                            (org-global-tags-completion-table
+                             (org-agenda-files)))
+                       (or org-current-tag-alist (org-get-buffer-tags)))))
+         (current-tags
+          (cl-remove-if (lambda (tag) (get-text-property 0 'inherited tag))
+                        all-tags))
+         (inherited-tags
+          (cl-remove-if-not (lambda (tag) (get-text-property 0 'inherited tag))
+                            all-tags))
+         (tags
+          (replace-regexp-in-string
+           ;; Ignore all forbidden characters in tags.
+           "[^[:alnum:]_@#%]+" ":"
+           (if (or (eq t org-use-fast-tag-selection)
+                   (and org-use-fast-tag-selection
+                        (delq nil (mapcar #'cdr table))))
+               (org-fast-tag-selection
+                current-tags
+                inherited-tags
+                table
+                (and org-fast-tag-selection-include-todo org-todo-key-alist))
+             (let ((org-add-colon-after-tag-completion (< 1 (length table)))
+                   (crm-separator "[ \t]*:[ \t]*"))
+               (mapconcat #'identity
+                          (completing-read-multiple
+                           "Tags: "
+                           org-last-tags-completion-table
+                           nil nil (org-make-tag-string current-tags)
+                           'org-tags-history)
+                          ":"))))))
+    tags))
+
+(defun bjm/org-headline-to-top ()
+  "Move the current org headline to the top of its section"
+  (interactive)
+  ;; check if we are at the top level
+  (let ((lvl (org-current-level)))
+    (cond
+     ;; above all headlines so nothing to do
+     ((not lvl)
+      (message "No headline to move"))
+     ((= lvl 1)
+      ;; if at top level move current tree to go above first headline
+      (org-cut-subtree)
+      (beginning-of-buffer)
+      ;; test if point is now at the first headline and if not then
+      ;; move to the first headline
+      (unless (looking-at-p "*")
+        (org-next-visible-heading 1))
+      (org-paste-subtree))
+     ((> lvl 1)
+      ;; if not at top level then get position of headline level above
+      ;; current section and refile to that position. Inspired by
+      ;; https://gist.github.com/alphapapa/2cd1f1fc6accff01fec06946844ef5a5
+      (let* ((org-reverse-note-order t)
+             (pos (save-excursion
+                    (outline-up-heading 1)
+                    (point)))
+             (filename (buffer-file-name))
+             (rfloc (list nil filename nil pos)))
+        (org-refile nil nil rfloc))))))
+
+(use-package org-ql
+  :config
+
+  )
+
 (add-to-list 'org-agenda-custom-commands
       '("b" "Stuck Projects"
          ((org-ql-block '(and (tags "@project")
@@ -780,11 +1104,24 @@ Refer to `org-agenda-prefix-format' for more information."
                               (not (descendants (scheduled))))
                         ((org-ql-block-header "Stuck Projects"))))))
 
-(use-package org-ql)
+;; (setq org-stuck-projects
+      ;; '("+PROJECT/-MAYBE-DONE" ("NEXT" "TODO") ("@shop")
+        ;; "\\<IGNORE\\>"))
+
+(setq org-agenda-bulk-custom-functions '(
+                                         (?D (lambda nil (org-agenda-priority 65)))
+                                         (?L (lambda nil (org-agenda-priority 66)))
+                                         (?\? (lambda nil (org-agenda-priority 67)))
+                                         (?Q (lambda nil (org-agenda-priority 68)))
+                                         ))
+
+(advice-add 'org-agenda-todo :after #'org-agenda-redo-all)
 
 (use-package org-yaap
   :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
   :config
+  (setq org-yaap-overdue-alerts '(5 30 180 3600))
+  (setq org-yaap-exclude-tags '("tickler"))
   (org-yaap-mode 1))
 
 (setq org-todo-keywords
@@ -796,6 +1133,19 @@ Refer to `org-agenda-prefix-format' for more information."
 (setq org-enforce-todo-dependencies t)
 
 (require 'org-habit)
+
+(setq org-tag-alist '((:startgrouptag)
+                      ("GTD")
+                      (:grouptags)
+                      ("Control")
+                      ("Persp")
+                      (:endgrouptag)
+                      (:startgrouptag)
+                      ("Control")
+                      (:grouptags)
+                      ("Context")
+                      ("Task")
+                      (:endgrouptag)))
 
 (setq org-tags-column 0)
 
@@ -994,7 +1344,7 @@ Refer to `org-agenda-prefix-format' for more information."
 
 ;; (remove-hook 'org-roam-capture-new-node-hook #'cp/add-other-auto-props-to-org-roam-properties)
 
-(setq file-of-contact (expand-file-name (concat org-roam-directory "creations/20220621120424-liste_de_mes_contacts_pour_org_contact.org")))
+(setq file-of-contact (expand-file-name (concat org-roam-directory "pages/20220621120424-liste_de_mes_contacts_pour_org_contact.org")))
 (defun add-contact-to-file-of-contact (note)
     (save-window-excursion
       (find-file file-of-contact)
@@ -1007,7 +1357,7 @@ Refer to `org-agenda-prefix-format' for more information."
       (insert ":PROPERTIES:")
       (newline)
       (insert "#+transclude:")
-      ;;pour insérer la note
+      ;;pour insérer la note (prendre fonction vulpea-utils-link-make-string un jour)
       (progn
         (insert (org-link-make-string
                  (concat " id:" (vulpea-note-id note))
@@ -1130,21 +1480,41 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
           (dired attach-dir)
         (message "File %S is now an attachment" basename)))))
 
-(require 'org-attach-git)
+;; (require 'org-attach-git)
 
 (use-package org-archive
   :straight nil
   :defer t
+
   :init
   (setq-default
+   org-archive-file-header-format "" ;;ce qui est affiché au début du fichier
    org-archive-location
-   (concat braindump-directory "org/.archive/%s_archive" "::" "datetree/")
+   (concat braindump-directory "org/.archive/%s_archive" "::" "* Tâches archivées")
+   ;; (concat braindump-directory "org/.archive/%s_archive" "::" "datetree/")
+   ;; (concat braindump-directory "org/.archive/datetree.org::datetree/")
    org-archive-save-context-info
-   '(time file ltags itags todo category olpath)))
+   '(time file ltags itags todo category olpath))
+
+  :config
+  ;; (setq org-attach-archive-delete t) ;; permet, si jamais ya des pièces jointe avec un subtree qui est archivé, de les supprimer
+  )
 
 ;; (setq org-archive-location "%s_archive::* ArchivedTasksfrom%s")
 
 (require 'org-protocol)
+
+(use-package epa-file
+  :straight nil ;; included with Emacs
+  :config
+  (epa-file-enable)
+  ;; (setq epa-file-encrypt-to '("my@email.address.org"))
+  (setq epa-file-select-keys nil)
+  (when termux-p
+    (setq epa-pinentry-mode 'loopback) ;;demande le mdp dans le mini-buffer
+    (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")
+    )
+  )
 
 (use-package org-crypt
   :straight nil  ;; included with org-mode
@@ -1155,6 +1525,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   :config
   (org-crypt-use-before-save-magic)
   ;; org-tags-exclude-from-inheritance '("crypt")
+  ;; (require 'org-crypt)
   )
 
 )
@@ -1221,24 +1592,37 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
                             "#+title: ${title}\n")
          :unnarrowed t)
         ("p" "connaissances multiples à trier ds 2jours" plain (file "../templatesOrgCapture/connaissance.org")
-         :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
+         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                             "#+title: ${title}\n")
          :unnarrowed t)
 
         ("l" "lien simple" plain (file "../templatesOrgCapture/lien.org")
-         :target (file+head "liens/%<%Y%m%d%H%M%S>-${slug}.org"
+         :target (file+head "liens/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                             "#+title: ${title}\n")
          :unnarrowed t
          :immediate-finish t)
         ("s" "simple/basique" plain (file "../templatesOrgCapture/simple.org")
-         :target (file+head "liens/%<%Y%m%d%H%M%S>-${slug}.org"
+         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                             "#+title: ${title}\n")
          :unnarrowed t
          :immediate-finish t)
         ("c" "contact" plain (file "../templatesOrgCapture/contact.org")
-         :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
+         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                             "#+title: ${title}\n")
          :unnarrowed t)
+
+        ("C" "Crypter" plain "%?"
+         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org.gpg"
+                            "#+title: ${title}\n")
+         :unnarrowed t)
+
+
+        ("T" "Test de nouveau nom" plain "%?"
+         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
+                            "#+title: ${title}\n")
+         :unnarrowed t)
+
+
         ;; ("m" "main" plain
         ;; "%?"
         ;; :target (file+head "main/${slug}.org"
@@ -1346,94 +1730,51 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
   )
 
-(defun cp/org-roam-ref-add-check (keys-entries)
-    (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
-    (let ((title (citar--format-entry-no-widths (cdr keys-entries)
-                                                "${author editor} :: ${title}"))
-
-          (citation-key (car keys-entries))
-          )
-      (when (member `(,citation-key) ;; ` = liste, mais permet d'évaluer la variable juste aprèsle,
-                    (org-roam-db-query
-                     [:select ref
-                              :from refs
-                              :left-join nodes
-                              :on (= refs:node-id nodes:id)]))
-        (user-error "La référence est déjà mise dans un autre noeud pour la ROAM_REFS"))
-      ))
-;;  (advice-add 'org-roam-ref-add :before #'cp/org-roam-ref-add-check)
-  ;; (advice-remove 'org-roam-ref-add #'cp/org-roam-ref-add-check)
-
 )
-
-(defun citar-org-return-citation (keys &optional style)
-  "Inspiré de citar-org-insert-citation. Au lieu d'insérer, renvoie"
-  (let ((context (org-element-context)))
-    (when style
-      (let ((raw-style
-             (citar-org-select-style)))
-        (setq style
-              (if (string-equal raw-style "") raw-style
-                (concat "/" raw-style)))))
-    (if-let ((citation (citar-org--citation-at-point context)))
-        (when-let ((keys (seq-difference keys (org-cite-get-references citation t)))
-                   (keystring (mapconcat (lambda (key) (concat "@" key)) keys "; "))
-                   (begin (org-element-property :contents-begin citation)))
-          (if (<= (point) begin)
-              (org-with-point-at begin
-                (insert keystring ";"))
-            (let ((refatpt (citar-org--reference-at-point)))
-              (org-with-point-at (or (and refatpt (org-element-property :end refatpt))
-                                     (org-element-property :contents-end citation))
-                (if (char-equal ?\; (char-before))
-                    (insert-before-markers keystring ";")
-                  (insert-before-markers ";" keystring))))))
-      (format "[cite%s:%s]" (or style "")
-              (mapconcat (lambda (key) (concat "@" key)) keys "; "))
-      )))
-
-(defun cp/org-roam-ref-add (ref)
-  "Add REF to the node at point."
-  (interactive (list (citar-org-return-citation (citar--extract-keys (citar-select-refs)))))
-  (let ((node (org-roam-node-at-point 'assert)))
-    (save-excursion
-      (goto-char (org-roam-node-point node))
-      (org-roam-property-add "ROAM_REFS" ref))))
 
 (defun cp/org-roam-unlinked-references-find-and-replace ()
   (message "Check unlinked references")
   (save-window-excursion
-    (let* ((note (vulpea-db-get-by-id (org-id-get)))
-           (id (vulpea-note-id note))
-           (title (vulpea-note-title note))
-           (FROM-STRING title) 
-           (TO-STRING (concat "[[id:" id "][" title "]]")))
-      (dolist (file (org-roam-list-files))
-        (find-file file)
-        (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
-          (save-excursion
-            (goto-char (point-min))
-            (while (re-search-forward
-                    (concat "\\([ ]\\|^\\)" title "\\([ ]\\|$\\)")
-                    nil t)
-              (goto-char (match-beginning 0))
-              (skip-chars-forward " ")
-              (search-forward FROM-STRING)
+    ;; when-let pour pas que ça check quand je fais un capture dans le journal 
+    (if-let* ((note (vulpea-db-get-by-id (org-id-get)))
+              (id (vulpea-note-id note))
+              (title (vulpea-note-title note))
+              (FROM-STRING title) 
+              (TO-STRING (concat "[[id:" id "][" title "]]")))
+        (progn
 
-              (when (y-or-n-p "Remplacé le texte par un lien vers le nouveau titre ?")
+          (dolist (file (org-roam-list-files))
+            ;; on check pas les fichiers cryptés !
+            (unless (string-equal (file-name-extension file) "gpg")
+              (find-file file)
+              (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
+                (save-excursion
+                  (goto-char (point-min))
+                  (while (re-search-forward
+                          (concat "\\([ ]\\|^\\)" title "\\([ ]\\|$\\)")
+                          nil t)
+                    (goto-char (match-beginning 0))
+                    (skip-chars-forward " ")
+                    (search-forward FROM-STRING)
 
-                ;; obligé de faire ça à cause du y-or-n-p qui me brise mon match. Je pourrais juste mettre (search-forward FROM-STRING) ici, mais si je remplace pas le texte, boucle infini
-                (search-backward FROM-STRING)
-                (goto-char (match-end 0))
+                    (when (y-or-n-p "Remplacé le texte par un lien vers le nouveau titre ?")
 
-                (replace-match TO-STRING)
-                (message "Texte remplacé")
+                      ;; obligé de faire ça à cause du y-or-n-p qui me brise mon match. Je pourrais juste mettre (search-forward FROM-STRING) ici, mais si je remplace pas le texte, boucle infini
+                      (search-backward FROM-STRING)
+                      (goto-char (match-end 0))
+
+                      (replace-match TO-STRING)
+                      (message "Texte remplacé")
+                      )))
+                ;; ancien ;;(query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
+                (save-buffer)
                 )))
-          ;; ancien ;;(query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
-          (save-buffer)
-          ))))
-  (message "Fin check unlinked references")
-  )
+          (message "Fin check unlinked references")
+          )
+
+      ;; fin du if
+      (message "Pas besoin de check les références")
+      ))) 
 
 (add-hook 'org-capture-after-finalize-hook #'(lambda () (when (member (buffer-file-name) (org-roam-list-files)) (cp/org-roam-unlinked-references-find-and-replace))))
 
@@ -1467,6 +1808,65 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     (magit-log-buffer-file)
     (delete-other-windows)
     )
+
+(defun cp/org-roam-ref-add-check (keys-entries)
+  (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
+  (let ((title (citar--format-entry-no-widths (cdr keys-entries)
+                                              "${author editor} :: ${title}"))
+
+        (citation-key (car keys-entries))
+        )
+    (when (member `(,citation-key) ;; ` = liste, mais permet d'évaluer la variable juste aprèsle,
+                  (org-roam-db-query
+                   [:select ref
+                            :from refs
+                            :left-join nodes
+                            :on (= refs:node-id nodes:id)]))
+      (org-roam-ref-remove (citar-org-return-citation-string (citar--extract-keys (list citation-key))))
+      (user-error "La référence est déjà mise dans un autre noeud pour la ROAM_REFS"))
+    ))
+
+;; (advice-add 'cp/org-roam-ref-add :before #'cp/org-roam-ref-add-check)
+;; (advice-remove 'cp/org-roam-ref-add #'cp/org-roam-ref-add-check)
+
+;; (advice-add 'org-roam-ref-add :before #'cp/org-roam-ref-add-check)
+;; (advice-remove 'org-roam-ref-add #'cp/org-roam-ref-add-check)
+
+(defun citar-org-return-citation-string (keys &optional style)
+  "Inspiré de citar-org-insert-citation. Au lieu d'insérer, renvoie"
+  (let ((context (org-element-context)))
+    (when style
+      (let ((raw-style
+             (citar-org-select-style)))
+        (setq style
+              (if (string-equal raw-style "") raw-style
+                (concat "/" raw-style)))))
+    (if-let ((citation (citar-org--citation-at-point context)))
+        (when-let ((keys (seq-difference keys (org-cite-get-references citation t)))
+                   (keystring (mapconcat (lambda (key) (concat "@" key)) keys "; "))
+                   (begin (org-element-property :contents-begin citation)))
+          (if (<= (point) begin)
+              (org-with-point-at begin
+                (insert keystring ";"))
+            (let ((refatpt (citar-org--reference-at-point)))
+              (org-with-point-at (or (and refatpt (org-element-property :end refatpt))
+                                     (org-element-property :contents-end citation))
+                (if (char-equal ?\; (char-before))
+                    (insert-before-markers keystring ";")
+                  (insert-before-markers ";" keystring))))))
+      (format "[cite%s:%s]" (or style "")
+              (mapconcat (lambda (key) (concat "@" key)) keys "; "))
+      )))
+
+(defun cp/org-roam-ref-add (keys-entries)
+  "Add REF to the node at point."
+  (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
+  (cp/org-roam-ref-add-check keys-entries) ;;check si la ref est déja mise
+  (let ((node (org-roam-node-at-point 'assert))
+        (ref-key (citar-org-return-citation-string (citar--extract-keys (list keys-entries)))))
+    (save-excursion
+      (goto-char (org-roam-node-point node))
+      (org-roam-property-add "ROAM_REFS" ref-key))))
 
 (use-package consult-org-roam
    :config

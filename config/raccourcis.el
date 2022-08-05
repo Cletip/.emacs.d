@@ -43,6 +43,7 @@
   (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
   (setq xah-fork-cp-xah-open-file-at-cursor-function-name 'cp/open-link)
   (setq xah-fork-cp-xah-extend-selection-function-name 'er/expand-region)
+  ;; (setq xah-fork-cp-xah-extend-selection-function-name 'xah-extend-selection)
 
 
   ;; To disable both Control and Meta shortcut keys, add the following lines to you init.el before (require 'xah-fly-keys):
@@ -59,10 +60,51 @@
 
 
   ;; Les hook	     
-  ;; sauvegarde automatique avec command mode
-  ;; (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
 
-  ;; ;;Suites des hook
+  ;; TODO un jour faire pull request à xah
+  ;; permet de mettre une touche qui fait open-line quand elle peut, sinon elle fait la touche entrée. À voir avec les commandes qui appele le 
+  (defun cp-xfk-addon-command (&rest args)
+    "Modify keys for xah fly key command mode keys To be added to `xah-fly-command-mode-activate-hook'"
+    (interactive)
+    ;; (message "test %S" (format-time-string "%Y-%m-%d %H:%M:%S:%3N"))
+    (define-key xah-fly-command-map (kbd "i")
+      (if (or buffer-read-only 
+              (string-equal major-mode "minibuffer-mode")
+              ;; (string-equal major-mode "org-agenda-mode")
+              ;; (string-equal major-mode "fundamental-mode")
+              )
+          (kbd "RET")
+        'open-line)))
+
+  ;; (add-hook 'xah-fly-command-mode-activate-hook 'cp-xfk-addon-command)
+  (add-to-list 'window-state-change-functions 'cp-xfk-addon-command)
+  (when termux-p
+    (add-to-list 'window-buffer-change-functions 'test))
+
+  ;; (remove-hook 'xah-fly-command-mode-activate-hook 'cp-xfk-addon-command)
+
+  (defvar cp/xfk-auto-command-mode-fns '()
+    "List of functions to automatically call xah-fly-command-mode-activate on.")
+  (setq cp/xfk-auto-command-mode-fns
+        '(dashboard-jump-to-recents
+          dashboard-jump-to-projects
+          recentf-cancel-dialog
+          dashboard-jump-to-bookmarks
+          org-agenda-show-dashboard
+          dashboard-jump-to-if-dashboardweekagenda-agenda-for-the-coming-week-agenda-for-today
+
+          ;; pour le hook, et donc activer la touche entrée ou pas
+          dired-jump
+          vertico-exit
+          ;; More function names
+          ))
+
+  (defun cp/xfk-auto-command-mode-activate ()
+    "Wires xah-fly-command-mode-activate to all functions from cp/xfk-auto-command-mode-fns."
+    (dolist (element cp/xfk-auto-command-mode-fns)
+      (advice-add element :after #'xah-fly-command-mode-activate)))
+  (cp/xfk-auto-command-mode-activate)
+
   (defvar cp/xfk-auto-insert-mode-fns '()
     "List of functions to automatically call xah-fly-insert-mode-activate on.")
   (setq cp/xfk-auto-insert-mode-fns
@@ -77,30 +119,12 @@
 
           ;; More function names here
           ))
+
   (defun cp/xfk-auto-insert-mode-activate ()
     "Wires xah-fly-insert-mode-activate to all functions from cp/xfk-auto-insert-mode-fns."
     (dolist (element cp/xfk-auto-insert-mode-fns)
       (advice-add element :after #'xah-fly-insert-mode-activate)))
   (cp/xfk-auto-insert-mode-activate)
-
-
-  (defvar cp/xfk-auto-command-mode-fns '()
-    "List of functions to automatically call xah-fly-command-mode-activate on.")
-  (setq cp/xfk-auto-command-mode-fns
-        '(dashboard-jump-to-recents
-          dashboard-jump-to-projects
-          recentf-cancel-dialog
-          dashboard-jump-to-bookmarks
-          org-agenda-show-dashboard
-          dashboard-jump-to-if-dashboardweekagenda-agenda-for-the-coming-week-agenda-for-today
-          ;; More function names
-          ))
-
-  (defun cp/xfk-auto-command-mode-activate ()
-    "Wires xah-fly-command-mode-activate to all functions from cp/xfk-auto-command-mode-fns."
-    (dolist (element cp/xfk-auto-command-mode-fns)
-      (advice-add element :after #'xah-fly-command-mode-activate)))
-  (cp/xfk-auto-command-mode-activate)
 
   ;;pour la commande xah-run-current-file
   (setq xah-run-current-file-hashtable
@@ -136,6 +160,9 @@
             ;; "pov" "/usr/local/bin/povray +R2 +A0.1 +J1.2 +Am2 +Q9 +H480 +W640"
             )))
   )
+
+(define-key minibuffer-mode-map [remap previous-line] #'previous-line-or-history-element)
+(define-key minibuffer-mode-map [remap next-line] #'next-line-or-history-element)
 
 (defun touches-controle-au-bon-endroit ()
   "Permet de mapper les touches contrôle aux endroit définit dans le fichier Xmodmap"

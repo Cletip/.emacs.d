@@ -2,7 +2,17 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("straight"
+(("emacs code"
+ (filename . "~/Testdedossier/emacs/")
+ (front-context-string . "lisp\n  drwxrwxr-")
+ (rear-context-string . " juil. 13 22:11 ")
+ (position . 2159))
+("org-refile-last-stored"
+ (filename . "~/braindump/org/pages/20220616193340-comment_faire_un_second_cerveau.org")
+ (front-context-string . "*** TODO Reflech")
+ (rear-context-string . "\303\250me d'archivage\n")
+ (position . 8863))
+("straight"
  (filename . "~/.emacs.d/straight/")
  (front-context-string . "build-cache.el\n ")
  (rear-context-string . " juil.  2 22:52 ")
@@ -38,10 +48,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/inbox-localhost.org")
- (front-context-string . "* TODO pour gpg ")
- (rear-context-string . "ue 09:18]\n:END:\n")
- (position . 1779))
+ (filename . "~/braindump/org/pages/20220621120442-test_contact.org")
+ (front-context-string . "* TODO un tickle")
+ (rear-context-string . "05 Fri 20:06>\n*\n")
+ (position . 1035))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")
@@ -57,8 +67,8 @@
  (front-context-string . "Testdedossier\n ")
  (rear-context-string . " mai   27 10:42 ")
  (position . 271))
-("T Téléchargements"
- (filename . "~/Téléchargements/")
+("T T\303\251l\303\251chargements"
+ (filename . "~/T\303\251l\303\251chargements/")
  (front-context-string . "..\n  -rw-rw-r-- ")
  (rear-context-string . " avril 29 13:30 ")
  (position . 210))

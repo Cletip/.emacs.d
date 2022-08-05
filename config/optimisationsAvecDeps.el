@@ -41,7 +41,6 @@
 ;;   \\|NOTE
 \\):")))
 
-
   )
 
 (use-package flycheck

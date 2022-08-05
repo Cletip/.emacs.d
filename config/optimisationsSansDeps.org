@@ -17,6 +17,21 @@
 
 #+end_src
 
+** Gestion du buffer scratch
+
+*** Message de base à nil
+
+#+begin_src emacs-lisp
+  (setq initial-scratch-message nil)
+#+end_src
+
+*** Mode de base dans scratch
+
+#+begin_src emacs-lisp
+  (defvaralias 'major-mode-for-buffer-scratch 'initial-major-mode)
+  (setq major-mode-for-buffer-scratch 'org-mode)
+#+end_src
+
 ** Fichiers récents sauvegardé 
 
 #+begin_src emacs-lisp
@@ -70,14 +85,23 @@ Cela permet de ré-avoir les commandes faites lors de la dernière session d'ema
 #+begin_src emacs-lisp 
 
   ;;sauvegarde à tout les changement de fenêtre
-      (defun xah-save-all-unsaved (&rest args)
-      "Save all unsaved files. no ask.
-    Version 2019-11-05"
-      (interactive)
-      (save-some-buffers t ))
+  (defun xah-save-all-unsaved (&rest args)
+    "Save all unsaved files. no ask.
+          Version 2019-11-05"
+    (interactive)
+    (unless (string-equal (file-name-extension buffer-file-name) "gpg")
+      (save-some-buffers t))
+    )
+
+  (defun cp/xah-fly-save-buffer-if-file-not-gpg ()
+    "Save current buffer if it is a file."
+    (interactive)
+    (when (and (buffer-file-name) (not (string-equal (file-name-extension buffer-file-name) "gpg")))
+      (save-buffer)))
+
   ;; (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
-      ;; sauvegarde automatique avec command mode
-    (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
+  ;; sauvegarde automatique avec command mode
+  (add-hook 'xah-fly-command-mode-activate-hook 'cp/xah-fly-save-buffer-if-file-not-gpg)
 
   (setq make-backup-files t               ; backup of a file the first time it is saved.
         backup-by-copying t               ; don't clobber symlinks
@@ -1274,10 +1298,83 @@ Dépendances : all-the-icons et projectile
 * Intégrations avec d'autres logiciels du pc
 ** Gérer Git dans emacs
 
+
+
+*** Interface pratique
+
 #+begin_src emacs-lisp
   (use-package magit)
 #+end_src
 
+*** Auto commit 
+
+#+begin_src emacs-lisp
+
+  (setq cp/magit-commit-directory-list '(
+                                         braindump-directory
+                                         ;; "~/test/"
+                                         ))
+
+  (defun cp/magit-commit-directory-list(list)
+    "prends une liste représentant les directory à commit"
+    (dolist (directory list)
+      (cp/magit-commit-directory directory))
+    )
+
+  (defun cp/magit-commit-directory(directory)
+    (interactive)
+    (save-window-excursion
+      (find-file
+       (if (stringp directory) ;; à cause du do-list
+           directory
+         (symbol-value directory)
+         )
+       )
+      (magit-call-git "add" ".")
+      (magit-call-git "commit" "-m" "Auto commit")
+      (magit-refresh)
+      (message "Commit fait pour le dossier : %s" directory)
+      )
+    )
+
+  (cp/magit-commit-directory-list cp/magit-commit-directory-list)
+
+  (add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)))
+
+
+#+end_src
+
+  (setq list '(braindump-directory "/home/utilisateur/Testdedossier/test.org"))
+  (dolist (test list)
+    (let* (
+           (symbol (boundp 'test))
+           (file (if symbol (symbol-value test) (test)))
+           )
+      (message "salut %s" file)
+      ;; (message "salut %s" (symbol-value test))
+      ;; (find-file test)
+      )
+    )
+
+
+
+
+  (boundp 'braindump-directory)
+
+
+
+#+begin_src emacs-lisp :tangle no
+
+
+  (use-package git-auto-commit-mode
+    :config
+    ;;je change le hook avec kill au lieu de save
+    
+    )
+
+
+
+#+end_src
 ** Lire des epub
 
 #+begin_src emacs-lisp
@@ -1306,8 +1403,6 @@ Dépendances : all-the-icons et projectile
     )
 
 #+end_src
-
-
 ** Faire des recherches rapide
 
 #+begin_src emacs-lisp
@@ -1323,3 +1418,164 @@ Dépendances : all-the-icons et projectile
            (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
            (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
 #+end_src
+
+
+* TODO Lire des flux rss
+:LOGBOOK:
+- State "TODO"       from              [2022-07-22 Fri 18:43]
+:END:
+
+** Le moteur
+
+[[https://noonker.github.io/posts/2020-04-22-elfeed/][d'autres choses ici]]
+
+et pleins d'astuces sur le github d'elfeed
+
+#+begin_example
+Pour modifier les flux : 
+modifier le fichier rmh-elfeed-org-files
+(setq elfeed-feeds nil)
+(rmh-elfeed-org-files-output)
+(elfeed-load-opml cp/rmh-elfeed-org-files-output)
+(elfeed-update)
+
+pour supprimer un flux
+tag ignored sur un heading
+(delete-directory "/home/utilisateur/.emacs.d/var/elfeed/db/" t t)
+supprimer le deuxième paragraphe dans /home/utilisateur/.emacs.d/var/elfeed/db/index si jamail il revient
+faire la même manip qu'au dessus
+
+
+#+end_example
+
+#+begin_src emacs-lisp 
+
+  (use-package elfeed
+    :config
+
+    (setq elfeed-feeds
+          '(("http://nullprogram.com/feed/" blog emacs)
+            "http://www.50ply.com/atom.xml"  ; no autotagging
+            ("http://nedroid.com/feed/" webcomic)))
+
+    (setq elfeed-feeds nil)
+
+    ;;touche v pour voir une vidéo
+    (defun elfeed-v-mpv (url)
+      "Watch a video from URL in MPV"
+      (async-shell-command (format "mpv %s" url)))
+
+    (defun elfeed-view-mpv (&optional use-generic-p)
+      "Youtube-feed link"
+      (interactive "P")
+      (let ((entries (elfeed-search-selected)))
+        (cl-loop for entry in entries
+                 do (elfeed-untag entry 'unread)
+                 when (elfeed-entry-link entry)
+                 do (elfeed-v-mpv it))
+        (mapc #'elfeed-search-update-entry entries)
+        (unless (use-region-p) (forward-line))))
+
+    (define-key elfeed-search-mode-map (kbd "v") 'elfeed-view-mpv)
+
+    )
+
+#+end_src
+
+
+** TODO Gérer ses flux avec org-mode
+:LOGBOOK:
+- State "TODO"       from              [2022-07-22 Fri 18:03]
+:END:
+
+Les tags ne marchent pas et les titres perso nn plus wtf
+
+
+
+#+begin_src emacs-lisp 
+
+  (use-package elfeed-org
+    :after elfeed
+    :config
+
+    (setq rmh-elfeed-org-files (list (concat config-directory "org-elfeed/org-elfeed.org")))
+    (setq cp/rmh-elfeed-org-files-output (concat config-directory "org-elfeed/org-elfeed.opml"))
+
+    ;; (cp/elfeed-org-export-opml-with-output)
+
+    ;;pour la ranger dans un fichier
+    (defun cp/elfeed-org-export-opml-with-output ()
+      "Export Org feeds under `rmh-elfeed-org-files' to a temporary OPML buffer.
+          The first level elfeed node will be ignored. The user may need edit the output
+          because most of Feed/RSS readers only support trees of 2 levels deep."
+      (interactive)
+      (let ((opml-body (cl-loop for org-file in rmh-elfeed-org-files
+                                concat (rmh-elfeed-org-convert-org-to-opml
+                                        (find-file-noselect (expand-file-name org-file))))))
+
+        (save-window-excursion
+          (find-file cp/rmh-elfeed-org-files-output)
+          (erase-buffer)
+          (insert "<?xml version=\"1.0\"?>\n")
+          (insert "<opml version=\"1.0\">\n")
+          (insert "  <head>\n")
+          (insert "    <title>Elfeed-Org Export</title>\n")
+          (insert "  </head>\n")
+          (insert "  <body>\n")
+          (insert opml-body)
+          (insert "  </body>\n")
+          (insert "</opml>\n")
+          (save-buffer)
+          )
+        ))
+
+
+
+
+    ;; (elfeed-db-unload) ;; à appeler après avoir modifier la database
+    ;; (delete-directory "/home/utilisateur/.emacs.d/var/elfeed/db/" t t)
+    ;; (elfeed-db-unload)
+    ;; (elfeed-db-gc)
+
+    (elfeed-load-opml cp/rmh-elfeed-org-files-output)
+    (elfeed-update)
+
+    )
+#+end_src
+
+** Meilleur affichage
+
+#+begin_src emacs-lisp
+  (use-package elfeed-goodies
+    :after elfeed
+    :config 
+    (elfeed-goodies/setup))
+#+end_src
+
+** TODO Mettre des score à mon flux pour mieux les trier
+:LOGBOOK:
+- State "TODO"       from              [2022-07-22 Fri 15:31]
+:END:
+
+https://github.com/sp1ff/elfeed-score
+
+** DONE Dashboard
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2022-07-22 Fri 15:42]
+- State "TODO"       from              [2022-07-22 Fri 15:42]
+:END:
+
+Sert à pas grands choses pour moi, et ne marche pas avec xah
+
+#+begin_src emacs-lisp :tangle no
+
+  (use-package elfeed-dashboard
+    :after elfeed
+    :config
+    (setq elfeed-dashboard-file "/home/utilisateur/.dotfiles/.emacs.d/straight/repos/elfeed-dashboard/elfeed-dashboard.org")
+    ;; update feed counts on elfeed-quit
+    (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
+
+#+end_src
+
+

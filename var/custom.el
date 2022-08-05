@@ -24,9 +24,9 @@
       (request . defun))
      (company-backends list
 		       (company-capf))))
- '(org-agenda-files nil)
  '(safe-local-variable-values
-   '((org-download-image-dir concat org-directory "org/artistesImages/")
+   '((gac-automatically-add-new-files-p . t)
+     (org-download-image-dir concat org-directory "org/artistesImages/")
      (org-download-heading-lvl . 0)
      (company-backends list
 		       (company-capf)))))

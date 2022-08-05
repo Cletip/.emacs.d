@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<opml version="1.0">
+  <head>
+    <title>Elfeed-Org Export</title>
+  </head>
+  <body>
+      <outline title="Journaux">
+        <outline title="International Le Monde" xmlUrl="http://www.lemonde.fr/international/rss_full.xml"/>
+        <outline title="france24" xmlUrl="https://www.feedspot.com/infiniterss.php?_src=followbtn&amp;followfeedid=3623203&amp;q=site:https%3A%2F%2Fwww.france24.com%2Fen%2Frss"/>
+      </outline>
+      <outline title="Blogs">
+        <outline title="lucidManager" xmlUrl="http://lucidmanager.org/index.xml"/>
+      </outline>
+      <outline title="Informatique">
+        <outline title="Cyber sécurité">
+        </outline>
+        <outline title="Emacs">
+        </outline>
+      </outline>
+      <outline title="Chaînes youtube">
+        <outline title="Simon Puech" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=LeJeuVidéal"/>
+      </outline>
+  </body>
+</opml>

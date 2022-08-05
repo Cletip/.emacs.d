@@ -48,7 +48,6 @@ Pas vraiment trier ici
    ;;   \\|NOTE
    \\):")))
 
-
      )
 
  #+END_SRC

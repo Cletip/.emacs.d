@@ -8,6 +8,11 @@
 (menu-bar-mode 0)
 (tooltip-mode 0)
 
+(setq initial-scratch-message nil)
+
+(defvaralias 'major-mode-for-buffer-scratch 'initial-major-mode)
+(setq major-mode-for-buffer-scratch 'org-mode)
+
 (use-package recentf
   :config
 
@@ -44,14 +49,23 @@
   )
 
 ;;sauvegarde à tout les changement de fenêtre
-    (defun xah-save-all-unsaved (&rest args)
-    "Save all unsaved files. no ask.
-  Version 2019-11-05"
-    (interactive)
-    (save-some-buffers t ))
+(defun xah-save-all-unsaved (&rest args)
+  "Save all unsaved files. no ask.
+        Version 2019-11-05"
+  (interactive)
+  (unless (string-equal (file-name-extension buffer-file-name) "gpg")
+    (save-some-buffers t))
+  )
+
+(defun cp/xah-fly-save-buffer-if-file-not-gpg ()
+  "Save current buffer if it is a file."
+  (interactive)
+  (when (and (buffer-file-name) (not (string-equal (file-name-extension buffer-file-name) "gpg")))
+    (save-buffer)))
+
 ;; (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
-    ;; sauvegarde automatique avec command mode
-  (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
+;; sauvegarde automatique avec command mode
+(add-hook 'xah-fly-command-mode-activate-hook 'cp/xah-fly-save-buffer-if-file-not-gpg)
 
 (setq make-backup-files t               ; backup of a file the first time it is saved.
       backup-by-copying t               ; don't clobber symlinks
@@ -658,6 +672,37 @@ reuse it's window, otherwise create new one."
 
 (use-package magit)
 
+(setq cp/magit-commit-directory-list '(
+                                       braindump-directory
+                                       ;; "~/test/"
+                                       ))
+
+(defun cp/magit-commit-directory-list(list)
+  "prends une liste représentant les directory à commit"
+  (dolist (directory list)
+    (cp/magit-commit-directory directory))
+  )
+
+(defun cp/magit-commit-directory(directory)
+  (interactive)
+  (save-window-excursion
+    (find-file
+     (if (stringp directory) ;; à cause du do-list
+         directory
+       (symbol-value directory)
+       )
+     )
+    (magit-call-git "add" ".")
+    (magit-call-git "commit" "-m" "Auto commit")
+    (magit-refresh)
+    (message "Commit fait pour le dossier : %s" directory)
+    )
+  )
+
+(cp/magit-commit-directory-list cp/magit-commit-directory-list)
+
+(add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)))
+
 (use-package nov
     :config
     (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode)))
@@ -688,3 +733,86 @@ reuse it's window, otherwise create new one."
          (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
          (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
          (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
+
+(use-package elfeed
+  :config
+
+  (setq elfeed-feeds
+        '(("http://nullprogram.com/feed/" blog emacs)
+          "http://www.50ply.com/atom.xml"  ; no autotagging
+          ("http://nedroid.com/feed/" webcomic)))
+
+  (setq elfeed-feeds nil)
+
+  ;;touche v pour voir une vidéo
+  (defun elfeed-v-mpv (url)
+    "Watch a video from URL in MPV"
+    (async-shell-command (format "mpv %s" url)))
+
+  (defun elfeed-view-mpv (&optional use-generic-p)
+    "Youtube-feed link"
+    (interactive "P")
+    (let ((entries (elfeed-search-selected)))
+      (cl-loop for entry in entries
+               do (elfeed-untag entry 'unread)
+               when (elfeed-entry-link entry)
+               do (elfeed-v-mpv it))
+      (mapc #'elfeed-search-update-entry entries)
+      (unless (use-region-p) (forward-line))))
+
+  (define-key elfeed-search-mode-map (kbd "v") 'elfeed-view-mpv)
+
+  )
+
+(use-package elfeed-org
+  :after elfeed
+  :config
+
+  (setq rmh-elfeed-org-files (list (concat config-directory "org-elfeed/org-elfeed.org")))
+  (setq cp/rmh-elfeed-org-files-output (concat config-directory "org-elfeed/org-elfeed.opml"))
+
+  ;; (cp/elfeed-org-export-opml-with-output)
+
+  ;;pour la ranger dans un fichier
+  (defun cp/elfeed-org-export-opml-with-output ()
+    "Export Org feeds under `rmh-elfeed-org-files' to a temporary OPML buffer.
+        The first level elfeed node will be ignored. The user may need edit the output
+        because most of Feed/RSS readers only support trees of 2 levels deep."
+    (interactive)
+    (let ((opml-body (cl-loop for org-file in rmh-elfeed-org-files
+                              concat (rmh-elfeed-org-convert-org-to-opml
+                                      (find-file-noselect (expand-file-name org-file))))))
+
+      (save-window-excursion
+        (find-file cp/rmh-elfeed-org-files-output)
+        (erase-buffer)
+        (insert "<?xml version=\"1.0\"?>\n")
+        (insert "<opml version=\"1.0\">\n")
+        (insert "  <head>\n")
+        (insert "    <title>Elfeed-Org Export</title>\n")
+        (insert "  </head>\n")
+        (insert "  <body>\n")
+        (insert opml-body)
+        (insert "  </body>\n")
+        (insert "</opml>\n")
+        (save-buffer)
+        )
+      ))
+
+
+
+
+  ;; (elfeed-db-unload) ;; à appeler après avoir modifier la database
+  ;; (delete-directory "/home/utilisateur/.emacs.d/var/elfeed/db/" t t)
+  ;; (elfeed-db-unload)
+  ;; (elfeed-db-gc)
+
+  (elfeed-load-opml cp/rmh-elfeed-org-files-output)
+  (elfeed-update)
+
+  )
+
+(use-package elfeed-goodies
+  :after elfeed
+  :config 
+  (elfeed-goodies/setup))
