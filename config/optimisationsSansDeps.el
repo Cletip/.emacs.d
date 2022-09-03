@@ -99,7 +99,7 @@
 
 (cd user-emacs-directory)
 
-;; (server-start)  ;; starts emacs as server (if you didn't already)
+(server-start)  ;; starts emacs as server (if you didn't already)
 
 (use-package move-text
      :defer 0.5
@@ -701,7 +701,9 @@ reuse it's window, otherwise create new one."
 
 (cp/magit-commit-directory-list cp/magit-commit-directory-list)
 
-(add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)))
+(add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)) 95) ;; doit commit à la fin
+
+;; (remove-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)) )
 
 (use-package nov
     :config
@@ -733,6 +735,69 @@ reuse it's window, otherwise create new one."
          (defengine qwant "https://www.qwant.com/?q=%s" :keybinding "q")
          (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
          (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
+
+(use-package newsticker
+  :ensure nil
+  :custom
+  (newsticker-url-list-defaults nil)
+  (newsticker-url-list '(
+                         ;; ("title" "URL" other options)
+                         ("SécuMondeInfo" "https://www.lemondeinformatique.fr/flux-rss/thematique/internet/rss.xml") 
+                         ("AnsiSécu" "https://www.ssi.gouv.fr/feed/actualite/")
+                         ("MondeInter" "http://www.lemonde.fr/international/rss_full.xml")
+                         ("SimonPuech" "https://www.youtube.com/feeds/videos.xml?channel_id=LeJeuVidéal")
+                         ("FuturaEspace" "https://www.futura-sciences.com/rss/espace/actualites.xml")
+                         ("EmacsLife" "https://planet.emacslife.com/")
+                         ;; ("Reddit - Org-mode" "https://www.reddit.com/r/orgmode.rss")
+                         ))
+
+  ;; (newsticker-groups nil)
+  (add-hook 'newsticker-mode-hook 'imenu-add-menubar-index)
+  ;; (newsticker-new-item-functions '(newsticker-download-images newsticker-download-enclosures))
+  ;; (newsticker-new-item-functions nil)
+
+  :config
+
+  ;; pour maj, corrigé dans les dernières versions d'emacs
+  (defun newsticker--treeview-list-items-with-age (&rest ages)
+    "Actually fill newsticker treeview list window with items of certain age.
+    AGES is the list of ages that are to be shown."
+    (mapc (lambda (feed)
+            (let ((feed-name-symbol (intern (car feed))))
+              (mapc (lambda (item)
+                      (when (or (memq 'all ages)
+                                (memq (newsticker--age item) ages))
+                        (newsticker--treeview-list-add-item
+                         item feed-name-symbol t)))
+                    (newsticker--treeview-list-sort-items
+                     (cdr (newsticker--cache-get-feed feed-name-symbol))))))
+          (append newsticker-url-list-defaults newsticker-url-list))
+    (newsticker--treeview-list-update nil))
+
+  (defun newsticker-treeview-update ()
+    "Update all treeview buffers and windows.
+  Note: does not update the layout."
+    (interactive)
+    (let ((cur-item (newsticker--treeview-get-selected-item)))
+      (if (newsticker--group-manage-orphan-feeds)
+          (newsticker--treeview-tree-update))
+      (newsticker--treeview-list-update t)
+      (newsticker--treeview-item-update)
+      (newsticker--treeview-tree-update-tags)
+      (cond (newsticker--treeview-current-vfeed
+             (newsticker--treeview-list-items-with-age
+              (intern newsticker--treeview-current-vfeed)))
+            (newsticker--treeview-current-feed
+             (newsticker--treeview-list-items newsticker--treeview-current-feed)))
+      (newsticker--treeview-tree-update-highlight)
+      (newsticker--treeview-list-update-highlight)
+      (let ((cur-feed (or newsticker--treeview-current-feed
+                          newsticker--treeview-current-vfeed)))
+        (if (and cur-feed cur-item)
+            (newsticker--treeview-list-select cur-item)))))
+
+
+  )
 
 (use-package elfeed
   :config

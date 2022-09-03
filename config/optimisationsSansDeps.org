@@ -169,7 +169,7 @@ I advise you to put in "application at startup" (under linux, I don't know under
 
 #+begin_src emacs-lisp 
 
-  ;; (server-start)  ;; starts emacs as server (if you didn't already)
+  (server-start)  ;; starts emacs as server (if you didn't already)
 
 #+end_src
 
@@ -1306,7 +1306,7 @@ Dépendances : all-the-icons et projectile
   (use-package magit)
 #+end_src
 
-*** Auto commit 
+*** Auto commit second cerveau
 
 #+begin_src emacs-lisp
 
@@ -1339,7 +1339,9 @@ Dépendances : all-the-icons et projectile
 
   (cp/magit-commit-directory-list cp/magit-commit-directory-list)
 
-  (add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)))
+  (add-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)) 95) ;; doit commit à la fin
+
+  ;; (remove-hook 'kill-emacs-hook #'(lambda () (cp/magit-commit-directory-list cp/magit-commit-directory-list)) )
 
 
 #+end_src
@@ -1418,14 +1420,82 @@ Dépendances : all-the-icons et projectile
            (defengine wikipedia "http://www.wikipedia.org/search-redirect.php?language=fr&go=Go&search=%s" :keybinding "w")
            (defengine youtube "http://www.youtube.com/results?aq=f&oq=&search_query=%s" :keybinding "y"))
 #+end_src
+* Flux rss
+** Newstickers (rss bis)
+
+#+begin_src emacs-lisp
+  (use-package newsticker
+    :ensure nil
+    :custom
+    (newsticker-url-list-defaults nil)
+    (newsticker-url-list '(
+                           ;; ("title" "URL" other options)
+                           ("SécuMondeInfo" "https://www.lemondeinformatique.fr/flux-rss/thematique/internet/rss.xml") 
+                           ("AnsiSécu" "https://www.ssi.gouv.fr/feed/actualite/")
+                           ("MondeInter" "http://www.lemonde.fr/international/rss_full.xml")
+                           ("SimonPuech" "https://www.youtube.com/feeds/videos.xml?channel_id=LeJeuVidéal")
+                           ("FuturaEspace" "https://www.futura-sciences.com/rss/espace/actualites.xml")
+                           ("EmacsLife" "https://planet.emacslife.com/")
+                           ;; ("Reddit - Org-mode" "https://www.reddit.com/r/orgmode.rss")
+                           ))
+
+    ;; (newsticker-groups nil)
+    (add-hook 'newsticker-mode-hook 'imenu-add-menubar-index)
+    ;; (newsticker-new-item-functions '(newsticker-download-images newsticker-download-enclosures))
+    ;; (newsticker-new-item-functions nil)
+
+    :config
+
+    ;; pour maj, corrigé dans les dernières versions d'emacs
+    (defun newsticker--treeview-list-items-with-age (&rest ages)
+      "Actually fill newsticker treeview list window with items of certain age.
+      AGES is the list of ages that are to be shown."
+      (mapc (lambda (feed)
+              (let ((feed-name-symbol (intern (car feed))))
+                (mapc (lambda (item)
+                        (when (or (memq 'all ages)
+                                  (memq (newsticker--age item) ages))
+                          (newsticker--treeview-list-add-item
+                           item feed-name-symbol t)))
+                      (newsticker--treeview-list-sort-items
+                       (cdr (newsticker--cache-get-feed feed-name-symbol))))))
+            (append newsticker-url-list-defaults newsticker-url-list))
+      (newsticker--treeview-list-update nil))
+
+    (defun newsticker-treeview-update ()
+      "Update all treeview buffers and windows.
+    Note: does not update the layout."
+      (interactive)
+      (let ((cur-item (newsticker--treeview-get-selected-item)))
+        (if (newsticker--group-manage-orphan-feeds)
+            (newsticker--treeview-tree-update))
+        (newsticker--treeview-list-update t)
+        (newsticker--treeview-item-update)
+        (newsticker--treeview-tree-update-tags)
+        (cond (newsticker--treeview-current-vfeed
+               (newsticker--treeview-list-items-with-age
+                (intern newsticker--treeview-current-vfeed)))
+              (newsticker--treeview-current-feed
+               (newsticker--treeview-list-items newsticker--treeview-current-feed)))
+        (newsticker--treeview-tree-update-highlight)
+        (newsticker--treeview-list-update-highlight)
+        (let ((cur-feed (or newsticker--treeview-current-feed
+                            newsticker--treeview-current-vfeed)))
+          (if (and cur-feed cur-item)
+              (newsticker--treeview-list-select cur-item)))))
 
 
-* TODO Lire des flux rss
+    )
+
+#+end_src
+
+
+** TODO Elfeed
 :LOGBOOK:
 - State "TODO"       from              [2022-07-22 Fri 18:43]
 :END:
 
-** Le moteur
+*** Le moteur
 
 [[https://noonker.github.io/posts/2020-04-22-elfeed/][d'autres choses ici]]
 
@@ -1483,7 +1553,7 @@ faire la même manip qu'au dessus
 #+end_src
 
 
-** TODO Gérer ses flux avec org-mode
+*** TODO Gérer ses flux avec org-mode
 :LOGBOOK:
 - State "TODO"       from              [2022-07-22 Fri 18:03]
 :END:
@@ -1543,7 +1613,7 @@ Les tags ne marchent pas et les titres perso nn plus wtf
     )
 #+end_src
 
-** Meilleur affichage
+*** Meilleur affichage
 
 #+begin_src emacs-lisp
   (use-package elfeed-goodies
@@ -1552,14 +1622,14 @@ Les tags ne marchent pas et les titres perso nn plus wtf
     (elfeed-goodies/setup))
 #+end_src
 
-** TODO Mettre des score à mon flux pour mieux les trier
+*** TODO Mettre des score à mon flux pour mieux les trier
 :LOGBOOK:
 - State "TODO"       from              [2022-07-22 Fri 15:31]
 :END:
 
 https://github.com/sp1ff/elfeed-score
 
-** DONE Dashboard
+*** DONE Dashboard
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2022-07-22 Fri 15:42]
 - State "TODO"       from              [2022-07-22 Fri 15:42]
@@ -1579,3 +1649,10 @@ Sert à pas grands choses pour moi, et ne marche pas avec xah
 #+end_src
 
 
+
+
+* Un Pocket reader !
+
+#+begin_src emacs-lisp :tangle no
+(use-package pocket-reader)
+#+end_src

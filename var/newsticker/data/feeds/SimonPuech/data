@@ -1,0 +1,4 @@
+;; -*- coding: utf-8 -*-
+(("[COULD NOT DOWNLOAD HEADLINES!]" "Sunday, 15:36: Newsticker could not retrieve news from SimonPuech.
+Return status: ‘nil’
+Command was ‘url-retrieve’" "" (25341 29102 834999 701000) nil 0 nil nil ((guid nil "newsticker--download-error"))))

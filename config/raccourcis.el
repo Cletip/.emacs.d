@@ -58,7 +58,6 @@
       (xah-fly-keys-set-layout "azerty")
     (xah-fly-keys-set-layout "beopy"))
 
-
   ;; Les hook	     
 
   ;; TODO un jour faire pull request à xah

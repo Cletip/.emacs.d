@@ -20,11 +20,37 @@ Headlines not starting with http or entry-title: will be ignored.
 #+TAGS: [ informatique : emacs  ]
 #+TAGS: [ actualité : monde france ]
 
-* Blogs :elfeed:
+* Blogs                                                              :elfeed:
+** entry-title: \(linux\|linus\|ubuntu\|kde\|gnome\)                  :linux:
+** http://git-annex.branchable.com/design/assistant/blog/index.rss :mustread:
+** http://feeds.feedburner.com/InformationIsBeautiful
+** [[http://orgmode.org][Org Mode Links supported as well]]
+** Software Development                                                 :dev:
+*** Emacs                                                    :emacs:mustread:
+**** http://www.terminally-incoherent.com/blog/feed
+**** http://nullprogram.com/feed
+**** entry-title: \(emacs\|org-mode\)
+**** http://planet.emacsen.org/atom.xml
+**** [[toobnix:154][EmacsConf]]
+*** Web Development                                                     :web:
+**** http://planet.phpunit.de/atom.xml
+**** [[http://feeds.feedburner.com/symfony/blog][Symphony]]
+**** http://feeds.feedburner.com/qooxdoo/blog/content
+*** Eclipse                                                         :eclipse:
+**** http://blog.eclipse-tips.com/feeds/posts/default?alt=rss
+**** http://ed-merks.blogspot.com/feeds/posts/default
+     A description of a feed can be written under any headline.
+     The text will be ignored by elfeed.
+**** http://feeds.feedburner.com/eclipselive                         :ignore:
+**** http://www.fosslc.org/drupal/rss.xml                             :video:
+#+link toobnix https://toobnix.org/feeds/videos.xml?videoChannelId=
+
+
+
+* Blogs :remettreelfeed:
 
 ** Journaux :actualité:
-
-*** [[http://www.lemonde.fr/international/rss_full.xml][International Le Monde]]
+*** [[http://www.lemonde.fr/international/rss_full.xml][International Le Monde]
 
 *** [[https://www.feedspot.com/infiniterss.php?_src=followbtn&followfeedid=3623203&q=site:https%3A%2F%2Fwww.france24.com%2Fen%2Frss][france24]]
 
@@ -41,29 +67,3 @@ Headlines not starting with http or entry-title: will be ignored.
 ** Chaînes youtube :video:
 
 *** [[https://www.youtube.com/feeds/videos.xml?channel_id=LeJeuVidéal][Simon Puech]] :divertissement:culture:
-
-
-* Blogs                                                              :exemple:
-** entry-title: \(linux\|linus\|ubuntu\|kde\|gnome\)                  :linux:
-** http://git-annex.branchable.com/design/assistant/blog/index.rss :mustread:
-** http://feeds.feedburner.com/InformationIsBeautiful
-** [[http://orgmode.org][Org Mode Links supported as well]]
-** Software Development                                                 :dev:
-*** Emacs                                                    :emacs:mustread:
-**** http://www.terminally-incoherent.com/blog/feed
-**** http://nullprogram.com/feed
-**** entry-title: \(emacs\|org-mode\)
-**** http://planet.emacsen.org/atom.xml
-**** [[toobnix:154][EmacsConf]]
-*** Web Development                                                     :web:
-**** http://planet.phpunit.de/atom.xml
-**** http://feeds.feedburner.com/symfony/blog
-**** http://feeds.feedburner.com/qooxdoo/blog/content
-*** Eclipse                                                         :eclipse:
-**** http://blog.eclipse-tips.com/feeds/posts/default?alt=rss
-**** http://ed-merks.blogspot.com/feeds/posts/default
-     A description of a feed can be written under any headline.
-     The text will be ignored by elfeed.
-**** http://feeds.feedburner.com/eclipselive                         :ignore:
-**** http://www.fosslc.org/drupal/rss.xml                             :video:
-#+link toobnix https://toobnix.org/feeds/videos.xml?videoChannelId=

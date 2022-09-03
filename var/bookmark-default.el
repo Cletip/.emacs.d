@@ -48,10 +48,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/6ee74a27-b5f8-4950-88e4-be954077aa98.org")
- (front-context-string . "- Origine :: \n- ")
- (rear-context-string . "enthèse (salut)\n")
- (position . 85))
+ (filename . "~/braindump/org/inbox-utilisateur-GL65-Leopard-10SER.org")
+ (front-context-string . "* un rdv :tickle")
+ (rear-context-string . "ur bidonville]]\n")
+ (position . 389))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

@@ -3756,7 +3756,11 @@ minor modes loaded later may override bindings in this map.")
 
    ("m" . isearch-forward)  ;;cp, inversion de deux touches, car j'utilise plus
    ;;l'une isearch-forward que l'autre
+
+   
    ("b" . xah-backward-left-bracket) ;;cp
+
+
    ))
 
 

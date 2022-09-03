@@ -4,12 +4,15 @@ Pas vraiment trier ici
 
 ** Correcteur orthographique
 
+
  #+BEGIN_SRC emacs-lisp
+
    (use-package ispell
      :if (file-exists-p "/usr/bin/hunspell")
      :config
      (setq ispell-program-name "hunspell")
-     (setq ispell-local-dictionary "francais")
+     
+     (setq ispell-dictionary "francais")
 
 
 
@@ -45,9 +48,8 @@ Pas vraiment trier ici
      (add-hook 'find-file-hook
                (lambda()
                  (highlight-phrase "\\(BUG\\|FIXME\\|TODO
-   ;;   \\|NOTE
-   \\):")))
-
+      ;;   \\|NOTE
+      \\):")))
      )
 
  #+END_SRC
@@ -56,9 +58,14 @@ Pas vraiment trier ici
 
 ** TODO Correcteur grammaire fr
 
+
 Ne pas mettre de :config pour cette config, car ne marche pas sinon
 
+(with-eval-after-load 'flycheck
 
+
+
+)
 
 #+begin_src emacs-lisp
 
@@ -68,7 +75,8 @@ Ne pas mettre de :config pour cette config, car ne marche pas sinon
     )
 
   (use-package flycheck-grammalecte
-    :hook (lsp-mode . flycheck-mode)
+    ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
+    :after flycheck
     :config
     (setq
      ;; pas de faute avec les '
@@ -79,6 +87,9 @@ Ne pas mettre de :config pour cette config, car ne marche pas sinon
      flycheck-grammalecte-report-esp nil)
     (flycheck-grammalecte-setup);;chargement de flychek-grammalecte
 
+    ;;d'abord vérifier que ça existe. si existe pas, download
+    (unless (fboundp 'grammalecte--version)
+      (grammalecte-download-grammalecte))
 
     ;; pour télécharger grammalect si jamais il n'y est pas déjà. Si il y est, ne fait rien
     (let ((local-version (grammalecte--version))
@@ -139,10 +150,21 @@ Ne pas mettre de :config pour cette config, car ne marche pas sinon
         )
       )
 
+
+    ;; correction bug pas de correction entre deux blocs de codes org-mode, TODO ne marche tjr pas
+    ;; (setq flycheck-grammalecte-filters-by-mode
+    ;; '((latex-mode "\\\\(?:title|(?:sub)*section){([^}]+)}"
+    ;; "\\\\\\w+(?:\\[[^]]+\\])?(?:{[^}]*})?")
+    ;; (org-mode "(?ims)^[ \t]*#\\+begin_src.*?#\\+end_src"
+    ;; "(?im)^[ \t]*#\\+begin[_:].+$"
+    ;; "(?im)^[ \t]*#\\+end[_:].+$"
+    ;; "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
+    ;; "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
+    ;; "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
+    ;; "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$")
+    ;; (message-mode "(?m)^[ \t]*(?:[\\w_.]+>|[]>|]).*")))
+
     )
-
-
-
 
   #+end_src
 

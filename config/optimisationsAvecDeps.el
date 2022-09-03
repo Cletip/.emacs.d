@@ -2,7 +2,8 @@
   :if (file-exists-p "/usr/bin/hunspell")
   :config
   (setq ispell-program-name "hunspell")
-  (setq ispell-local-dictionary "francais")
+
+  (setq ispell-dictionary "francais")
 
 
 
@@ -38,9 +39,8 @@
   (add-hook 'find-file-hook
             (lambda()
               (highlight-phrase "\\(BUG\\|FIXME\\|TODO
-;;   \\|NOTE
-\\):")))
-
+   ;;   \\|NOTE
+   \\):")))
   )
 
 (use-package flycheck
@@ -49,7 +49,8 @@
   )
 
 (use-package flycheck-grammalecte
-  :hook (lsp-mode . flycheck-mode)
+  ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
+  :after flycheck
   :config
   (setq
    ;; pas de faute avec les '
@@ -60,6 +61,9 @@
    flycheck-grammalecte-report-esp nil)
   (flycheck-grammalecte-setup);;chargement de flychek-grammalecte
 
+  ;;d'abord vérifier que ça existe. si existe pas, download
+  (unless (fboundp 'grammalecte--version)
+    (grammalecte-download-grammalecte))
 
   ;; pour télécharger grammalect si jamais il n'y est pas déjà. Si il y est, ne fait rien
   (let ((local-version (grammalecte--version))
@@ -119,6 +123,20 @@
       (flycheck-grammalecte-correct-error-at-point (point)) 
       )
     )
+
+
+  ;; correction bug pas de correction entre deux blocs de codes org-mode, TODO ne marche tjr pas
+  ;; (setq flycheck-grammalecte-filters-by-mode
+  ;; '((latex-mode "\\\\(?:title|(?:sub)*section){([^}]+)}"
+  ;; "\\\\\\w+(?:\\[[^]]+\\])?(?:{[^}]*})?")
+  ;; (org-mode "(?ims)^[ \t]*#\\+begin_src.*?#\\+end_src"
+  ;; "(?im)^[ \t]*#\\+begin[_:].+$"
+  ;; "(?im)^[ \t]*#\\+end[_:].+$"
+  ;; "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
+  ;; "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
+  ;; "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
+  ;; "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$")
+  ;; (message-mode "(?m)^[ \t]*(?:[\\w_.]+>|[]>|]).*")))
 
   )
 

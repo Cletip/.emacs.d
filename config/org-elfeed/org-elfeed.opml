@@ -4,21 +4,28 @@
     <title>Elfeed-Org Export</title>
   </head>
   <body>
-      <outline title="Journaux">
-        <outline title="International Le Monde" xmlUrl="http://www.lemonde.fr/international/rss_full.xml"/>
-        <outline title="france24" xmlUrl="https://www.feedspot.com/infiniterss.php?_src=followbtn&amp;followfeedid=3623203&amp;q=site:https%3A%2F%2Fwww.france24.com%2Fen%2Frss"/>
-      </outline>
-      <outline title="Blogs">
-        <outline title="lucidManager" xmlUrl="http://lucidmanager.org/index.xml"/>
-      </outline>
-      <outline title="Informatique">
-        <outline title="Cyber sécurité">
-        </outline>
+      <outline title="design/assistant/blog" xmlUrl="http://git-annex.branchable.com/design/assistant/blog/index.rss"/>
+      <outline title="Information is Beautiful" xmlUrl="http://feeds.feedburner.com/InformationIsBeautiful"/>
+      <outline title="Org Mode Links supported as well" xmlUrl="http://orgmode.org"/>
+      <outline title="Software Development">
         <outline title="Emacs">
+          <outline title="Terminally Incoherent" xmlUrl="http://www.terminally-incoherent.com/blog/feed"/>
+          <outline title="null program" xmlUrl="http://nullprogram.com/feed"/>
+          <outline title="Unknown" xmlUrl="http://planet.emacsen.org/atom.xml"/>
+          <outline title="[[toobnix:154][EmacsConf]]">
+          </outline>
         </outline>
-      </outline>
-      <outline title="Chaînes youtube">
-        <outline title="Simon Puech" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=LeJeuVidéal"/>
+        <outline title="Web Development">
+          <outline title="Unknown" xmlUrl="http://planet.phpunit.de/atom.xml"/>
+          <outline title="Symphony" xmlUrl="http://feeds.feedburner.com/symfony/blog"/>
+          <outline title="Qooxdoo News - Medium" xmlUrl="http://feeds.feedburner.com/qooxdoo/blog/content"/>
+        </outline>
+        <outline title="Eclipse">
+          <outline title="Eclipse Tips - Prakash G.R." xmlUrl="http://blog.eclipse-tips.com/feeds/posts/default?alt=rss"/>
+          <outline title="Merks&apos; Meanderings" xmlUrl="http://ed-merks.blogspot.com/feeds/posts/default"/>
+          <outline title="Eclipse Foundation Youtube Channel" xmlUrl="http://feeds.feedburner.com/eclipselive"/>
+          <outline title="Unknown" xmlUrl="http://www.fosslc.org/drupal/rss.xml"/>
+        </outline>
       </outline>
   </body>
 </opml>
