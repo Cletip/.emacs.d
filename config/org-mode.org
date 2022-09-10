@@ -2220,6 +2220,24 @@ Ne garde que les première conditions, pourquoi ?
     )
 #+end_src
 
+
+https://github.com/alphapapa/org-ql/pull/237
+#+begin_src emacs-lisp :tangle no
+
+  (setq org-ql-regexp-part-ts-time
+        (rx " " (repeat 1 2 digit) ":" (repeat 2 digit)
+            (optional "-" (repeat 1 2 digit) ":" (repeat 2 digit))))
+
+  (org-ql-select '("/home/utilisateur/braindump/org/pages/20220718223109-test_de_todo_org_ql.org")
+    '(and
+      (not (done))
+      (ts-active :to today)
+      )
+    )
+
+#+end_src
+
+
 Tests :
 
 #+begin_src emacs-lisp :tangle no
@@ -2571,6 +2589,36 @@ Fait appel à la fonction pour ajouter un tag à la personne
     (vulpea-buffer-tags-remove "BROUILLON"))
   
 #+end_src
+***** Permet de rechercher avec une hiérarchie !
+
+  (cp/vulpea-select-from-tags-with-children '("Persp"))
+
+#+begin_src emacs-lisp
+
+  (defun cp/org-get-tags-with-children(tags)
+    "Take a list of tag, and return this list of tag WITH the sub-tags (define in org-tag-alist) of each tag in entry"
+    (interactive)
+    (let (tags-result)
+      (dolist (tag tags)
+        (dolist (tag-to-add (org-tags-expand tag t))
+          (push tag-to-add tags-result)))
+      (delete-dups tags-result)
+      )
+    )
+
+  (defun cp/vulpea-select-from-tags-with-children (tags)
+    "Takes a list of tags, and allows the user to choose a note that has one of these tags OR has a child tag from the list given in parameter"
+    (let ((links (vulpea-db-query-by-tags-some (cp/org-get-tags-with-children tags))))
+      (unless links
+        (user-error "There are note with the current tag (or children)"))
+      (vulpea-find
+       :candidates-fn (lambda (_) links)
+       :require-match t))
+    )
+
+
+#+end_src
+
 **** TODO Fonctions gérant l'insertions des métadatas automatiquement avec les tags 
 :LOGBOOK:
 - State "TODO"       from              [2022-08-05 Fri 23:03]
@@ -2620,7 +2668,7 @@ Fait appel à la fonction pour ajouter un tag à la personne
 
 #+begin_src emacs-lisp
 (defun cp/vulpea-buffer-tags-get (note)
-    "Return filetags value in current buffer."
+    "Return filetags value for a note."
     (save-window-excursion
       (find-file (vulpea-db-get-file-by-id (vulpea-note-id note)))
       (vulpea-buffer-prop-get-list "filetags" "[ :]")))

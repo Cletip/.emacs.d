@@ -52,6 +52,11 @@
   ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
   :after flycheck
   :config
+
+  ;; je sais pas pourquoi mais besoin de 
+  (when termux-p
+    (flycheck-mode))
+
   (setq
    ;; pas de faute avec les '
    flycheck-grammalecte-report-apos nil

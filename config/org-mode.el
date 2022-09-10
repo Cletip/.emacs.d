@@ -680,7 +680,7 @@ Add this function to `org-mode-hook'."
 (setq org-icalendar-use-scheduled '(
                                     ;; event-if-not-todo ;;pour pas exporter mes tickler
                                     event-if-todo-not-done
-                                    event-if-not-todo
+                                    event-if-not-todo ;;  pour exporter mes rdv
                                     ))
 (setq org-icalendar-use-deadline '(event-if-not-todo
                                    event-if-todo-not-done
@@ -2575,7 +2575,6 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     ))
   )
 
-;;lancer le serveur automatiquement TODO
 (unless termux-p (lancer-serveur-zotra))
 
 (use-package zotra

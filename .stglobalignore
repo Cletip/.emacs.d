@@ -5,6 +5,6 @@ var/recentf-save.el
 var/keyfreq.el
 var/transient/history.el
 
-//config/*.el
+config/*.el
 
 var/org/org-roam.db

@@ -128,7 +128,7 @@
 
 (use-package smartparens
   ;; :after lsp 
-  :hook ((lsp-mode text-mode) . smartparens-mode)
+  :hook ((lsp-mode text-mode emacs-lisp-mode) . smartparens-mode)
   :config
   (sp-pair "\«" "\»")  
   ;;pour enlever un truc
