@@ -1225,6 +1225,27 @@ Refer to `org-agenda-prefix-format' for more information."
   (interactive)
   (vulpea-buffer-tags-remove "BROUILLON"))
 
+(defun cp/org-get-tags-with-children(tags)
+  "Take a list of tag, and return this list of tag WITH the sub-tags (define in org-tag-alist) of each tag in entry"
+  (interactive)
+  (let (tags-result)
+    (dolist (tag tags)
+      (dolist (tag-to-add (org-tags-expand tag t))
+        (push tag-to-add tags-result)))
+    (delete-dups tags-result)
+    )
+  )
+
+(defun cp/vulpea-select-from-tags-with-children (tags)
+  "Takes a list of tags, and allows the user to choose a note that has one of these tags OR has a child tag from the list given in parameter"
+  (let ((links (vulpea-db-query-by-tags-some (cp/org-get-tags-with-children tags))))
+    (unless links
+      (user-error "There are note with the current tag (or children)"))
+    (vulpea-find
+     :candidates-fn (lambda (_) links)
+     :require-match t))
+  )
+
 (defun cp/vulpea-note-meta-get-list-of-name (note)
   "Get a list of all metadata from NOTE"
   (mapcar 'car (vulpea-note-meta note)))
@@ -1255,7 +1276,7 @@ Refer to `org-agenda-prefix-format' for more information."
 ;; (gethash "salut" test)
 
 (defun cp/vulpea-buffer-tags-get (note)
-    "Return filetags value in current buffer."
+    "Return filetags value for a note."
     (save-window-excursion
       (find-file (vulpea-db-get-file-by-id (vulpea-note-id note)))
       (vulpea-buffer-prop-get-list "filetags" "[ :]")))
@@ -1727,6 +1748,10 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   ;; org-tags-exclude-from-inheritance '("crypt")
   ;; (require 'org-crypt)
   )
+
+(use-package wikinforg
+  :config
+  (setq wikinfo-base-url "https://fr.wikipedia.org"))
 
 )
 

@@ -3858,6 +3858,15 @@ allow-emacs-pinentry
 
 #+end_src
 
+**** Télécharger les infobox de Wikipédia rapidement
+
+#+begin_src emacs-lisp
+
+      (use-package wikinforg
+        :config
+        (setq wikinfo-base-url "https://fr.wikipedia.org"))
+
+#+end_src
 
 **** TODO Publier son site un jour
 **** Fin du when
