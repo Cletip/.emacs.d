@@ -1553,15 +1553,10 @@ Refer to `org-agenda-prefix-format' for more information."
 
 (defun org-attach-id-ts-folder-format (id)
   "Translate an ID based on a timestamp to a folder-path.
-Useful way of translation if ID is generated based on ISO8601
-timestamp.  Splits the attachment folder hierarchy into
-year-month, the rest."
-  (format "%s/%s/%s/%s"
-          (substring id 0 4)
-          (substring id 4 6)
-          (substring id 6 8)
-          (substring id 9)
-          )
+  Useful way of translation if ID is generated based on ISO8601
+  timestamp.  Splits the attachment folder hierarchy into
+  year-month, the rest."
+  (format "%s" id)
   )
 
 (add-hook 'dired-mode-hook
@@ -1751,7 +1746,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 (use-package wikinforg
   :config
-  (setq wikinfo-base-url "https://fr.wikipedia.org"))
+  (setq wikinforg-wikipedia-edition-code "fr")
+  )
 
 )
 
@@ -1954,6 +1950,58 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 )
 
+(straight-use-package '(nursery
+                        :host github
+                        :repo "chrisbarrett/nursery"))
+
+
+
+;; deps
+(use-package org-drill)
+(use-package org-roam-review
+  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
+  ;; :load-path "config/lisp/nursery/lisp/" 
+  ;; :load-path "straight/build/nursery"
+  :commands (org-roam-review
+             org-roam-review-list-by-maturity
+             org-roam-review-list-recently-added)
+
+  ;; ;; Optional - tag all newly-created notes as seedlings.
+  ;; :hook (org-roam-capture-new-node . org-roam-review-set-seedling)
+
+  ;; ;; Optional - keybindings for applying Evergreen note properties.
+  ;; :general
+  ;; (:keymaps 'org-mode-map
+  ;; "C-c r r" '(org-roam-review-accept :wk "accept")
+  ;; "C-c r u" '(org-roam-review-bury :wk "bury")
+  ;; "C-c r x" '(org-roam-review-set-excluded :wk "set excluded")
+  ;; "C-c r b" '(org-roam-review-set-budding :wk "set budding")
+  ;; "C-c r s" '(org-roam-review-set-seedling :wk "set seedling")
+  ;; "C-c r e" '(org-roam-review-set-evergreen :wk "set evergreen"))
+
+  ;; ;; Optional - bindings for evil-mode compatability.
+  ;; :general
+  ;; (:states '(normal) :keymaps 'org-roam-review-mode-map
+  ;; "TAB" 'magit-section-cycle
+  ;; "g r" 'org-roam-review-refresh)
+  )
+
+
+(use-package org-roam-search
+  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
+  :commands (org-roam-search))
+
+(use-package org-roam-dblocks
+  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
+  :hook (org-mode . org-roam-dblocks-autoupdate-mode))
+
+(use-package org-roam-consult
+  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
+  :commands (org-roam-consult))
+
+;; (use-package org-roam-gc
+;; :commands (org-roam-consult))
+
 (defun cp/org-roam-unlinked-references-find-and-replace ()
   (message "Check unlinked references")
   (save-window-excursion
@@ -2006,29 +2054,12 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
                 (org-capture-goto-last-stored)
                 (when (member (buffer-file-name) (org-roam-list-files)) (cp/org-roam-unlinked-references-find-and-replace)))))
 
-;; todo : utiliser ceci
-  ;; (title-without-parens-and-space "testetau   ()")
-
-
-(defun cp/org-roam-rename-and-replace ()
-  (interactive)
-  (save-window-excursion
-    (let* ((note (vulpea-select-from "la note à changer de nom" (vulpea-db-query)))
-           (id (vulpea-note-id note))
-           (title (vulpea-note-title note))
-           (new-title (read-string "nouveau nom "))
-           (FROM-STRING (concat "[[id:" id "][" title "]]")) 
-           (TO-STRING (concat "[[id:" id "][" new-title "]]")))
-      ;; on rename dans le fichier de base
-      (find-file (vulpea-db-get-file-by-id id))
-      (vulpea-buffer-title-set new-title)
-      ;; pour les autres fichiers
-      (dolist (file (org-roam-list-files))
-        (find-file file)
-        (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
-          (query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
-          (save-buffer)
-          )))))
+(use-package org-roam-rewrite
+  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
+  :commands (org-roam-rewrite-rename
+             org-roam-rewrite-remove
+             org-roam-rewrite-inline
+             org-roam-rewrite-extract))
 
 (defun cp/history-of-a-node (&optional file)
     (interactive (list (vulpea-db-get-file-by-id (vulpea-note-id (vulpea-select-from "historique de cette note : " (vulpea-db-query))))))
@@ -2103,6 +2134,28 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         (cp/vulpea-find-backlink-and-links)
         )
     (message "il faut être dans un buffer org-mode")
+    )
+  )
+
+(defun cp/vulpea-find-backlinks-every ()
+  "Find the notes that contain links to X other notes"
+  (interactive)
+  (let* (
+         (notes (vulpea-utils-collect-while
+                 #'vulpea-select
+                 nil
+                 "Note" :require-match t))
+         (list-of-cons (seq-map
+                        #'(lambda (note) (cons "id" (vulpea-note-id note)))
+                        notes
+                        ))
+         (links (vulpea-db-query-by-links-every list-of-cons))     
+         )
+    (unless links
+      (user-error "There are no notes with the links you demand"))
+    (vulpea-find
+     :candidates-fn (lambda (_) links)
+     :require-match t)
     )
   )
 

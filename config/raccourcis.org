@@ -60,7 +60,10 @@ Fork de xah pour faire des modifications de mon côté
     :config
     (setq xah-fork-cp-isearch-forward-function-name 'cp/consult-line-or-with-word)
     (setq xah-fork-cp-recentf-open-files-function-name 'consult-recent-file)
-    (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
+
+    ;; (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
+    (setq xah-fork-cp-ispell-word-function-name 'flyspell-correct-wrapper)
+
     (setq xah-fork-cp-xah-open-file-at-cursor-function-name 'cp/open-link)
     (setq xah-fork-cp-xah-extend-selection-function-name 'er/expand-region)
     ;; (setq xah-fork-cp-xah-extend-selection-function-name 'xah-extend-selection)

@@ -11,7 +11,7 @@ Pas vraiment trier ici
      :if (file-exists-p "/usr/bin/hunspell")
      :config
      (setq ispell-program-name "hunspell")
-     
+  
      (setq ispell-dictionary "francais")
 
 
@@ -44,12 +44,19 @@ Pas vraiment trier ici
      (add-hook 'text-mode-hook 'flyspell-mode)
      ;; (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
+
+     ;; meilleur correction qui respecte l'interface de complétion
+     (use-package flyspell-correct
+       :after flyspell
+       :bind (:map flyspell-mode-map ("C-;" . flyspell-correct-wrapper)))
+
+
      ;; Highlight BUG FIXME TODO NOTE keywords in the source code.
      (add-hook 'find-file-hook
                (lambda()
                  (highlight-phrase "\\(BUG\\|FIXME\\|TODO
-      ;;   \\|NOTE
-      \\):")))
+            ;;   \\|NOTE
+            \\):")))
      )
 
  #+END_SRC

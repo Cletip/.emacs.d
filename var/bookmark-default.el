@@ -9,9 +9,9 @@
  (position . 2159))
 ("org-refile-last-stored"
  (filename . "~/braindump/org/pages/20220616193340-comment_faire_un_second_cerveau.org")
- (front-context-string . "*** TODO Reflech")
- (rear-context-string . "\303\250me d'archivage\n")
- (position . 8863))
+ (front-context-string . "*** TODO mettre ")
+ (rear-context-string . " vidéo de X etc\n")
+ (position . 5912))
 ("straight"
  (filename . "~/.emacs.d/straight/")
  (front-context-string . "build-cache.el\n ")
