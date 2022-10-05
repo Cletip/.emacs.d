@@ -40,7 +40,10 @@
   :config
   (setq xah-fork-cp-isearch-forward-function-name 'cp/consult-line-or-with-word)
   (setq xah-fork-cp-recentf-open-files-function-name 'consult-recent-file)
-  (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
+
+  ;; (setq xah-fork-cp-ispell-word-function-name 'flyspell-auto-correct-previous-word)
+  (setq xah-fork-cp-ispell-word-function-name 'flyspell-correct-wrapper)
+
   (setq xah-fork-cp-xah-open-file-at-cursor-function-name 'cp/open-link)
   (setq xah-fork-cp-xah-extend-selection-function-name 'er/expand-region)
   ;; (setq xah-fork-cp-xah-extend-selection-function-name 'xah-extend-selection)
@@ -178,6 +181,66 @@
   (interactive)
   (org-babel-load-file (expand-file-name "/home/utilisateur/.dotfiles/.emacs.d/lisp/LayerXahFlyKey/LayerXahFlyKey.org"))
   )
+
+(defun usb-device-connected-p (device) 
+  (< 0 (length (cl-remove-if-not (lambda (x) (cl-search device x)) 
+                                 (split-string (shell-command-to-string "lsusb") "\n")))))
+
+(setq my-keyboard-p (usb-device-connected-p "Ergodash"))
+
+  (when (and (not termux-p) (not my-keyboard-p))
+    (touches-controle-au-bon-endroit)
+    )
+
+
+
+  ;; (if (usb-device-connected-p "Microsoft Corp. Natural Ergonomic Keyboard")
+  ;;     (progn (global-set-key (kbd "<XF86Forward>") 'next-buffer)
+  ;;            (global-set-key (kbd "<XF86Back>") 'previous-buffer)
+  ;;            (global-set-key (kbd "<XF86Favorites>") 'buffer-menu)
+  ;;            (global-set-key (kbd "<XF86HomePage>") 'buffer-menu))
+  ;; )
+
+  ;; (setq device "Intel Corp.")
+
+
+
+(defun org-cycle-hide-drawers (state)
+  "Re-hide all drawers after a visibility state change."
+  (interactive)
+  (when (and (derived-mode-p 'org-mode)
+             (not (memq state '(overview folded contents))))
+    (save-excursion
+      (let* ((globalp (memq state '(contents all)))
+             (beg (if globalp
+                    (point-min)
+                    (point)))
+             (end (if globalp
+                    (point-max)
+                    (if (eq state 'children)
+                      (save-excursion
+                        (outline-next-heading)
+                        (point))
+                      (org-end-of-subtree t)))))
+        (goto-char beg)
+        (while (re-search-forward org-drawer-regexp end t)
+          (save-excursion
+            (beginning-of-line 1)
+            (when (looking-at org-drawer-regexp)
+              (let* ((start (1- (match-beginning 0)))
+                     (limit
+                       (save-excursion
+                         (outline-next-heading)
+                           (point)))
+                     (msg (format
+                            (concat
+                              "org-cycle-hide-drawers:  "
+                              "`:END:`"
+                              " line missing at position %s")
+                            (1+ start))))
+                (if (re-search-forward "^[ \t]*:END:" limit t)
+                  (outline-flag-region start (point-at-eol) t)
+                  (user-error msg))))))))))
 
 (load "~/.emacs.d/config/lisp/my-abbrev.el")
 

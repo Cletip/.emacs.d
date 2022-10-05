@@ -135,11 +135,22 @@
   ;;(setq projectile-completion-system 'ivy)
   )
 
-(defun xah-print-hash (hashtable)
-  "Prints the hashtable, each line is key, val"
-  (maphash
-   (lambda (k v)
-     (princ (format "%s , %s" k v))
-     (princ "\n"))
-   hashtable
-   ))
+(use-package xah-elisp-mode
+    ;; :disabled t
+
+    :config
+    ;; activer xah-elisp-mode à la place de emacs-lisp-mode. fait par défaut
+
+    ;; copie hook of emacs-lisp-mode
+    (dolist (hook emacs-lisp-mode-hook)
+      (unless (string-equal hook "xah-elisp-mode")(add-hook 'xah-elisp-mode-hook hook)))
+
+    ;; àjouter le correcteur de flycheck à xah-elisp-mode
+    (flycheck-add-mode 'emacs-lisp 'xah-elisp-mode)
+    (setq ido-enable-flex-matching t) ;; activer la recherche de mots avec le fuzzy search
+
+
+)
+
+(use-package page-break-lines
+  :hook ((emacs-lisp-mode . page-break-lines-mode)))

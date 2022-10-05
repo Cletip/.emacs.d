@@ -515,7 +515,10 @@ Do not load all to booste the startup time
      (java     . t)
      (js . t) ;;javascripts
      )
-   )  
+   )
+
+(setq org-babel-python-command "python3")
+
 #+end_src
 ***** Annulation de la demande de confirmation lors de la demande d'évaluation du code
 #+begin_src emacs-lisp 
@@ -560,6 +563,67 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
     (syntax-propertize (point-max)))
 
   (add-hook 'org-mode-hook #'org-setup-<>-syntax-fix)
+
+#+end_src
+
+***** edit emacs-lisp code block avec xah-elisp-mode
+
+#+begin_src emacs-lisp
+
+  (defun org-src-get-lang-mode (lang)
+    "Return major mode that should be used for LANG.
+      LANG is a string, and the returned major mode is a symbol."
+    (when (string-equal lang "emacs-lisp")
+      (setq lang "xah-elisp")
+      )
+    (intern
+     (concat
+      (let ((l (or (cdr (assoc lang org-src-lang-modes)) lang)))
+        (if (symbolp l) (symbol-name l) l))
+      "-mode")))
+
+#+end_src
+
+***** Nouvelle commande pratique pour éditer du code dans babel
+
+#+begin_src emacs-lisp
+
+  (defun cp/org-edit-special-src-dwim ()
+    (interactive)
+    (cond
+     (org-src-mode (when (yes-or-no-p "Évaluer le buffer avant de partir ?")
+                     (eval-buffer))
+                   (org-edit-src-exit))
+     ((org-in-src-block-p) (org-edit-special))
+     ((derived-mode-p 'org-mode)
+      (org-insert-structure-template "src emacs-lisp")
+      (org-edit-special))))
+    
+#+end_src
+
+***** Nouvelle commande pratique pour org-capture
+
+#+begin_src emacs-lisp
+  (defun cp/org-open-or-finish-capture ()
+    (interactive)
+    (message "%s" org-capture-mode)
+    (if org-capture-mode
+        (org-capture-finalize)
+      (org-capture)))  
+#+end_src
+
+
+***** Nouveau raccourcis pour org-src-mode-map (plus besoin grâce à cp/org-edit-special-capture-src-dwim)
+
+#+begin_src emacs-lisp
+
+  (defvar org-src-mode-map
+    (let ((map (make-sparse-keymap)))
+      ;; (define-key map "\C-c'" 'org-edit-src-exit)
+      (define-key map "\C-c\C-c" 'org-edit-src-exit) ;; changement ici
+      (define-key map "\C-c\C-k" 'org-edit-src-abort)
+      (define-key map "\C-x\C-s" 'org-edit-src-save)
+      map))
 
 #+end_src
 
@@ -1006,16 +1070,26 @@ Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
 
 #+begin_src emacs-lisp
 
-  (setq org-capture-templates
-        '(
-          ("t" "todo" plain (file capture-inbox-file)
+  (defun cp/return-key-for-capture (theKey)
+    "theKey is a string"
+    (let ((result nil))
+      (if (fboundp 'xah-fly--key-char)
+          (progn
+            (seq-do (lambda (char) (push (xah-fly--key-char (char-to-string char)) result))
+                    theKey)
+             (mapconcat (lambda (char) char) (seq-reverse result) "") 
+            )
+        theKey)))
+
+    (setq org-capture-templates
+        `((,(cp/return-key-for-capture "h") "todo" plain (file capture-inbox-file)
            (file "../templatesOrgCapture/todo.org"))
-          ("u" "tickler" entry
+          (,(cp/return-key-for-capture "u") "tickler" entry
            (function cp/vulpea-capture-tickler-target)
            (file "../templatesOrgCapture/tickler.org")
            :immediate-finish t
            )
-          ("r" "un rdv" entry
+          (,(cp/return-key-for-capture "n") "un rdv" entry
            (function cp/vulpea-capture-rdv-target)
            (file "../templatesOrgCapture/rdv.org")
            :immediate-finish t
@@ -4481,7 +4555,7 @@ Voir après pour un mini test de ces deux fonctions
 
 #+end_src
 
-Autre version, peut-être à choisir :
+Autre version, peut-être à choisir (mais break la sémantique de vulpea-find) :
 
 #+begin_src emacs-lisp :tangle no
 
@@ -4561,7 +4635,7 @@ Autre version, peut-être à choisir :
   (vulpea-select-from "texet" (vulpea-db-query
                                (lambda (note)
                                  (and
-                                  (string-equal (vulpea-meta-get note "utilisateur") "email")
+                                  ;; (string-equal (vulpea-meta-get note "utilisateur") "email")
                                   ;; (= (vulpea-note-level note) 0)
                                   (< (vulpea-note-meta-get note "numbers" 'number) 100)
                                   )
@@ -5381,3 +5455,70 @@ Pour faire ceci :
 *** TODO Drag and drop des pdf
 
 [[https://github.com/rougier/pdf-drop-mode][ici]]
+** Présentation avec org-mode
+
+#+begin_src emacs-lisp
+
+  (use-package visual-fill-column)
+
+  (use-package org-present
+    :config
+
+    (defun my/org-present-prepare-slide (buffer-name heading)
+      ;; Show only top-level headlines
+      (org-overview)
+
+      ;; Unfold the current entry
+      (org-show-entry)
+
+      ;; Show only direct subheadings of the slide but don't expand them
+      (org-show-children))
+
+    (defun my/org-present-start ()
+      ;; Tweak font sizes
+      (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                         (header-line (:height 4.0) variable-pitch)
+                                         (org-document-title (:height 1.75) org-document-title)
+                                         (org-code (:height 1.55) org-code)
+                                         (org-verbatim (:height 1.55) org-verbatim)
+                                         (org-block (:height 1.25) org-block)
+                                         (org-block-begin-line (:height 0.7) org-block)))
+
+      ;; Set a blank header line string to create blank space at the top
+      (setq header-line-format " ")
+
+      ;; Display inline images automatically
+      (org-display-inline-images)
+
+      ;; Center the presentation and wrap lines
+      (visual-fill-column-mode 1)
+      (visual-line-mode 1))
+
+    (defun my/org-present-end ()
+      ;; Reset font customizations
+      (setq-local face-remapping-alist '((default variable-pitch default)))
+
+      ;; Clear the header line string so that it isn't displayed
+      (setq header-line-format nil)
+
+      ;; Stop displaying inline images
+      (org-remove-inline-images)
+
+      ;; Stop centering the document
+      (visual-fill-column-mode 0)
+      (visual-line-mode 0))
+
+    ;; Turn on variable pitch fonts in Org Mode buffers
+    ;; (add-hook 'org-mode-hook 'variable-pitch-mode)
+
+    ;; Register hooks with org-present
+    (add-hook 'org-present-mode-hook 'my/org-present-start)
+    (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+    (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+
+    )
+
+
+
+#+end_src
+

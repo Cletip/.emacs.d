@@ -35,12 +35,19 @@
   (add-hook 'text-mode-hook 'flyspell-mode)
   ;; (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 
+
+  ;; meilleur correction qui respecte l'interface de complétion
+  (use-package flyspell-correct
+    :after flyspell
+    :bind (:map flyspell-mode-map ("C-;" . flyspell-correct-wrapper)))
+
+
   ;; Highlight BUG FIXME TODO NOTE keywords in the source code.
   (add-hook 'find-file-hook
             (lambda()
               (highlight-phrase "\\(BUG\\|FIXME\\|TODO
-   ;;   \\|NOTE
-   \\):")))
+         ;;   \\|NOTE
+         \\):")))
   )
 
 (use-package flycheck

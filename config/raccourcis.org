@@ -194,7 +194,14 @@ Fork de xah pour faire des modifications de mon côté
 
 #+end_src
 
-* Les touches contrôles au bon endroit
+* TODO Mise en place des touches CTRL ALT etc en fonction du clavier
+:LOGBOOK:
+- State "TODO"       from              [2022-10-01 Sat 15:48]
+:END:
+
+** Les touches contrôles au bon endroit (fonction)
+
+
 
 #+begin_src emacs-lisp
 
@@ -216,6 +223,88 @@ Fork de xah pour faire des modifications de mon côté
 
 
 #+end_src
+
+** Test si le clavier est connecté
+
+
+[[https://stackoverflow.com/questions/29146545/identifying-which-keyboard-has-a-keystroke-originated-from-from-within-emacs][lien du stackoverflow]]
+
+
+#+begin_src emacs-lisp
+
+  (defun usb-device-connected-p (device) 
+    (< 0 (length (cl-remove-if-not (lambda (x) (cl-search device x)) 
+                                   (split-string (shell-command-to-string "lsusb") "\n")))))
+
+#+end_src
+
+
+** TODO Activation 
+:LOGBOOK:
+- State "TODO"       from              [2022-10-01 Sat 15:49]
+:END:
+
+#+begin_src emacs-lisp
+
+    (setq my-keyboard-p (usb-device-connected-p "Ergodash"))
+
+    (when (and (not termux-p) (not my-keyboard-p))
+      (touches-controle-au-bon-endroit)
+      )
+
+
+
+    ;; (if (usb-device-connected-p "Microsoft Corp. Natural Ergonomic Keyboard")
+    ;;     (progn (global-set-key (kbd "<XF86Forward>") 'next-buffer)
+    ;;            (global-set-key (kbd "<XF86Back>") 'previous-buffer)
+    ;;            (global-set-key (kbd "<XF86Favorites>") 'buffer-menu)
+    ;;            (global-set-key (kbd "<XF86HomePage>") 'buffer-menu))
+    ;; )
+
+    ;; (setq device "Intel Corp.")
+
+
+
+  (defun org-cycle-hide-drawers (state)
+    "Re-hide all drawers after a visibility state change."
+    (interactive)
+    (when (and (derived-mode-p 'org-mode)
+               (not (memq state '(overview folded contents))))
+      (save-excursion
+        (let* ((globalp (memq state '(contents all)))
+               (beg (if globalp
+                      (point-min)
+                      (point)))
+               (end (if globalp
+                      (point-max)
+                      (if (eq state 'children)
+                        (save-excursion
+                          (outline-next-heading)
+                          (point))
+                        (org-end-of-subtree t)))))
+          (goto-char beg)
+          (while (re-search-forward org-drawer-regexp end t)
+            (save-excursion
+              (beginning-of-line 1)
+              (when (looking-at org-drawer-regexp)
+                (let* ((start (1- (match-beginning 0)))
+                       (limit
+                         (save-excursion
+                           (outline-next-heading)
+                             (point)))
+                       (msg (format
+                              (concat
+                                "org-cycle-hide-drawers:  "
+                                "`:END:`"
+                                " line missing at position %s")
+                              (1+ start))))
+                  (if (re-search-forward "^[ \t]*:END:" limit t)
+                    (outline-flag-region start (point-at-eol) t)
+                    (user-error msg))))))))))
+
+#+end_src
+
+
 * Hydra
 * Chargement de mes abbréviation 
 

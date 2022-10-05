@@ -2,7 +2,12 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("emacs code"
+(("T\303\251l\303\251chargements"
+ (filename . "~/T\303\251l\303\251chargements/")
+ (front-context-string . "testutil.pdf\n  -")
+ (rear-context-string . " ao\303\273t  17 00:04 ")
+ (position . 3496))
+("emacs code"
  (filename . "~/Testdedossier/emacs/")
  (front-context-string . "lisp\n  drwxrwxr-")
  (rear-context-string . " juil. 13 22:11 ")
@@ -10,7 +15,7 @@
 ("org-refile-last-stored"
  (filename . "~/braindump/org/pages/20220616193340-comment_faire_un_second_cerveau.org")
  (front-context-string . "*** TODO mettre ")
- (rear-context-string . " vidéo de X etc\n")
+ (rear-context-string . " vid\303\251o de X etc\n")
  (position . 5912))
 ("straight"
  (filename . "~/.emacs.d/straight/")
@@ -49,9 +54,9 @@
  (position . 544))
 ("org-capture-last-stored"
  (filename . "~/braindump/org/inbox-utilisateur-GL65-Leopard-10SER.org")
- (front-context-string . "* un rdv :tickle")
- (rear-context-string . "ur bidonville]]\n")
- (position . 389))
+ (front-context-string . "* TODO tset\n:LOG")
+ (rear-context-string . "on 00:01]\n:END:\n")
+ (position . 479))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

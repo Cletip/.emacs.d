@@ -6,8 +6,6 @@
 
 ** Variables communes
 
-
-
 *** Où est le home ?
 
 #+begin_src emacs-lisp
@@ -41,7 +39,6 @@
 #+begin_src emacs-lisp
 (setq config-directory (expand-file-name "config/" user-emacs-directory))
 #+end_src
-
 
 *** Où est mon braindump
 

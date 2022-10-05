@@ -231,34 +231,36 @@
 (diminish org-indent-mode)
 
 (org-babel-do-load-languages
- 'org-babel-load-languages
- '(
-   ;; (ditaa      . t)
-   (C          . t)
-   ;; (dot        . t)
-   (emacs-lisp . t)
-   ;; (scheme     . t)
-   ;; (gnuplot    . t)
-   ;; (haskell    . t)
-   (latex      . t)
-   ;; (js         . t)
-   ;; (ledger     . t)
-   ;; (matlab     . t)
-   ;; (ocaml      . t)
-   ;; (octave     . t)
-   ;; (plantuml   . t)
-   (python     . t)
-   ;; (R          . t)
-   ;; (ruby       . t)
-   ;; (screen     . nil)
-   ;; (scheme     . t)
-   (shell      . t)
-   (sql        . t)
-   (sqlite     . t)
-   (java     . t)
-   (js . t) ;;javascripts
+   'org-babel-load-languages
+   '(
+     ;; (ditaa      . t)
+     (C          . t)
+     ;; (dot        . t)
+     (emacs-lisp . t)
+     ;; (scheme     . t)
+     ;; (gnuplot    . t)
+     ;; (haskell    . t)
+     (latex      . t)
+     ;; (js         . t)
+     ;; (ledger     . t)
+     ;; (matlab     . t)
+     ;; (ocaml      . t)
+     ;; (octave     . t)
+     ;; (plantuml   . t)
+     (python     . t)
+     ;; (R          . t)
+     ;; (ruby       . t)
+     ;; (screen     . nil)
+     ;; (scheme     . t)
+     (shell      . t)
+     (sql        . t)
+     (sqlite     . t)
+     (java     . t)
+     (js . t) ;;javascripts
+     )
    )
- )
+
+(setq org-babel-python-command "python3")
 
 (setq org-confirm-babel-evaluate nil)
 
@@ -289,6 +291,44 @@ Add this function to `org-mode-hook'."
   (syntax-propertize (point-max)))
 
 (add-hook 'org-mode-hook #'org-setup-<>-syntax-fix)
+
+(defun org-src-get-lang-mode (lang)
+  "Return major mode that should be used for LANG.
+    LANG is a string, and the returned major mode is a symbol."
+  (when (string-equal lang "emacs-lisp")
+    (setq lang "xah-elisp")
+    )
+  (intern
+   (concat
+    (let ((l (or (cdr (assoc lang org-src-lang-modes)) lang)))
+      (if (symbolp l) (symbol-name l) l))
+    "-mode")))
+
+(defun cp/org-edit-special-src-dwim ()
+  (interactive)
+  (cond
+   (org-src-mode (when (yes-or-no-p "Évaluer le buffer avant de partir ?")
+                   (eval-buffer))
+                 (org-edit-src-exit))
+   ((org-in-src-block-p) (org-edit-special))
+   ((derived-mode-p 'org-mode)
+    (org-insert-structure-template "src emacs-lisp")
+    (org-edit-special))))
+
+(defun cp/org-open-or-finish-capture ()
+  (interactive)
+  (message "%s" org-capture-mode)
+  (if org-capture-mode
+      (org-capture-finalize)
+    (org-capture)))
+
+(defvar org-src-mode-map
+  (let ((map (make-sparse-keymap)))
+    ;; (define-key map "\C-c'" 'org-edit-src-exit)
+    (define-key map "\C-c\C-c" 'org-edit-src-exit) ;; changement ici
+    (define-key map "\C-c\C-k" 'org-edit-src-abort)
+    (define-key map "\C-x\C-s" 'org-edit-src-save)
+    map))
 
 (with-eval-after-load 'ox-latex
   (add-to-list 'org-latex-classes
@@ -2667,4 +2707,63 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   (setq zotra-default-entry-format "biblatex")
   (setq zotra-default-bibliography (car bibliography-file-list))
   (setq zotra-url-retrieve-timeout 5) ;; plus de temps pour les demandes
+  )
+
+(use-package visual-fill-column)
+
+(use-package org-present
+  :config
+
+  (defun my/org-present-prepare-slide (buffer-name heading)
+    ;; Show only top-level headlines
+    (org-overview)
+
+    ;; Unfold the current entry
+    (org-show-entry)
+
+    ;; Show only direct subheadings of the slide but don't expand them
+    (org-show-children))
+
+  (defun my/org-present-start ()
+    ;; Tweak font sizes
+    (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                       (header-line (:height 4.0) variable-pitch)
+                                       (org-document-title (:height 1.75) org-document-title)
+                                       (org-code (:height 1.55) org-code)
+                                       (org-verbatim (:height 1.55) org-verbatim)
+                                       (org-block (:height 1.25) org-block)
+                                       (org-block-begin-line (:height 0.7) org-block)))
+
+    ;; Set a blank header line string to create blank space at the top
+    (setq header-line-format " ")
+
+    ;; Display inline images automatically
+    (org-display-inline-images)
+
+    ;; Center the presentation and wrap lines
+    (visual-fill-column-mode 1)
+    (visual-line-mode 1))
+
+  (defun my/org-present-end ()
+    ;; Reset font customizations
+    (setq-local face-remapping-alist '((default variable-pitch default)))
+
+    ;; Clear the header line string so that it isn't displayed
+    (setq header-line-format nil)
+
+    ;; Stop displaying inline images
+    (org-remove-inline-images)
+
+    ;; Stop centering the document
+    (visual-fill-column-mode 0)
+    (visual-line-mode 0))
+
+  ;; Turn on variable pitch fonts in Org Mode buffers
+  ;; (add-hook 'org-mode-hook 'variable-pitch-mode)
+
+  ;; Register hooks with org-present
+  (add-hook 'org-present-mode-hook 'my/org-present-start)
+  (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+  (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+
   )

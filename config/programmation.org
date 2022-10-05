@@ -149,6 +149,8 @@ Il faut aussi installer flutter sur asdf
 Auto-complete existe aussi, mais pas aussi efficace.
 ****** Le moteur
 
+Company-backend = variable qui possède la complétion. Seul le premier backend est utilisé (si il est valide dans le mode je suppose). On peut combiner les backend avec un ":with"
+
 #+begin_src emacs-lisp
 
   (use-package company
@@ -200,12 +202,23 @@ Auto-complete existe aussi, mais pas aussi efficace.
       )
 
 
+test : 
+
+
+(add-to-list 'company-backends '(company-capf :with company-dabbrev))
+(setq company-backends '(company-dabbrev))
+(setq company-backends '(company-capf))
+(setq company-backends '(company-yasnippet))
+(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+
+ancien : 
+
 #+begin_src emacs-lisp :tangle no
-    (use-package company
-      :config
-      ;; (add-hook 'org-mode 'company-mode)
-      (add-hook 'after-init-hook 'global-company-mode)
-      )
+  (use-package company
+    :config
+    ;; (add-hook 'org-mode 'company-mode)
+    (add-hook 'after-init-hook 'global-company-mode)
+    )
 
   ;; Smartparens
   ;; To automatically close "]]" brackets and other parentheses,
@@ -243,7 +256,7 @@ Auto-complete existe aussi, mais pas aussi efficace.
     (define-key company-active-map (kbd "C-n") #'company-select-next)
     (define-key company-active-map (kbd "C-p") #'company-select-previous))
 
-      (tool-bar-mode)
+  (tool-bar-mode)
 
 #+end_src
 
@@ -302,32 +315,44 @@ Auto-complete existe aussi, mais pas aussi efficace.
 #+end_src
 **** Language without lsp
 ***** Elisp
-
-****** TODO xah fly elisp mode, pas encore utilisé
+****** xah fly elisp mode, pas encore utilisé
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2022-10-02 Sun 22:37]
+:END:
 
 Documentation : 
 http://ergoemacs.org/emacs/xah-elisp-mode.html
 
 Liste des abbrev : M-x list-abbrevs
 
-#+begin_src emacs-lisp :tangle no
-(use-package xah-elisp-mode)
+#+begin_src emacs-lisp 
+  (use-package xah-elisp-mode
+    ;; :disabled t
+
+    :config
+    ;; activer xah-elisp-mode à la place de emacs-lisp-mode. fait par défaut
+
+    ;; copie hook of emacs-lisp-mode
+    (dolist (hook emacs-lisp-mode-hook)
+      (unless (string-equal hook "xah-elisp-mode")(add-hook 'xah-elisp-mode-hook hook)))
+
+    ;; àjouter le correcteur de flycheck à xah-elisp-mode
+    (flycheck-add-mode 'emacs-lisp 'xah-elisp-mode)
+    (setq ido-enable-flex-matching t) ;; activer la recherche de mots avec le fuzzy search
+
+
+)
+
 #+end_src
 
+****** Pour afficher joliment un
 
-
-****** Pour afficher joliment une hash-map
+****** Pour ne pas voir des vieux saut de page mais de jolie lignes
 
 #+begin_src emacs-lisp
 
-  (defun xah-print-hash (hashtable)
-    "Prints the hashtable, each line is key, val"
-    (maphash
-     (lambda (k v)
-       (princ (format "%s , %s" k v))
-       (princ "\n"))
-     hashtable
-     ))
+(use-package page-break-lines
+  :hook ((emacs-lisp-mode . page-break-lines-mode)))
 
 #+end_src
 

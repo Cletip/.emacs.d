@@ -243,19 +243,36 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 #+begin_src emacs-lisp
 
   (use-package smartparens
-    ;; :after lsp 
+    ;; :after lsp
     :hook ((lsp-mode text-mode emacs-lisp-mode) . smartparens-mode)
     :config
-    (sp-pair "\«" "\»")  
+    (sp-pair "\«" "\»")
     ;;pour enlever un truc
     ;; the second argument is the closing delimiter, so you need to skip it with nil
-    (sp-pair "'" nil :actions :rem)  
+
+    ;;    (sp-pair "'" nil :actions :rem)
+
+    ;; (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
+    ;; (sp-local-pair 'xah-elisp-mode "'" nil :actions nil)
+    ;; (sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+    ;; (sp-local-pair 'xah-elisp-mode "`" nil :actions nil)
+
+    (defun cp/remove-local-pair-for-emacs-lisp-mode ()
+      "Obligé de créer cette fonction, car pour prendre les même hook que emacs-lisp-mode pour xah-lisp-mode, pas de fonction lambda"
+      (sp-local-pair major-mode "`" nil :actions nil)
+      (sp-local-pair major-mode "'" nil :actions nil))
+
+    (add-hook 'emacs-lisp-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
+
     ;; pour rajouter à un mode :
     ;; pas supprimer avec xah car ne fait pas partie de xah-right-brackets
     ;; changer org emphasis ?
-    (sp-local-pair 'org-mode "*" "*") ;; adds * as a local pair in org mode
-    (sp-local-pair 'org-mode "=" "=") ;; adds = as a local pair in org mode
-    (sp-local-pair 'org-mode "\/" "\/")
+
+    ;; (sp-local-pair 'org-mode "*" "*") ;; adds * as a local pair in org mode
+
+    ;; (sp-local-pair 'org-mode "=" "=") ;; adds = as a local pair in org mode
+
+    ;; (sp-local-pair 'org-mode "\/" "\/")
     )
 
 #+end_src
