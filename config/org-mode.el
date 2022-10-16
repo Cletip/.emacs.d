@@ -83,6 +83,14 @@
 
 (setq-default org-catch-invisible-edits nil)
 
+(setq org-cycle-separator-lines -1)
+
+(setq org-list-allow-alphabetical t)
+
+(setq org-blank-before-new-entry
+'((heading . t)
+  (plain-list-item . auto)))
+
 ;; (use-package org-bullets
   ;; :after org
   ;; :hook(org-mode . org-bullets-mode)
@@ -307,12 +315,22 @@ Add this function to `org-mode-hook'."
 (defun cp/org-edit-special-src-dwim ()
   (interactive)
   (cond
-   (org-src-mode (when (yes-or-no-p "Évaluer le buffer avant de partir ?")
-                   (eval-buffer))
-                 (org-edit-src-exit))
+   (org-src-mode
+    (when (and (string-equal major-mode cp/emacs-lisp-mode) (yes-or-no-p "Évaluer le buffer avant de partir ?"))
+      (eval-buffer))
+    ;; indentation automatique
+    (mark-whole-buffer)
+    (indent-for-tab-command)
+    (deactivate-mark)
+
+    (org-edit-src-exit))
    ((org-in-src-block-p) (org-edit-special))
    ((derived-mode-p 'org-mode)
-    (org-insert-structure-template "src emacs-lisp")
+    (if (string-prefix-p config-directory (buffer-file-name))
+        ;; si je suis dans ma config, alors ouvre directement du
+        ;; emacs-lisp. sinon, propose le language
+        (org-insert-structure-template "src emacs-lisp")
+      (call-interactively #'org-insert-structure-template))
     (org-edit-special))))
 
 (defun cp/org-open-or-finish-capture ()
@@ -398,6 +416,8 @@ Add this function to `org-mode-hook'."
 ;;plus propre d'y mettre dans les extras
 (setq org-id-extra-files (append(directory-files-recursively config-directory "org$") (org-roam-list-files)))
 
+(require 'ol-man)
+
 ;; Update ID file .org-id-locations on startup
 ;; (org-id-update-id-locations)
 
@@ -434,16 +454,24 @@ Add this function to `org-mode-hook'."
     (expand-file-name (format "inbox-%s.org" (system-name)) org-roam-directory)
     )
 
+(defun cp/return-key-for-capture (theKey)
+  "theKey is a string"
+  (let ((result nil))
+    (if (fboundp 'xah-fly--key-char)
+        (seq-mapcat (lambda (x) (xah-fly--key-char (char-to-string x)))
+                    (string-to-list theKey)
+                    'string)
+      theKey)))
+
 (setq org-capture-templates
-      '(
-        ("t" "todo" plain (file capture-inbox-file)
+      `((,(cp/return-key-for-capture "h") "todo" plain (file capture-inbox-file)
          (file "../templatesOrgCapture/todo.org"))
-        ("u" "tickler" entry
+        (,(cp/return-key-for-capture "u") "tickler" entry
          (function cp/vulpea-capture-tickler-target)
          (file "../templatesOrgCapture/tickler.org")
          :immediate-finish t
          )
-        ("r" "un rdv" entry
+        (,(cp/return-key-for-capture "n") "un rdv" entry
          (function cp/vulpea-capture-rdv-target)
          (file "../templatesOrgCapture/rdv.org")
          :immediate-finish t
@@ -1217,11 +1245,11 @@ Refer to `org-agenda-prefix-format' for more information."
   :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
   :config
 
-  (setq org-yaap-overdue-alerts '(5 30 180 3600)
-        org-yaap-alert-before 30 
-        org-yaap-exclude-tags '("tickler")
-        org-yaap-todo-only t ;; pour pas 
-        )
+  (setq
+   org-yaap-overdue-alerts '(5 30 180 3600)
+   org-yaap-alert-before '(30 0) ;; prévenir 30mins avant et à 0 (voir issue github)
+   ;; org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple). Sencé marché (voir issue github). Si jamais ne change pas, mettre org-yaap-include-tags avec tous les tags d'org-mode !
+   )
 
   (org-yaap-mode 1))
 
@@ -1820,7 +1848,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 (with-eval-after-load 'company-box
 
   (add-hook 'org-mode-hook 'company-mode)
-  (add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
+  (add-hook 'org-mode-hook (lambda () (company-box-mode 0)))
 
   )
 

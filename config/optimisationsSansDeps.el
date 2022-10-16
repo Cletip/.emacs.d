@@ -67,24 +67,24 @@
 ;; sauvegarde automatique avec command mode
 (add-hook 'xah-fly-command-mode-activate-hook 'cp/xah-fly-save-buffer-if-file-not-gpg)
 
-(setq make-backup-files t               ; backup of a file the first time it is saved.
-      backup-by-copying t               ; don't clobber symlinks
-      version-control t                 ; version numbers for backup files
-      delete-old-versions t             ; delete excess backup files silently
-      delete-by-moving-to-trash t       ; Put the deleted files in the trash
-      kept-old-versions 6               ; oldest versions to keep when a new numbered backup is made (default: 2)
-      kept-new-versions 9               ; newest versions to keep when a new numbered backup is made (default: 2)
-      auto-save-default t               ; auto-save every buffer that visits a file
-      auto-save-timeout 20              ; number of seconds idle time before auto-save (default: 30)
-      auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
+(setq make-backup-files t	; backup of a file the first time it is saved.
+      backup-by-copying t	; don't clobber symlinks
+      version-control t		; version numbers for backup files
+      delete-old-versions t	; delete excess backup files silently
+      delete-by-moving-to-trash t ; Put the deleted files in the trash
+      kept-old-versions 6 ; oldest versions to keep when a new numbered backup is made (default: 2)
+      kept-new-versions 9 ; newest versions to keep when a new numbered backup is made (default: 2)
+      auto-save-default t ; auto-save every buffer that visits a file into another file, not the original
+      auto-save-timeout 20 ; number of seconds idle time before auto-save (default: 30)
+      auto-save-interval 200 ; number of keystrokes between auto-saves (default: 300)
+      ;; auto-save-visited-file-name t ;; sauvegarde directement sur le fichier original
       )
 
 ;;fichier à ne pas copier dans les backups
 (setq auto-mode-alist
       (append
        (list
-        '("\\.\\(vcf\\|gpg\\)$" . sensitive-minor-mode)
-        )
+        '("\\.\\(vcf\\|gpg\\)$" . sensitive-minor-mode))
        auto-mode-alist))
 
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -128,7 +128,7 @@
 
 (use-package smartparens
   ;; :after lsp
-  :hook ((lsp-mode text-mode emacs-lisp-mode) . smartparens-mode)
+  :hook ((lsp-mode text-mode emacs-lisp-mode scheme-mode) . smartparens-mode)
   :config
   (sp-pair "\«" "\»")
   ;;pour enlever un truc

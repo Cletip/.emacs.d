@@ -10,13 +10,15 @@
     ("mail1" "payard.clement63@gmail.com")
     ("mail2" "clement020302@gmail.com")
 
-    ;;abbréviations pour le tel notamment
+    ;;abbréviations (pour le tel notamment)
     ("bc" "beaucoup")
     ("pk" "pourquoi")
     ("tt" "tout")
     ("qqch" "quelque chose")
     ("bjr" "bonjour")
     ("cad" "bonjour")
+    ("pb" "problème")
+    ("c'" "c'est")
 
     ;; net abbrev
     ("afaik" "as far as i know")

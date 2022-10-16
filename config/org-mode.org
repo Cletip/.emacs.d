@@ -212,6 +212,67 @@ Si je fait avec C-u, alors org-insert-heading !
 (setq-default org-catch-invisible-edits nil)
 #+end_src
 
+***** Pas plier des heading vide
+
+#+begin_src emacs-lisp
+  (setq org-cycle-separator-lines -1)
+#+end_src
+
+***** Avoir des liste avec l'alphabet
+
+#+begin_src emacs-lisp
+  (setq org-list-allow-alphabetical t)
+#+end_src
+
+***** Laisser une ligne vide entre les titres org-mode
+
+#+begin_src emacs-lisp
+  (setq org-blank-before-new-entry
+ '((heading . t)
+   (plain-list-item . auto)))
+#+end_src
+
+***** Cacher les properties drawer
+
+#+begin_src emacs-lisp :tangle no
+  (defun org-cycle-hide-drawers (state)
+      "Re-hide all drawers after a visibility state change."
+      (interactive)
+      (when (and (derived-mode-p 'org-mode)
+                 (not (memq state '(overview folded contents))))
+        (save-excursion
+          (let* ((globalp (memq state '(contents all)))
+                 (beg (if globalp
+                        (point-min)
+                        (point)))
+                 (end (if globalp
+                        (point-max)
+                        (if (eq state 'children)
+                          (save-excursion
+                            (outline-next-heading)
+                            (point))
+                          (org-end-of-subtree t)))))
+            (goto-char beg)
+            (while (re-search-forward org-drawer-regexp end t)
+              (save-excursion
+                (beginning-of-line 1)
+                (when (looking-at org-drawer-regexp)
+                  (let* ((start (1- (match-beginning 0)))
+                         (limit
+                           (save-excursion
+                             (outline-next-heading)
+                               (point)))
+                         (msg (format
+                                (concat
+                                  "org-cycle-hide-drawers:  "
+                                  "`:END:`"
+                                  " line missing at position %s")
+                                (1+ start))))
+                    (if (re-search-forward "^[ \t]*:END:" limit t)
+                      (outline-flag-region start (point-at-eol) t)
+                      (user-error msg))))))))))
+#+end_src
+
 **** Esthétique d'org-mode
 ***** Petite bulles des titres
 
@@ -587,18 +648,26 @@ utilise la touche TAB pour indenter (et non pour insérer une tabulation)
 ***** Nouvelle commande pratique pour éditer du code dans babel
 
 #+begin_src emacs-lisp
-
   (defun cp/org-edit-special-src-dwim ()
     (interactive)
     (cond
-     (org-src-mode (when (yes-or-no-p "Évaluer le buffer avant de partir ?")
-                     (eval-buffer))
-                   (org-edit-src-exit))
+     (org-src-mode
+      (when (and (string-equal major-mode cp/emacs-lisp-mode) (yes-or-no-p "Évaluer le buffer avant de partir ?"))
+        (eval-buffer))
+      ;; indentation automatique
+      (mark-whole-buffer)
+      (indent-for-tab-command)
+      (deactivate-mark)
+
+      (org-edit-src-exit))
      ((org-in-src-block-p) (org-edit-special))
      ((derived-mode-p 'org-mode)
-      (org-insert-structure-template "src emacs-lisp")
+      (if (string-prefix-p config-directory (buffer-file-name))
+          ;; si je suis dans ma config, alors ouvre directement du
+          ;; emacs-lisp. sinon, propose le language
+          (org-insert-structure-template "src emacs-lisp")
+        (call-interactively #'org-insert-structure-template))
       (org-edit-special))))
-    
 #+end_src
 
 ***** Nouvelle commande pratique pour org-capture
@@ -791,6 +860,101 @@ Il faut dire à org où sont les fichiers avec les ids
 #+end_src
 
 
+***** Les nouveaux "types" de liens
+
+****** Man
+
+Déjà dans org-mode natif, juste à activer
+
+#+begin_src emacs-lisp
+  (require 'ol-man)
+#+end_src
+
+****** Test de nouveau liens
+
+
+#+begin_src emacs-lisp :tangle no 
+
+  (defun org-id-open (id _)
+    "Go to the entry with id ID."
+    (org-mark-ring-push)
+    (let ((m (org-id-find id 'marker))
+          cmd)
+      (unless m
+        (error "Cannot find entry with ID \"%s\"" id))
+      ;; Use a buffer-switching command in analogy to finding files
+      (setq cmd
+            (or
+             (cdr
+              (assq
+               (cdr (assq 'file org-link-frame-setup))
+               '((find-file . switch-to-buffer)
+                 (find-file-other-window . switch-to-buffer-other-window)
+                 (find-file-other-frame . switch-to-buffer-other-frame))))
+             'switch-to-buffer-other-window))
+      (if (not (equal (current-buffer) (marker-buffer m)))
+          (funcall cmd (marker-buffer m)))
+      (goto-char m)
+      (move-marker m nil)
+      (org-fold-show-context)))
+
+  (org-link-set-parameters "id" :follow #'org-id-open)
+#+end_src
+
+#+begin_src emacs-lisp :tangle no
+
+  (defun org-test-store-link ()
+    "Store a link to the current entry, using its ID.
+
+  If before first heading store first title-keyword as description
+  or filename if no title."
+    (interactive)
+    (when (and (buffer-file-name (buffer-base-buffer)) (derived-mode-p 'org-mode))
+      (let* ((link (concat "test:" (org-id-get-create)))
+             (case-fold-search nil)
+             (desc (save-excursion
+                     (org-back-to-heading-or-point-min t)
+                     (cond ((org-before-first-heading-p)
+                            (let ((keywords (org-collect-keywords '("TITLE"))))
+                              (if keywords
+                                  (cadr (assoc "TITLE" keywords))
+                                (file-name-nondirectory
+                                 (buffer-file-name (buffer-base-buffer))))))
+                           ((looking-at org-complex-heading-regexp)
+                            (if (match-end 4)
+                                (match-string 4)
+                              (match-string 0)))
+                           (t link)))))
+        (org-link-store-props :link link :description desc :type "test")
+        link)))
+
+  (defun org-id-open (id _)
+    "Go to the entry with id ID."
+    (org-mark-ring-push)
+    (let ((m (org-id-find id 'marker))
+          cmd)
+      (unless m
+        (error "Cannot find entry with ID \"%s\"" id))
+      ;; Use a buffer-switching command in analogy to finding files
+      (setq cmd
+            (or
+             (cdr
+              (assq
+               (cdr (assq 'file org-link-frame-setup))
+               '((find-file . switch-to-buffer)
+                 (find-file-other-window . switch-to-buffer-other-window)
+                 (find-file-other-frame . switch-to-buffer-other-frame))))
+             'switch-to-buffer-other-window))
+      (if (not (equal (current-buffer) (marker-buffer m)))
+          (funcall cmd (marker-buffer m)))
+      (goto-char m)
+      (move-marker m nil)
+      (org-fold-show-context)))
+
+  (org-link-set-parameters "id" :follow #'org-id-open)
+
+#+end_src
+
 
 ***** TODO Pour mettre des les archives dans les id
 
@@ -815,7 +979,8 @@ Il faut dire à org où sont les fichiers avec les ids
 #+end_src
 
 ***** Les id sans org-roam
-C'est possible, mais pas de backlinks, pas stocké dans une base de donnée, etc. Pour la postérité cette config
+
+C'est possible, mais pas de backlinks, pas stocké dans une base de donnée, etc. Pour la postérité cette config, ici ne sert plus à rien
 
 ****** Ce qu'il faut comprendre
 Avant, les liens était stocké comme ceci : [[lien/vers/letruc][descriptioni] ]
@@ -1068,20 +1233,35 @@ Ancienne méthode :
 
 Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
 
+#+begin_src emacs-lisp :tangle no
+
+
+
+  (setq theKey "4est")
+
+  (setq x 116)
+
+
+
+  
+
+  (sequencep )
+
+
+#+end_src
+
 #+begin_src emacs-lisp
 
   (defun cp/return-key-for-capture (theKey)
     "theKey is a string"
     (let ((result nil))
       (if (fboundp 'xah-fly--key-char)
-          (progn
-            (seq-do (lambda (char) (push (xah-fly--key-char (char-to-string char)) result))
-                    theKey)
-             (mapconcat (lambda (char) char) (seq-reverse result) "") 
-            )
+          (seq-mapcat (lambda (x) (xah-fly--key-char (char-to-string x)))
+                      (string-to-list theKey)
+                      'string)
         theKey)))
 
-    (setq org-capture-templates
+  (setq org-capture-templates
         `((,(cp/return-key-for-capture "h") "todo" plain (file capture-inbox-file)
            (file "../templatesOrgCapture/todo.org"))
           (,(cp/return-key-for-capture "u") "tickler" entry
@@ -2429,22 +2609,49 @@ ne sert à rien, à part les afficher à un moment, remplacable par org-ql je pe
 (advice-add 'org-agenda-todo :after #'org-agenda-redo-all)
 #+end_src
 
+****** TODO Save les buffers org-mode après le refresh de l'agenda. À faire un jour peut-être
+:LOGBOOK:
+- State "TODO"       from              [2022-10-08 Sat 18:06]
+:END:
+
+#+begin_src emacs-lisp :tangle no
+    (advice-add 'org-agenda-redo-all :after #'org-save-all-org-buffers)
+    (advice-remove 'org-agenda-redo-all #'org-save-all-org-buffers)
+    (add-hook 'org-agenda-mode-hook
+              (lambda ()
+                (add-hook 'auto-save-hook 'org-save-all-org-buffers nil t)))
+
+  (add-hook 'auto-save-hook 'org-save-all-org-buffers)
+
+  ;; xah-save-all-unsaved ?
+
+#+end_src
+
 ***** Gestion de l'agenda (téléphone)
 
+****** TODO Avoir les notifications
+:LOGBOOK:
+- State "TODO"       from              [2022-10-16 Sun 21:35]
+:END:
+
+Voir les commentaires !
 
 #+begin_src emacs-lisp
   (use-package org-yaap
     :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
     :config
 
-    (setq org-yaap-overdue-alerts '(5 30 180 3600)
-          org-yaap-alert-before 30 
-          org-yaap-exclude-tags '("tickler")
-          org-yaap-todo-only t ;; pour pas 
-          )
+    (setq
+     org-yaap-overdue-alerts '(5 30 180 3600)
+     org-yaap-alert-before '(30 0) ;; prévenir 30mins avant et à 0 (voir issue github)
+     ;; org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple). Sencé marché (voir issue github). Si jamais ne change pas, mettre org-yaap-include-tags avec tous les tags d'org-mode !
+     )
 
     (org-yaap-mode 1))
 #+end_src
+
+(org-yaap--check-heading (org-element-at-point)) (org-yaap--get-alerts (org-element-at-point))
+
 **** Gestion des tâches
 
 ***** Les keywords
@@ -2597,9 +2804,6 @@ ancien :
 #+begin_src emacs-lisp
 (require 'org-habit)
 #+end_src
-
-
-***** Gestion de sauvegardes des states dans un logbook
 
 **** Gestion des tags (sauf tag PROJET, PERSONNE et LIEU), voir l'agenda
 ***** Les différents tags
@@ -4039,7 +4243,7 @@ allow-emacs-pinentry
   (with-eval-after-load 'company-box
 
     (add-hook 'org-mode-hook 'company-mode)
-    (add-hook 'org-mode-hook '(lambda () (company-box-mode 0)))
+    (add-hook 'org-mode-hook (lambda () (company-box-mode 0)))
 
     )
   

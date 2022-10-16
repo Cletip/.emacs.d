@@ -4,6 +4,7 @@ var/save-place.el
 var/recentf-save.el
 var/keyfreq.el
 var/transient/history.el
+var/grammalecte-cache.el
 
 config/*.el
 

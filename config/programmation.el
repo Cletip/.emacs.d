@@ -135,22 +135,65 @@
   ;;(setq projectile-completion-system 'ivy)
   )
 
-(use-package xah-elisp-mode
-    ;; :disabled t
-
-    :config
-    ;; activer xah-elisp-mode à la place de emacs-lisp-mode. fait par défaut
-
-    ;; copie hook of emacs-lisp-mode
-    (dolist (hook emacs-lisp-mode-hook)
-      (unless (string-equal hook "xah-elisp-mode")(add-hook 'xah-elisp-mode-hook hook)))
-
-    ;; àjouter le correcteur de flycheck à xah-elisp-mode
-    (flycheck-add-mode 'emacs-lisp 'xah-elisp-mode)
-    (setq ido-enable-flex-matching t) ;; activer la recherche de mots avec le fuzzy search
-
-
-)
-
 (use-package page-break-lines
   :hook ((emacs-lisp-mode . page-break-lines-mode)))
+
+(use-package prism
+  :config
+
+  ;; (setq prism-parens t) ;; color les parenthèses. Couleurs pas assez "forte"
+
+  (defun cp/prism-set-colors ()
+    (interactive)
+    "DOCSTRING"
+    (prism-set-colors :num 16
+      :desaturations (cl-loop for i from 0 below 16
+                              collect (* i 2.5))
+      :lightens (cl-loop for i from 0 below 16
+                         collect (* i 2.5))
+      :colors (list  "OrangeRed3" "sandy brown" "dodgerblue")
+
+      :comments-fn
+      (lambda (color)
+        (prism-blend color
+                     (face-attribute 'font-lock-comment-face :foreground) 0.25))
+
+      :strings-fn
+      (lambda (color)
+        (prism-blend color "white" 0.5))))
+
+  (add-hook 'prism-mode-hook 'cp/prism-set-colors)
+  )
+
+(use-package rainbow-delimiters
+:config
+(add-hook 'emacs-lisp-mode-hook 'rainbow-delimiters-mode)
+(add-hook 'scheme-mode-hook 'rainbow-delimiters-mode))
+
+;; variable pour mettre mon mode elisp. ici, ce sera xah-elisp-mode. Si jamais
+;; un jour je veux le changer, ce sera fait en une variable
+(setq cp/emacs-lisp-mode "xah-elisp-mode")
+
+(use-package xah-elisp-mode
+
+  :config
+  ;; activer xah-elisp-mode à la place de emacs-lisp-mode. fait par défaut
+
+  ;; copie hook of emacs-lisp-mode
+  (dolist (hook emacs-lisp-mode-hook)
+    (unless (string-equal hook "xah-elisp-mode")
+      (add-hook 'xah-elisp-mode-hook hook)))
+
+  ;; àjouter le correcteur de flycheck à xah-elisp-mode
+  (flycheck-add-mode 'emacs-lisp 'xah-elisp-mode)
+
+  (add-hook 'xah-elisp-mode-hook 'company-mode)
+  (add-hook 'xah-elisp-mode-hook 'prism-mode)
+
+  ;; (setq ido-enable-flex-matching t) ;; activer la recherche de mots avec le fuzzy search, désactiver car usage de vertico
+
+  ;;
+
+  )
+
+
