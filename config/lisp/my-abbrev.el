@@ -39,7 +39,7 @@
     ("ann" "announcement")
     ("arg" "argument")
     ("autom" "automatic")
-    ("bc" "because")
+    ;; ("bc" "because")
     ("bg" "background")
     ("bt" "between")
     ("math" "mathematics")

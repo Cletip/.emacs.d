@@ -99,6 +99,54 @@
 
 (cd user-emacs-directory)
 
+(defun cp/find-symbol-at-point ()
+  "DOCSTRING"
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (cond
+     ((and (boundp symbol) (fboundp symbol))
+      (if (y-or-n-p
+           (format "%s is a both a variable and a callable, show variable?"
+                   symbol))
+          (find-variable symbol)
+        (find-function symbol)))
+
+     ((fboundp symbol)
+      (find-function symbol))
+     ((boundp symbol)
+      (find-variable symbol))
+     ;; ((condition-case nil
+     ;; (find-function-at-point)
+     ;; (error nil)) (find-function-at-point))
+     ;; ((condition-case nil
+     ;; (find-variable-at-point)
+     ;; (error nil)) (find-variable-at-point))
+     (t (message "no symbol at point or don't find the path"))
+     ))
+  )
+
+
+
+(defun describe-thing-in-popup ()
+  (interactive)
+  (let* ((thing (symbol-at-point)))
+    (cond
+     ((fboundp thing) (describe-in-popup 'describe-function))
+     ((boundp thing) (describe-in-popup 'describe-variable)))))
+
+(defun describe-in-popup (fn)
+  (let* ((thing (symbol-at-point))
+         (description (save-window-excursion
+                        (funcall fn thing)
+                        (switch-to-buffer "*Help*")
+                        (buffer-string))))
+    (popup-tip description
+               :point (point)
+               :around t
+               :height 30
+               :scroll-bar t
+               :margin t)))
+
 (server-start)  ;; starts emacs as server (if you didn't already)
 
 (use-package move-text
@@ -147,6 +195,8 @@
     (sp-local-pair major-mode "'" nil :actions nil))
 
   (add-hook 'emacs-lisp-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
+
+  (add-hook 'org-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
 
   ;; pour rajouter à un mode :
   ;; pas supprimer avec xah car ne fait pas partie de xah-right-brackets

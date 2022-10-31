@@ -163,6 +163,61 @@ Cela permet de ré-avoir les commandes faites lors de la dernière session d'ema
   (cd user-emacs-directory)
 #+end_src
 
+** Meilleur fonction pour chercher at point
+
+
+
+#+begin_src emacs-lisp
+
+  (defun cp/find-symbol-at-point ()
+    "DOCSTRING"
+    (interactive)
+    (let ((symbol (symbol-at-point)))
+      (cond
+       ((and (boundp symbol) (fboundp symbol))
+        (if (y-or-n-p
+             (format "%s is a both a variable and a callable, show variable?"
+                     symbol))
+            (find-variable symbol)
+          (find-function symbol)))
+
+       ((fboundp symbol)
+        (find-function symbol))
+       ((boundp symbol)
+        (find-variable symbol))
+       ;; ((condition-case nil
+       ;; (find-function-at-point)
+       ;; (error nil)) (find-function-at-point))
+       ;; ((condition-case nil
+       ;; (find-variable-at-point)
+       ;; (error nil)) (find-variable-at-point))
+       (t (message "no symbol at point or don't find the path"))
+       ))
+    )
+
+
+
+  (defun describe-thing-in-popup ()
+    (interactive)
+    (let* ((thing (symbol-at-point)))
+      (cond
+       ((fboundp thing) (describe-in-popup 'describe-function))
+       ((boundp thing) (describe-in-popup 'describe-variable)))))
+
+  (defun describe-in-popup (fn)
+    (let* ((thing (symbol-at-point))
+           (description (save-window-excursion
+                          (funcall fn thing)
+                          (switch-to-buffer "*Help*")
+                          (buffer-string))))
+      (popup-tip description
+                 :point (point)
+                 :around t
+                 :height 30
+                 :scroll-bar t
+                 :margin t)))
+#+end_src
+
 ** Launch emacs server
 
 I advise you to put in "application at startup" (under linux, I don't know under windows) the command "emacs" to launch emacs at startup
@@ -263,6 +318,8 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
       (sp-local-pair major-mode "'" nil :actions nil))
 
     (add-hook 'emacs-lisp-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
+
+    (add-hook 'org-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
 
     ;; pour rajouter à un mode :
     ;; pas supprimer avec xah car ne fait pas partie de xah-right-brackets
@@ -1664,9 +1721,6 @@ Sert à pas grands choses pour moi, et ne marche pas avec xah
     (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
 
 #+end_src
-
-
-
 
 * Un Pocket reader !
 

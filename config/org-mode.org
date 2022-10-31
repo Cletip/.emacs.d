@@ -1425,12 +1425,12 @@ Ancien :
 
   (defun cp/vulpea-capture-tickler-target ()
     "Return a target for a tickler capture."
-    (let ((person (vulpea-select
-                   "Où va le tickler selectionné : ")))
+    (let ((place (vulpea-select
+                  "Où va le tickler selectionné ")))
       ;; unfortunately, I could not find a way to reuse
       ;; `org-capture-set-target-location'
-      (if (vulpea-note-id person)
-          (let ((path (vulpea-note-path person)))
+      (if (vulpea-note-id place)
+          (let ((path (vulpea-note-path place)))
             (set-buffer (org-capture-target-buffer path))
             ;; Org expects the target file to be in Org mode, otherwise
             ;; it throws an error. However, the default notes files
@@ -1444,10 +1444,10 @@ Ancien :
               (org-mode))
 
             (goto-char (point-max))
+            ;; (insert "je suis là")
 
             (org-capture-put-target-region-and-position)
-            (widen)
-            )
+            (widen))
         ;;cas si personne trouvé, alors ça va direct dans l'inbox
         (let ((path capture-inbox-file))
           (set-buffer (org-capture-target-buffer path))
@@ -2637,19 +2637,21 @@ ne sert à rien, à part les afficher à un moment, remplacable par org-ql je pe
 Voir les commentaires !
 
 #+begin_src emacs-lisp
-  (use-package org-yaap
+    (use-package org-yaap
     :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
     :config
 
     (setq
-     org-yaap-overdue-alerts '(5 30 180 3600)
+     org-yaap-overdue-alerts '(5 30 180 1440)
      org-yaap-alert-before '(30 0) ;; prévenir 30mins avant et à 0 (voir issue github)
-     ;; org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple). Sencé marché (voir issue github). Si jamais ne change pas, mettre org-yaap-include-tags avec tous les tags d'org-mode !
+     org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple par exemple).
+     ;; org-yaap-include-tags '(test)
      )
 
     (org-yaap-mode 1))
 #+end_src
 
+pour tester : 
 (org-yaap--check-heading (org-element-at-point)) (org-yaap--get-alerts (org-element-at-point))
 
 **** Gestion des tâches
@@ -2908,6 +2910,40 @@ Fait appel à la fonction pour ajouter un tag à la personne
 
 
 #+end_src
+
+***** Tag évènement
+
+****** Définition du tag
+#+begin_src emacs-lisp
+
+  (setq cp/tag-for-event "évènement")
+
+#+end_src
+
+****** Trouver la dernière note avec le tag évènement créer yeah
+
+Se base sur les ids pour la date ctime
+
+#+begin_src emacs-lisp
+
+  (defun cp/find-last-note-with-tag-event ()
+    "DOCSTRING"
+    (interactive)
+    (find-file
+     (caar
+      (org-roam-db-query
+       [:select [nodes:file]
+                :from tags
+                :left-join nodes
+                :on (= tags:node-id nodes:id)
+                :where (like tag  $r1)
+                :order-by [(desc node-id)]
+                :limit 1
+                ]
+       (concat "%\""(format "%s" cp/tag-for-event) "\"%")))))
+
+#+end_src
+
 
 **** TODO Fonctions gérant l'insertions des métadatas automatiquement avec les tags 
 :LOGBOOK:
@@ -4179,6 +4215,7 @@ allow-emacs-pinentry
 #+begin_src emacs-lisp
 )
 #+end_src
+
 
 
 ** Org-roam, seulement si ya mon braindump (logique)
@@ -5659,6 +5696,7 @@ Pour faire ceci :
 *** TODO Drag and drop des pdf
 
 [[https://github.com/rougier/pdf-drop-mode][ici]]
+
 ** Présentation avec org-mode
 
 #+begin_src emacs-lisp
@@ -5726,3 +5764,97 @@ Pour faire ceci :
 
 #+end_src
 
+** Gestion de mon CV avec org-mode
+
+#+begin_src emacs-lisp
+
+  ;; deleted unwanted file extensions after latex export
+  (setq
+   org-latex-remove-logfiles t
+   org-latex-logfiles-extensions
+   (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl" "xmpi" "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
+
+
+  (setq org-latex-packages-alist 'nil)
+  ;; (setq org-latex-default-packages-alist
+  ;; '(("rm" "roboto"  t)
+  ;; ("defaultsans" "lato" t)
+  ;; ("" "paracol" t)))
+  ;; mettre ceci dans le document plutot :
+  ;;#+LATEX_HEADER: \usepackage{paracol}
+  ;;#+LATEX_HEADER: \usepackage{lato}
+  ;;#+LATEX_HEADER: \usepackage{roboto}
+
+  (use-package org-contrib
+    :config
+    (require 'ox-extra)
+    (use-package ox-extra
+      :config
+      (ox-extras-activate '(latex-header-blocks ignore-headlines))))
+
+
+  (add-to-list 'org-latex-classes
+               '("altacv" "\\documentclass[10pt,a4paper,ragged2e,withhyper]{altacv}
+
+            % Change the page layout if you need to
+            \\geometry{left=1.25cm,right=1.25cm,top=1.5cm,bottom=1.5cm,columnsep=1.2cm}
+
+            % Use roboto and lato for fonts
+            \\renewcommand{\\familydefault}{\\sfdefault}
+
+            % Change the colours if you want to
+            \\definecolor{SlateGrey}{HTML}{2E2E2E}
+            \\definecolor{LightGrey}{HTML}{666666}
+            \\definecolor{DarkPastelRed}{HTML}{450808}
+            \\definecolor{PastelRed}{HTML}{8F0D0D}
+            \\definecolor{GoldenEarth}{HTML}{E7D192}
+            \\colorlet{name}{black}
+            \\colorlet{tagline}{PastelRed}
+            \\colorlet{heading}{DarkPastelRed}
+            \\colorlet{headingrule}{GoldenEarth}
+            \\colorlet{subheading}{PastelRed}
+            \\colorlet{accent}{PastelRed}
+            \\colorlet{emphasis}{SlateGrey}
+            \\colorlet{body}{LightGrey}
+
+            % Change some fonts, if necessary
+            \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
+            \\renewcommand{\\personalinfofont}{\\footnotesize}
+            \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
+            \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
+
+            % Change the bullets for itemize and rating marker
+            % for \cvskill if you want to
+            \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
+            \\renewcommand{\\ratingmarker}{\\faCircle}
+            "
+
+                 ("\\cvsection{%s}" . "\\cvsection*{%s}")))
+
+
+#+end_src
+
+** Gestion de ma lettre de motivation avec org-mode
+
+
+#+begin_src emacs-lisp :tangle no
+  (eval-after-load 'ox '(require 'ox-koma-letter))
+  (eval-after-load 'ox-koma-letter
+    '(progn
+       (add-to-list 'org-latex-classes
+                    '("my-letter"
+                      "\\documentclass\{scrlttr2\}
+       \\usepackage[english]{babel}
+       \\setkomavar{frombank}{(1234)\\,567\\,890}
+       \[DEFAULT-PACKAGES]
+       \[PACKAGES]
+       \[EXTRA]"))
+
+       (setq org-koma-letter-default-class "my-letter")))
+
+  (eval-after-load 'ox-latex
+    '(add-to-list 'org-latex-packages-alist '("AUTO" "babel" t) t))
+
+  (setq org-latex-packages-alist '(("AUTO" "babel" t)))
+
+#+end_src

@@ -528,12 +528,12 @@ Add this function to `org-mode-hook'."
 
 (defun cp/vulpea-capture-tickler-target ()
   "Return a target for a tickler capture."
-  (let ((person (vulpea-select
-                 "Où va le tickler selectionné : ")))
+  (let ((place (vulpea-select
+                "Où va le tickler selectionné ")))
     ;; unfortunately, I could not find a way to reuse
     ;; `org-capture-set-target-location'
-    (if (vulpea-note-id person)
-        (let ((path (vulpea-note-path person)))
+    (if (vulpea-note-id place)
+        (let ((path (vulpea-note-path place)))
           (set-buffer (org-capture-target-buffer path))
           ;; Org expects the target file to be in Org mode, otherwise
           ;; it throws an error. However, the default notes files
@@ -547,10 +547,10 @@ Add this function to `org-mode-hook'."
             (org-mode))
 
           (goto-char (point-max))
+          ;; (insert "je suis là")
 
           (org-capture-put-target-region-and-position)
-          (widen)
-          )
+          (widen))
       ;;cas si personne trouvé, alors ça va direct dans l'inbox
       (let ((path capture-inbox-file))
         (set-buffer (org-capture-target-buffer path))
@@ -1242,16 +1242,17 @@ Refer to `org-agenda-prefix-format' for more information."
 (advice-add 'org-agenda-todo :after #'org-agenda-redo-all)
 
 (use-package org-yaap
-  :straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
-  :config
+:straight (org-yaap :type git :host gitlab :repo "tygrdev/org-yaap")
+:config
 
-  (setq
-   org-yaap-overdue-alerts '(5 30 180 3600)
-   org-yaap-alert-before '(30 0) ;; prévenir 30mins avant et à 0 (voir issue github)
-   ;; org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple). Sencé marché (voir issue github). Si jamais ne change pas, mettre org-yaap-include-tags avec tous les tags d'org-mode !
-   )
+(setq
+ org-yaap-overdue-alerts '(5 30 180 1440)
+ org-yaap-alert-before '(30 0) ;; prévenir 30mins avant et à 0 (voir issue github)
+ org-yaap-todo-only t ;; pour pas avoir les non todo (les rendez-vous simple par exemple).
+ ;; org-yaap-include-tags '(test)
+ )
 
-  (org-yaap-mode 1))
+(org-yaap-mode 1))
 
 (setq org-todo-keywords
       '((sequence "TODO(!)" "|" "DONE(!)" )))
@@ -1313,6 +1314,24 @@ Refer to `org-agenda-prefix-format' for more information."
      :candidates-fn (lambda (_) links)
      :require-match t))
   )
+
+(setq cp/tag-for-event "évènement")
+
+(defun cp/find-last-note-with-tag-event ()
+  "DOCSTRING"
+  (interactive)
+  (find-file
+   (caar
+    (org-roam-db-query
+     [:select [nodes:file]
+              :from tags
+              :left-join nodes
+              :on (= tags:node-id nodes:id)
+              :where (like tag  $r1)
+              :order-by [(desc node-id)]
+              :limit 1
+              ]
+     (concat "%\""(format "%s" cp/tag-for-event) "\"%")))))
 
 (defun cp/vulpea-note-meta-get-list-of-name (note)
   "Get a list of all metadata from NOTE"
@@ -1819,979 +1838,65 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 )
 
-(use-package org-roam
-  :if braindump-exists
-
-:init
-;;éviter d'avoir la nottif de version 1 à 2 
-(setq org-roam-v2-ack t)
-
-:config
-
-(defun org-roam-db-sync-when-change (event)
-  (message "Mise à jour de la base de donnée d'org-roam")
-  (org-roam-db-sync)  
-  )
-
-(require 'filenotify)
-(file-notify-add-watch (concat braindump-directory "org/pages")
-                       '(attribute-change) 'org-roam-db-sync-when-change)
-
-;; complétion et proprosition
-(setq org-roam-completion-everywhere t) ;; pour avoir la complétion partout avec company
-(setq completion-ignore-case t) ;; ne dépend pas de la case pour la complétion
-(with-eval-after-load 'company
-  (add-to-list 'company-backends 'company-capf) ;;completion avec org-roam
-  )
-
-
-(with-eval-after-load 'company-box
-
-  (add-hook 'org-mode-hook 'company-mode)
-  (add-hook 'org-mode-hook (lambda () (company-box-mode 0)))
-
-  )
-
-;; syncro automatique avec les fichiers
-(org-roam-db-autosync-mode)
-
-;; pour améliorer les perf
-(setq org-roam-db-gc-threshold most-positive-fixnum)
-
-;; On prend pas les fichiers org dans org-attach
-(setq org-roam-file-exclude-regexp ".data/")
-
-;;ajout du tag BROUILLON tant que c'est pas fini
-(defun jethro/tag-new-node-as-draft ()
-  (when
-      ;; (not (member (buffer-file-name) (org-roam-dailies--list-files)))
-      (string-equal (expand-file-name default-directory)
-                    (concat org-roam-directory org-roam-dailies-directory))
-    (org-roam-tag-add '("BROUILLON"))
-    )
-  ;; (org-roam-tag-add '("BROUILLON"))
-  )
-(add-hook 'org-roam-capture-new-node-hook #'jethro/tag-new-node-as-draft)
-
-
-(setq org-roam-capture-templates
-      '(
-        ("d" "default" plain "%?"
-         :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
-                            "#+title: ${title}\n")
-         :unnarrowed t)
-        ("p" "connaissances multiples à trier ds 2jours" plain (file "../templatesOrgCapture/connaissance.org")
-         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-                            "#+title: ${title}\n")
-         :unnarrowed t)
-
-        ("l" "lien simple" plain (file "../templatesOrgCapture/lien.org")
-         :target (file+head "liens/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-                            "#+title: ${title}\n")
-         :unnarrowed t
-         :immediate-finish t)
-        ("s" "simple/basique" plain (file "../templatesOrgCapture/simple.org")
-         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-                            "#+title: ${title}\n")
-         :unnarrowed t
-         :immediate-finish t)
-        ("c" "contact" plain (file "../templatesOrgCapture/contact.org")
-         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-                            "#+title: ${title}\n")
-         :unnarrowed t)
-
-        ("C" "Crypter" plain "%?"
-         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org.gpg"
-                            "#+title: ${title}\n")
-         :unnarrowed t)
-
-
-        ("T" "Test de nouveau nom" plain "%?"
-         :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-                            "#+title: ${title}\n")
-         :unnarrowed t)
-
-        ("r" "bibliography reference" plain
-         (file "../templatesOrgCapture/key.org")
-         :if-new 
-         (file+head "reference/${citekey}.org" "#+title: ${title}\n")
-         :unnarrowed t
-         :jump-to-captured t)
-
-
-        ("r" "bibliography reference" plain
-         (file "../templatesOrgCapture/key.org")
-         :target
-         (file+head "reference/${citekey}.org" "#+title: ${title}\n")
-         :unnarrowed t)
-
-        )
-      )
-
-;;défini la capture de mon journal
-(setq org-roam-dailies-directory "journals/")
-
-(setq org-roam-dailies-capture-templates  '(
-                                            ("d" "default" entry "* %<%H:%M> %?" :target
-                                             (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-                                            ))
-
-;;ce qu'il y a dans le buffer de backlinks
-(setq org-roam-mode-sections
-      (list #'org-roam-backlinks-section
-            #'org-roam-reflinks-section
-            #'org-roam-unlinked-references-section
-            ))
-
-;; on peut mettre des options !
-;; (org-roam-mode-sections
-;; '((org-roam-backlinks-section :unique t)
-;; org-roam-reflinks-section))
-
-(with-eval-after-load 'org-roam
-  (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
-  ;; for org-roam-buffer-toggle
-  ;; Recommendation in the official manual
-  (add-to-list 'display-buffer-alist
-               '("\\*org-roam\\*"
-                 (display-buffer-in-direction)
-                 (direction . right)
-                 (window-width . 0.33)
-                 (window-height . fit-window-to-buffer)))
-  ;;pour avoir le nombre de backlinks lorsque que l'on cherche un node
-  (cl-defmethod org-roam-node-directories ((node org-roam-node))
-    (if-let ((dirs (file-name-directory (file-relative-name (org-roam-node-file node) org-roam-directory))))
-        (format "%s" (car (f-split dirs)))
-      ""))
-  (cl-defmethod org-roam-node-backlinkscount ((node org-roam-node))
-    (let* ((count (caar (org-roam-db-query
-                         [:select (funcall count source)
-                                  :from links
-                                  :where (= dest $s1)
-                                  :and (= type "id")]
-                         (org-roam-node-id node)))))
-      (format "%d" count)))
-  )
-
-(with-eval-after-load 'org-roam
-
-
-  ;; pour avoir la hiérarchie lorsque c'est une sous note 
-  (cl-defmethod org-roam-node-filetitle ((node org-roam-node))
-  "Return the file TITLE for the node."
-  (org-roam-get-keyword "TITLE" (org-roam-node-file node)))
-
-
-  (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
-  "Return the hierarchy for the node."
-  (let ((title (org-roam-node-title node))
-  (olp (org-roam-node-olp node))
-  (level (org-roam-node-level node))
-  (filetitle (org-roam-node-filetitle node)))
-  (concat
-  (if (> level 0) (concat filetitle " -> "))
-  (if (> level 1) (concat (string-join olp " -> ") " -> "))
-  title))) ;; soit disant une erreur ici, mais tout va bien
-
-  )
-
-
-  ;; (setq org-roam-node-display-template "${directories:15} ${tags:40} ${backlinkscount:1}")
-  ;; (setq org-roam-node-display-template "${directories:10} ${tags:10} ${title:100} ${backlinkscount:6}")
-
-(with-eval-after-load 'org-roam
-  ;; (setq org-roam-node-display-template "${directories:15} ${hierarchy:105} ${tags:40} ${backlinkscount:1}") ;;plus besion des fichiers
-
-
-  (cl-defmethod org-roam-node-type ((node org-roam-node))
-    "Return the TYPE of NODE."
-    (condition-case nil
-        (file-name-nondirectory
-         (directory-file-name
-          (file-name-directory
-           (file-relative-name (org-roam-node-file node) org-roam-directory))))
-      (error "")))
-
-  (setq org-roam-node-display-template "${type:15} ${hierarchy:130} ${tags:40} ${backlinkscount:2}")
-
-  )
-
-)
-
-(straight-use-package '(nursery
-                        :host github
-                        :repo "chrisbarrett/nursery"))
-
-
-
-;; deps
-(use-package org-drill)
-(use-package org-roam-review
-  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
-  ;; :load-path "config/lisp/nursery/lisp/" 
-  ;; :load-path "straight/build/nursery"
-  :commands (org-roam-review
-             org-roam-review-list-by-maturity
-             org-roam-review-list-recently-added)
-
-  ;; ;; Optional - tag all newly-created notes as seedlings.
-  ;; :hook (org-roam-capture-new-node . org-roam-review-set-seedling)
-
-  ;; ;; Optional - keybindings for applying Evergreen note properties.
-  ;; :general
-  ;; (:keymaps 'org-mode-map
-  ;; "C-c r r" '(org-roam-review-accept :wk "accept")
-  ;; "C-c r u" '(org-roam-review-bury :wk "bury")
-  ;; "C-c r x" '(org-roam-review-set-excluded :wk "set excluded")
-  ;; "C-c r b" '(org-roam-review-set-budding :wk "set budding")
-  ;; "C-c r s" '(org-roam-review-set-seedling :wk "set seedling")
-  ;; "C-c r e" '(org-roam-review-set-evergreen :wk "set evergreen"))
-
-  ;; ;; Optional - bindings for evil-mode compatability.
-  ;; :general
-  ;; (:states '(normal) :keymaps 'org-roam-review-mode-map
-  ;; "TAB" 'magit-section-cycle
-  ;; "g r" 'org-roam-review-refresh)
-  )
-
-
-(use-package org-roam-search
-  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
-  :commands (org-roam-search))
-
-(use-package org-roam-dblocks
-  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
-  :hook (org-mode . org-roam-dblocks-autoupdate-mode))
-
-(use-package org-roam-consult
-  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
-  :commands (org-roam-consult))
-
-;; (use-package org-roam-gc
-;; :commands (org-roam-consult))
-
-(defun cp/org-roam-unlinked-references-find-and-replace ()
-  (message "Check unlinked references")
-  (save-window-excursion
-    (if-let* ((note (vulpea-db-get-by-id (org-id-get)))
-              (id (vulpea-note-id note))
-              (title (vulpea-note-title note))
-              (FROM-STRING title) 
-              (TO-STRING (concat "[[id:" id "][" title "]]")))
-        (progn
-
-
-          (dolist (file (org-roam-list-files))
-            ;; on check pas les fichiers cryptés !
-            (unless (string-equal (file-name-extension file) "gpg")
-              (find-file file)
-              (unless (string-equal id (vulpea-db-get-id-by-file (buffer-file-name))) ;;faut pas que ce soit le fichier de base
-                (save-excursion
-                  (goto-char (point-min))
-                  (while (re-search-forward
-                          (concat "\\([ ]\\|^\\)" title "\\([ ]\\|$\\)")
-                          nil t)
-                    (goto-char (match-beginning 0))
-                    (skip-chars-forward " ")
-                    (search-forward FROM-STRING)
-
-                    (when (y-or-n-p "Remplacé le texte par un lien vers le nouveau titre ?")
-
-                      ;; obligé de faire ça à cause du y-or-n-p qui me brise mon match. Je pourrais juste mettre (search-forward FROM-STRING) ici, mais si je remplace pas le texte, boucle infini
-                      (search-backward FROM-STRING)
-                      (goto-char (match-end 0))
-
-                      (replace-match TO-STRING)
-                      (message "Texte remplacé")
-                      )))
-                ;; ancien ;;(query-replace FROM-STRING TO-STRING nil (point-min) (point-max)) ;; pour pas prendre en compte quand c'est dans une chaîne 3 argument t
-                (save-buffer)
-                )))
-          (message "Fin check unlinked references")
-          )        ;; fin du si oui
-
-      (progn (message "Pas besoin de check les références"))
-      )))
-
-;;(add-hook 'org-capture-after-finalize-hook #'(lambda () (when (member (buffer-file-name) (org-roam-list-files)) (cp/org-roam-unlinked-references-find-and-replace))))
-
-
-(add-hook 'org-capture-after-finalize-hook
-          #'(lambda ()
-              (save-window-excursion
-                (org-capture-goto-last-stored)
-                (when (member (buffer-file-name) (org-roam-list-files)) (cp/org-roam-unlinked-references-find-and-replace)))))
-
-(use-package org-roam-rewrite
-  :straight nil ;; c'est dans nursery, c'est donc déjà chargé
-  :commands (org-roam-rewrite-rename
-             org-roam-rewrite-remove
-             org-roam-rewrite-inline
-             org-roam-rewrite-extract))
-
-(defun cp/history-of-a-node (&optional file)
-    (interactive (list (vulpea-db-get-file-by-id (vulpea-note-id (vulpea-select-from "historique de cette note : " (vulpea-db-query))))))
-    (find-file file)
-    (magit-log-buffer-file)
-    (delete-other-windows)
-    )
-
-(defun cp/vulpea-get-id-at-point()
-  "renvoie l'id du noeud au point actuel"
-  (let ((id (org-id-get)))
-    ;; tant que actuelle pas d'id, alors on monte,
-    (save-excursion
-      (while (and (ignore-errors (outline-up-heading 1 t)) (not id))
-        (when (org-id-get)
-          (setq id (org-id-get)))
-        )
-      ;; sinon on prend l'id du buffer
-      (unless id
-        (save-excursion
-          (goto-char (point-min))
-          (setq id (org-id-get)))
-        ))
-    id
-    ))
-
-(defun cp/vulpea-links-to()
-  "Renvoie une liste de note présent dans le noeud"
-  (let (end)
-    (dolist (id (remove nil
-                        (mapcar
-                         (lambda (x)
-                           (when (string-equal (car x) "id")
-                             (cdr x))
-                           )
-                         (vulpea-note-links (vulpea-db-get-by-id
-                                             (cp/vulpea-get-id-at-point)
-                                             ))
-                         )))
-      ;; (message "test %S"(vulpea-db-get-by-id id))
-      (push (vulpea-db-get-by-id id) end)
-      )
-    end
-    )
-  )
-
-
-(defun cp/vulpea-find-backlink-and-links ()
-  "Select and find a note linked to current note."
-  (interactive)
-  (let* ((node (org-roam-node-at-point 'assert))
-         (backlinks (vulpea-db-query-by-links-some
-                     (list (cons "id"
-                                 (org-roam-node-id node)))))
-         (links-to (cp/vulpea-links-to))
-         )
-    (unless (or backlinks links-to)
-      (user-error "Pas de lien vers ni de backlinks"))
-    ;; (message "les deux %S" (append test backlinks))
-    ;; (message "back %S" backlinks)
-    (vulpea-find
-     :candidates-fn (lambda (_) (append
-                                 backlinks
-                                 ;; '(#s(vulpea-note "20220728120707052420" "/home/utilisateur/braindump/org/pages/20220728120707-test_nom_simpl.org" 0 "Liens vers :" nil nil nil (("id" . "20220617105540968308") ("id" . "20220617115633324937") ("id" . "20220623142208004885") ("id" . "20220616193340664791")) (("CATEGORY" . "20220728120707-test_nom_simpl") ("ID" . "20220728120707052420") ("BLOCKED" . "") ("FILE" . "/home/utilisateur/braindump/org/pages/20220728120707-test_nom_simpl.org") ("PRIORITY" . "D")) (("linkInTitle" "[[id:20220617105540968308][Git]]" "[[id:20220617115633324937][Page de Test]]" "[[id:20220623142208004885][Histoire de la chine]]" "[[id:20220616193340664791][Comment faire un second cerveau]]"))))
-                                 links-to))
-     :require-match t)))
-
-(defun cp/vulpea-navigate-with-backlink-and-links ()
-  (interactive)
-  (if (member (buffer-file-name) (org-roam-list-files))
-      (while t
-        (cp/vulpea-find-backlink-and-links)
-        )
-    (message "il faut être dans un buffer org-mode")
-    )
-  )
-
-(defun cp/vulpea-find-backlinks-every ()
-  "Find the notes that contain links to X other notes"
-  (interactive)
-  (let* (
-         (notes (vulpea-utils-collect-while
-                 #'vulpea-select
-                 nil
-                 "Note" :require-match t))
-         (list-of-cons (seq-map
-                        #'(lambda (note) (cons "id" (vulpea-note-id note)))
-                        notes
-                        ))
-         (links (vulpea-db-query-by-links-every list-of-cons))     
-         )
-    (unless links
-      (user-error "There are no notes with the links you demand"))
-    (vulpea-find
-     :candidates-fn (lambda (_) links)
-     :require-match t)
-    )
-  )
-
-;; l'améliorer en prenant les choses différents et avec tout dans un let
-(defun cp/vulpea-heading-to-note()
-  (interactive)
-  (when-let* ((note (vulpea-db-get-by-id (cp/vulpea-get-id-at-point)))
-              (heading (org-entry-get nil "ITEM"))
-              (title (progn (while (setq name (vulpea-note-id (setq notetest (vulpea-select "Veuillez choisir un nom qui n'existe pas :" :initial-prompt heading))))
-                              )
-                            (vulpea-note-title notetest))
-                     )
-
-              (source (vulpea-meta-get note "Source"))
-              (lieu (vulpea-meta-get note "Lieu"))
-              )
-    (save-excursion
-      (ignore-errors (outline-up-heading 0))
-      (save-restriction
-        (org-narrow-to-subtree)
-        ;; on coupe le titre
-        (delete-region (line-beginning-position) (line-beginning-position 2))
-        ;;
-        (setq contenu (buffer-substring-no-properties (point-min) (point-max)))
-        (delete-region (point-min) (point-max))
-        (vulpea-create
-         title
-         "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
-         ;; :properties '(("COUNTER" . "1")
-         ;; ("STATUS" . "ignore")
-         ;; ("ROAM_ALIASES" . "\"Very rich note with an alias\""))
-         ;; :tags '("documentation" "showcase")
-         ;; :head "#+author: unknown\n#+date: today"
-         :body (concat
-                "- Source :: " source "\n"
-                "- Lieu :: " lieu "\n"
-                contenu
-                )
-         ;; :immediate-finish t
-         )))))
-
-(defun cp/org-roam-ref-add-check (keys-entries)
-  (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
-  (let ((title (citar--format-entry-no-widths (cdr keys-entries)
-                                              "${author editor} :: ${title}"))
-
-        (citation-key (car keys-entries))
-        )
-    (when (member `(,citation-key) ;; ` = liste, mais permet d'évaluer la variable juste aprèsle,
-                  (org-roam-db-query
-                   [:select ref
-                            :from refs
-                            :left-join nodes
-                            :on (= refs:node-id nodes:id)]))
-      (org-roam-ref-remove (citar-org-return-citation-string (citar--extract-keys (list citation-key))))
-      (user-error "La référence est déjà mise dans un autre noeud pour la ROAM_REFS"))
-    ))
-
-;; (advice-add 'cp/org-roam-ref-add :before #'cp/org-roam-ref-add-check)
-;; (advice-remove 'cp/org-roam-ref-add #'cp/org-roam-ref-add-check)
-
-;; (advice-add 'org-roam-ref-add :before #'cp/org-roam-ref-add-check)
-;; (advice-remove 'org-roam-ref-add #'cp/org-roam-ref-add-check)
-
-(defun citar-org-return-citation-string (keys &optional style)
-  "Inspiré de citar-org-insert-citation. Au lieu d'insérer, renvoie"
-  (let ((context (org-element-context)))
-    (when style
-      (let ((raw-style
-             (citar-org-select-style)))
-        (setq style
-              (if (string-equal raw-style "") raw-style
-                (concat "/" raw-style)))))
-    (if-let ((citation (citar-org--citation-at-point context)))
-        (when-let ((keys (seq-difference keys (org-cite-get-references citation t)))
-                   (keystring (mapconcat (lambda (key) (concat "@" key)) keys "; "))
-                   (begin (org-element-property :contents-begin citation)))
-          (if (<= (point) begin)
-              (org-with-point-at begin
-                (insert keystring ";"))
-            (let ((refatpt (citar-org--reference-at-point)))
-              (org-with-point-at (or (and refatpt (org-element-property :end refatpt))
-                                     (org-element-property :contents-end citation))
-                (if (char-equal ?\; (char-before))
-                    (insert-before-markers keystring ";")
-                  (insert-before-markers ";" keystring))))))
-      (format "[cite%s:%s]" (or style "")
-              (mapconcat (lambda (key) (concat "@" key)) keys "; "))
-      )))
-
-(defun cp/org-roam-ref-add (keys-entries)
-  "Add REF to the node at point."
-  (interactive (list (citar-select-ref :multiple nil :rebuild-cache t)))
-  (cp/org-roam-ref-add-check keys-entries) ;;check si la ref est déja mise
-  (let ((node (org-roam-node-at-point 'assert))
-        (ref-key (citar-org-return-citation-string (citar--extract-keys (list keys-entries)))))
-    (save-excursion
-      (goto-char (org-roam-node-point node))
-      (org-roam-property-add "ROAM_REFS" ref-key))))
-
-(defun cp-open-node-roam-ref-url (&optional id)
-  "Open the URL in this node's ROAM_REFS property, if one exists"
-  (interactive)
-  (when-let*
-      ((roam_refs
-        (progn
-          (save-window-excursion
-            (when (not (null id))
-              (find-file (vulpea-db-get-file-by-id id)))
-            (ignore-errors(split-string (org-entry-get-with-inheritance "ROAM_REFS"))))))
-       (url-re
-        ;; "\\b\\(\\(www\\.\\|\\(s?https?\\|ftp\\|file\\|gopher\\|nntp\\|news\\|telnet\\|wais\\|mailto\\|info\\):\\)\\(//[-a-z0-9_.]+:[0-9]*\\)?\\(?:[-a-z0-9_=#$@~%&*+\\/[:word:]!?:;.,]+([-a-z0-9_=#$@~%&*+\\/[:word:]!?:;.,]+)\\(?:[-a-z0-9_=#$@~%&*+\\/[:word:]!?:;.,]+[-a-z0-9_=#$@~%&*+\\/[:word:]]\\)?\\|[-a-z0-9_=#$@~%&*+\\/[:word:]!?:;.,]+[-a-z0-9_=#$@~%&*+\\/[:word:]]\\)\\)"
-        url-handler-regexp
-        )
-       ref-url 
-       )
-    (dolist (ref roam_refs)
-      (when (string-match url-re ref)
-        (setq ref-url ref)))
-    (browse-url ref-url)))
-
-(use-package consult-org-roam
-   :config
-   ;; Activate the minor-mode
-   (consult-org-roam-mode 1)
-   (setq consult-org-roam-grep-func #'consult-ripgrep))
-
-(use-package ox-hugo
-  :after org org-roam
-  ;; :custom
-  ;;à modifier
-  ;; (org-hugo-base-dir "/home/msi/Documents/Projet/SitesWeb/braindump")
-  )
-
-(when termux-p
-  ;; This makes Emacs in Termux use your Android browser for opening urls
-  (setq browse-url-browser-function 'browse-url-xdg-open)
-  )
-
-(use-package org-roam-ui
-  :after org-roam
-  :straight
-  (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
-  ;; :hook (after-init . org-roam-ui-mode)
+;; deleted unwanted file extensions after latex export
+(setq
+ org-latex-remove-logfiles t
+ org-latex-logfiles-extensions
+ (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl" "xmpi" "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
+
+
+(setq org-latex-packages-alist 'nil)
+;; (setq org-latex-default-packages-alist
+;; '(("rm" "roboto"  t)
+;; ("defaultsans" "lato" t)
+;; ("" "paracol" t)))
+;; mettre ceci dans le document plutot :
+;;#+LATEX_HEADER: \usepackage{paracol}
+;;#+LATEX_HEADER: \usepackage{lato}
+;;#+LATEX_HEADER: \usepackage{roboto}
+
+(use-package org-contrib
   :config
-  (setq org-roam-ui-sync-theme t
-        org-roam-ui-follow t
-        org-roam-ui-update-on-save t
-        org-roam-ui-open-on-start nil)
-  )
-
-(setq bibtex-dialect 'biblatex)
-
-(setq bibtex-completion-bibliography bibliography-file-list)
-(setq bibtex-completion-library-path bibliography-library-paths)
-(setq bibtex-completion-pdf-field "File") ;; pour trouver les pdf
-
-(use-package citar
-  ;; :after all-the-icons ;; besoin des icones pour charger les propositions
-  ;; :after oc-csl all-the-icons
-  :custom
-  ;;lieu de ma bibliographie
-  (citar-bibliography bibliography-file-list)
-  ;; lieu de mes fichiers pour citar
-  (citar-library-paths bibliography-library-paths)
-  :config
-  ;; pour complété avec consult yeah, pas besoin
-  ;; (advice-add #'completing-read-multiple :override #'consult-completing-read-multiple)
-
-  ;; comment on gère l'affichage des propositions en dur
-  (setq citar-templates
-        '((main . "${author editor:30}     ${date year issued:4}     ${title:48}")
-          (suffix . "          ${=key= id:15}    ${=type=:12}    ${tags keywords:*}")
-          (preview . "${author editor} (${year issued date}) ${title}, ${journal journaltitle publisher container-title collection-title}.\n")
-          (note . "Notes on ${author editor}, ${title}")))
-  ;;le séparateur
-  (setq citar-symbol-separator "  ")
-
-  ;; et affichage des icônes à gauche
-  (setq citar-symbols
-        `((file ,(all-the-icons-faicon "file-o" :face 'all-the-icons-green :v-adjust -0.1) . " ")
-          (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
-          (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
-
-  ;; automatiquement refresh lorque l'on modifie la bibliographie
-  (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
-
-  ;;ancien et test    
-  ;; (require 'filenotify)
-  ;; (file-notify-add-watch "/home/utilisateur/biblio.bib"
-  ;; '(attribute-change) 'citar-refresh)
-
-  ;; (dolist (bibliography-file bibliography-file-list)
-  ;; (file-notify-add-watch bibliography-file
-  ;; '(attribute-change) 'citar-refresh)
-  ;; )
-
-  ;; (require 'filenotify)
-  ;; (setq citar-filenotify-callback 'refresh-cache)
-  ;; (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
-  ;; (defun gen-bib-cache-idle ()
-  ;; "Generate bib item caches with idle timer"
-  ;; (run-with-idle-timer 0.5 nil #'citar-refresh))
-  ;; (add-hook 'LaTeX-mode-hook #'gen-bib-cache-idle)
-  ;; (add-hook 'org-mode-hook #'gen-bib-cache-idle)
-
-
-  ;;patch pour ajouter des citations dans le mini-buffer avec le style POUR ORG-MODE SEULEMENT 
-  (defcustom citar-major-mode-functions
-    '(((org-mode) .
-       ((local-bib-files . citar-org-local-bib-files)
-        (insert-citation . citar-org-insert-citation)
-        (insert-edit . citar-org-insert-edit)
-        (key-at-point . citar-org-key-at-point)
-        (citation-at-point . citar-org-citation-at-point)
-        (list-keys . citar-org-list-keys)))
-      ((latex-mode) .
-       ((local-bib-files . citar-latex-local-bib-files)
-        (insert-citation . citar-latex-insert-citation)
-        (insert-edit . citar-latex-insert-edit)
-        (key-at-point . citar-latex-key-at-point)
-        (citation-at-point . citar-latex-citation-at-point)
-        (list-keys . reftex-all-used-citation-keys)))
-      ((markdown-mode) .
-       ((insert-keys . citar-markdown-insert-keys)
-        (insert-citation . citar-markdown-insert-citation)
-        (insert-edit . citar-markdown-insert-edit)
-        (key-at-point . citar-markdown-key-at-point)
-        (citation-at-point . citar-markdown-citation-at-point)
-        (list-keys . citar-markdown-list-keys)))
-
-      ;;patch début ici
-      ((minibuffer-mode) .
-       ( (insert-citation . citar-org-insert-citation)
-         ))
-      ;;patch fin ici
-
-      (t .
-         ((insert-keys . citar--insert-keys-comma-separated))))
-    "The variable determining the major mode specific functionality.
-
-                It is alist with keys being a list of major modes.
-
-                The value is an alist with values being functions to be used for
-                these modes while the keys are symbols used to lookup them up.
-                The keys are:
-
-                local-bib-files: the corresponding functions should return the list of
-                local bibliography files.
-
-                insert-keys: the corresponding function should insert the list of keys given
-                to as the argument at point in the buffer.
-
-                insert-citation: the corresponding function should insert a
-                complete citation from a list of keys at point.  If the point is
-                in a citation, new keys should be added to the citation.
-
-                insert-edit: the corresponding function should accept an optional
-                prefix argument and interactively edit the citation or key at
-                point.
-
-                key-at-point: the corresponding function should return the
-                citation key at point or nil if there is none.  The return value
-                should be (KEY . BOUNDS), where KEY is a string and BOUNDS is a
-                pair of buffer positions indicating the start and end of the key.
-
-                citation-at-point: the corresponding function should return the
-                keys of the citation at point, or nil if there is none.  The
-                return value should be (KEYS . BOUNDS), where KEYS is a list of
-                strings and BOUNDS is pair of buffer positions indicating the
-                start and end of the citation.
-
-                list-keys: the corresponding function should return the keys
-                of all citations in the current buffer."
-    :group 'citar
-    :type 'alist)
-  )
-
-(use-package citeproc
-  :straight (:host github :repo "andras-simonyi/citeproc-el")
-  :after citar
-
-  :init
-  ;; nom du titre exporté pour la bibliographie
-  (with-eval-after-load 'ox-hugo
-    (plist-put org-hugo-citations-plist :bibliography-section-heading "References"))
-
-  :config
-
-  (setq org-cite-global-bibliography bibliography-file-list) ;; pour que org-cite sache où est ma biblio
-
-
-  (require 'oc-csl)
-  (setq org-cite-export-processors '((t csl)));; exporter tout le temps avec la méthode csl
-
-  ;; les fichiers de configuration. Impossible de les configurer "normalement" (voir en dessous), j'utilise donc les fichiers "fallback" qui sont ceux par défaut
-  ;; (setq org-cite-csl--fallback-style-file "/home/msi/documents/notes/braindump/org/chicago-author-date-16th-edition.csl") ;;
-
-  (setq org-cite-csl--fallback-locales-dir bibliography-directory)
-  (setq org-cite-csl--fallback-style-file (concat bibliography-directory "vancouver-brackets.csl"));; pour changer le style. Vancouver = numéro
-
-  )
-
-;;le bordel ici, mais pas utilisé
-;; pas utilisé, mais voir aussi les variable de jethro
-;; (setq
-;; org-cite-global-bibliography my-bibliography-list ;; pour que org-cite sache où est ma biblio
-;; citar-format-reference-function 'citar-citeproc-format-reference
-;; org-cite-csl-styles-dir "~/Zotero/styles/"
-;; citar-citeproc-csl-styles-dir org-cite-csl-styles-dir
-;; citar-citeproc-csl-locales-dir "~/Zotero/locales/"
-
-;; doute sur lui, voir le dot de jethro
-;; citar-citeproc-csl-style (concat (expand-file-name org-cite-csl-styles-dir
-;; )"apa.csl")
-
-;;pour que ça marche, il faut régler ces deux variables
-;; après avoir exécuté ceci, les export marches TODO
-;; org-cite-csl--fallback-style-file "/home/msi/documents/notes/braindump/org/reference/chicago-author-date-16th-edition.csl"
-;; org-cite-csl--fallback-locales-dir "/home/msi/documents/notes/braindump/org/reference"
-;; )
-
-;; (setq org-cite-csl-styles-dir "~/Zotero/styles/")
-;; (setq org-cite-csl-locales-dir "/home/msi/documents/notes/braindump/org/reference/")
-
-(setq bibtex-autokey-year-length 4
-      bibtex-autokey-name-year-separator "-"
-      bibtex-autokey-year-title-separator "-"
-      bibtex-autokey-titleword-separator "-"
-      bibtex-autokey-titlewords 2
-      bibtex-autokey-titlewords-stretch 1
-      bibtex-autokey-titleword-length 5)
-
-(use-package ebib
-  :config
-  (setq ebib-bibtex-dialect 'biblatex
-        ebib-preload-bib-files bibliography-file-list
-
-        ebib-link-file-path-type 'adaptive
-
-        ebib-truncate-file-names t ;; pour pas couper le nom des fichiers
-        ebib-default-directory "/home/utilisateur/.emacs.d/config/dossierCitation/"
-        ebib-file-search-dirs bibliography-library-paths
-
-        ebib-file-associations nil ;; pour ouvrir pdf ou autre. Si rien, alors fait juste un "find-file", donc parfait
-
-        )
-
-  (define-key ebib-index-mode-map [remap next-line] #'ebib-next-entry)
-  (define-key ebib-index-mode-map [remap previous-line] #'ebib-prev-entry)
-
-  (define-key ebib-entry-mode-map [remap next-line] #'ebib-next-field)
-  (define-key ebib-entry-mode-map [remap previous-line] #'ebib-prev-field)
-
-  )
-
-(use-package parsebib
-  :straight (parsebib
-             :type git
-             :host github
-             :repo "joostkremers/parsebib")
-  )
-
-;; juste pour la fonction org-ref-clean-bibtex-entry
-  (use-package org-ref
+  (require 'ox-extra)
+  (use-package ox-extra
     :config
-    (setq org-ref-bibtex-pdf-download-dir (car bibliography-library-paths))
-
-    (setq org-ref-clean-bibtex-entry-hook
-          '(org-ref-bibtex-format-url-if-doi
-            orcb-key-comma
-            ;; org-ref-replace-nonascii ;; pour que les accents ne reste pas
-            orcb-&
-            orcb-%
-            org-ref-title-case-article
-            orcb-clean-year
-            orcb-key
-            orcb-clean-doi
-            orcb-clean-pages
-            orcb-check-journal
-            org-ref-sort-bibtex-entry
-            orcb-fix-spacing
-            orcb-download-pdf
-            org-ref-stringify-journal-name
-            ))
+    (ox-extras-activate '(latex-header-blocks ignore-headlines))))
 
 
-    (setq org-ref-bibtex-sort-order
-          '(("article"  . ("author" "title" "journal" "volume" "number" "pages" "year" "doi" "url"))
-            ("inproceedings" . ("author" "title" "booktitle" "year" "volume" "number" "pages" "doi" "url"))
-            ("book" . ("author" "title" "year" "publisher" "url"))
-            ("online" . ("author" "title" "booktitle" "year" "volume" "number" "pages" "doi" "url"))
-            ))
+(add-to-list 'org-latex-classes
+             '("altacv" "\\documentclass[10pt,a4paper,ragged2e,withhyper]{altacv}
 
-    ;;dépendence non chargé
+          % Change the page layout if you need to
+          \\geometry{left=1.25cm,right=1.25cm,top=1.5cm,bottom=1.5cm,columnsep=1.2cm}
 
-    (use-package async)
+          % Use roboto and lato for fonts
+          \\renewcommand{\\familydefault}{\\sfdefault}
 
-    ;; corrections
+          % Change the colours if you want to
+          \\definecolor{SlateGrey}{HTML}{2E2E2E}
+          \\definecolor{LightGrey}{HTML}{666666}
+          \\definecolor{DarkPastelRed}{HTML}{450808}
+          \\definecolor{PastelRed}{HTML}{8F0D0D}
+          \\definecolor{GoldenEarth}{HTML}{E7D192}
+          \\colorlet{name}{black}
+          \\colorlet{tagline}{PastelRed}
+          \\colorlet{heading}{DarkPastelRed}
+          \\colorlet{headingrule}{GoldenEarth}
+          \\colorlet{subheading}{PastelRed}
+          \\colorlet{accent}{PastelRed}
+          \\colorlet{emphasis}{SlateGrey}
+          \\colorlet{body}{LightGrey}
 
-    (defun orcb-check-journal ()
-      "Check entry at point to see if journal exists in `org-ref-bibtex-journal-abbreviations'.
-              If not, issue a warning."
-      (interactive)
-      (bibtex-beginning-of-entry) ;;moddif ici
-      (when
-          (string= "article"
-                   (downcase
-                    (cdr (assoc "=type=" (bibtex-parse-entry)))))
-        (save-excursion
-          (bibtex-beginning-of-entry)
-          (let* ((entry (bibtex-parse-entry t))
-                 (journal (or (cdr (assoc "journal" entry)) (cdr (assoc "journaltitle" entry)))))  ;;moddif ici condition
-            (when (null journal)
-              (warn "Unable to get journal for this entry."))
-            (unless (member journal (-flatten org-ref-bibtex-journal-abbreviations))
-              (message "Journal \"%s\" not found in org-ref-bibtex-journal-abbreviations." journal))))))
+          % Change some fonts, if necessary
+          \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
+          \\renewcommand{\\personalinfofont}{\\footnotesize}
+          \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
+          \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
 
-    ;;   ;;check tjr les clées
-    ;;   (defun orcb-key (&optional allow-duplicate-keys)
-    ;;     "Replace the key in the entry.
-    ;; Prompts for replacement if the new key duplicates one already in
-    ;; the file, unless ALLOW-DUPLICATE-KEYS is non-nil."
-    ;;     (let ((key (funcall org-ref-clean-bibtex-key-function
-    ;;                         (bibtex-generate-autokey))))
-    ;;       ;; remove any \\ in the key
-    ;;       (setq key (replace-regexp-in-string "\\\\" "" key))
-    ;;       ;; first we delete the existing key
-    ;;       (bibtex-beginning-of-entry)
-    ;;       (re-search-forward bibtex-entry-maybe-empty-head)
-    ;;       (if (match-beginning bibtex-key-in-head)
-    ;;           (delete-region (match-beginning bibtex-key-in-head)
-    ;;                          (match-end bibtex-key-in-head)))
-    ;;       ;; check if the key is in the buffer
+          % Change the bullets for itemize and rating marker
+          % for \cvskill if you want to
+          \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
+          \\renewcommand{\\ratingmarker}{\\faCircle}
+          "
 
-
-    ;;       (message "salut %s %s %s" (not allow-duplicate-keys) key
-    ;;                    (bibtex-search-entry key nil nil))
-
-    ;;       (when (and (not allow-duplicate-keys)
-    ;;                  (save-excursion
-
-    ;;                    (bibtex-search-entry key)))
-
-    ;;         (save-excursion
-    ;;           (bibtex-search-entry key)
-    ;;           (bibtex-copy-entry-as-kill)
-    ;;           (switch-to-buffer-other-window "*duplicate entry*")
-    ;;           (bibtex-yank))
-    ;;         (setq key (bibtex-read-key "Duplicate Key found, edit: " key)))
-
-    ;;       (insert key)
-    ;;       (kill-new key)))
-
-(defun bibtex-autokey-get-year ()
-  "Return year field contents as a string obeying `bibtex-autokey-year-length'."
-  (let* ((str (bibtex-autokey-get-field '("date" "year"))) ; possibly ""
-         (year (or (and (iso8601-valid-p str)
-                        (let ((year (decoded-time-year (iso8601-parse str))))
-                          (and year (number-to-string year))))
-                   ;; BibTeX permits a year field "(about 1984)", where only
-                   ;; the last four nonpunctuation characters must be numerals.
-                   (and (string-match "\\([0-9][0-9][0-9][0-9]\\)[^[:alnum:]]*\\'" str)
-                        (match-string 1 str))
-                   (user-error "Year or date field `%s' invalid" str))))
-    (substring year (max 0 (- (length year) bibtex-autokey-year-length)))))
-    
-    )
-
-(use-package org-roam-bibtex
-  :config 
-
-  (setq citar-open-note-functions '(orb-citar-edit-note))
-  ;; (setq citar-notes-paths nil) ;; si jamais je ne configure pas citar-open-note-functions
-  (setq orb-citekey-format 'org-cite) ;; pour @key
-
-  (setq orb-preformat-keywords
-        '("citekey" "title" "url" "author-or-editor" "keywords" "file")
-        orb-process-file-keyword t
-        orb-attached-file-extensions '("pdf"))
-
-  )
-
-(use-package biblio
-  :config
-  (setq biblio-download-directory (car bibliography-library-paths))
-  )
-
-(defun lancer-serveur-zotra()
-  (interactive)
-  (async-shell-command
-   (concat
-    "cd && cd .emacs.d/config/dossierCitation/translation-server/"
-    " && npm start"
-    ))
-  )
-
-(unless termux-p (lancer-serveur-zotra))
-
-(use-package zotra
-  :straight (zotra
-             :type git
-             :host github
-             :repo "mpedramfar/zotra")
-  :config
-
-  (add-hook 'zotra-after-add-entry-hook 'org-ref-clean-bibtex-entry)
-
-  (setq zotra-default-entry-format "biblatex")
-  (setq zotra-default-bibliography (car bibliography-file-list))
-  (setq zotra-url-retrieve-timeout 5) ;; plus de temps pour les demandes
-  )
-
-(use-package visual-fill-column)
-
-(use-package org-present
-  :config
-
-  (defun my/org-present-prepare-slide (buffer-name heading)
-    ;; Show only top-level headlines
-    (org-overview)
-
-    ;; Unfold the current entry
-    (org-show-entry)
-
-    ;; Show only direct subheadings of the slide but don't expand them
-    (org-show-children))
-
-  (defun my/org-present-start ()
-    ;; Tweak font sizes
-    (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
-                                       (header-line (:height 4.0) variable-pitch)
-                                       (org-document-title (:height 1.75) org-document-title)
-                                       (org-code (:height 1.55) org-code)
-                                       (org-verbatim (:height 1.55) org-verbatim)
-                                       (org-block (:height 1.25) org-block)
-                                       (org-block-begin-line (:height 0.7) org-block)))
-
-    ;; Set a blank header line string to create blank space at the top
-    (setq header-line-format " ")
-
-    ;; Display inline images automatically
-    (org-display-inline-images)
-
-    ;; Center the presentation and wrap lines
-    (visual-fill-column-mode 1)
-    (visual-line-mode 1))
-
-  (defun my/org-present-end ()
-    ;; Reset font customizations
-    (setq-local face-remapping-alist '((default variable-pitch default)))
-
-    ;; Clear the header line string so that it isn't displayed
-    (setq header-line-format nil)
-
-    ;; Stop displaying inline images
-    (org-remove-inline-images)
-
-    ;; Stop centering the document
-    (visual-fill-column-mode 0)
-    (visual-line-mode 0))
-
-  ;; Turn on variable pitch fonts in Org Mode buffers
-  ;; (add-hook 'org-mode-hook 'variable-pitch-mode)
-
-  ;; Register hooks with org-present
-  (add-hook 'org-present-mode-hook 'my/org-present-start)
-  (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
-  (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
-
-  )
+               ("\\cvsection{%s}" . "\\cvsection*{%s}")))

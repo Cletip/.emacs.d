@@ -14,9 +14,9 @@
  (position . 2159))
 ("org-refile-last-stored"
  (filename . "~/braindump/org/pages/20220616193340-comment_faire_un_second_cerveau.org")
- (front-context-string . "*** TODO systéme")
- (rear-context-string . "ent retrouvable\n")
- (position . 18129))
+ (front-context-string . "*** TODO backend")
+ (rear-context-string . "mettre ca tard\n\n")
+ (position . 19741))
 ("straight"
  (filename . "~/.emacs.d/straight/")
  (front-context-string . "build-cache.el\n ")
@@ -53,10 +53,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/inbox-utilisateur-GL65-Leopard-10SER.org")
- (front-context-string . "* TODO tset\n:LOG")
- (rear-context-string . "on 00:01]\n:END:\n")
- (position . 479))
+ (filename . "~/braindump/org/pages/20221024221341-test_de_chose_yes.org")
+ (front-context-string)
+ (rear-context-string . "st de chose yes\n")
+ (position . 79))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")
