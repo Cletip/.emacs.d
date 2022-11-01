@@ -3711,8 +3711,10 @@ Dépendant des ids dans id-locations.el
   (use-package org-transclusion
     :config
     ;;pour exporter les propriétés
-    (setq org-transclusion-exclude-elements nil)
-    )
+    (setq org-transclusion-exclude-elements '(property-drawer
+                                              ;; center-block
+                                              keyword ;; pour pas exporter les truc avec #+ (comme les titres)
+                                              )))
 #+end_src
 
 **** Gestion des fichiers et des dossiers en pièce jointe 
@@ -4295,6 +4297,23 @@ allow-emacs-pinentry
 
 
 #+end_src
+
+
+***** TODO Quelles sont les liens que je veux ignorer (ou pas lol) ?
+:LOGBOOK:
+- State "TODO"       from              [2022-10-31 Mon 23:50]
+:END:
+
+Par exemple, si je veux que mes transclude soit considérer comme des backlinks, il faudra que je touche cette variable
+
+#+begin_src emacs-lisp
+  
+  (setq org-roam-db-extra-links-exclude-keys '((node-property . ("ROAM_REFS"))
+                                               (keyword . ("transclude"))))
+
+  ;; org-roam-db-extra-links-elements
+#+end_src
+
 
 ***** Org-roam capture
 
@@ -5699,9 +5718,12 @@ Pour faire ceci :
 
 ** Présentation avec org-mode
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp 
 
-  (use-package visual-fill-column)
+  (use-package visual-fill-column
+    :config
+    ;; Configure fill width
+    )
 
   (use-package org-present
     :config
@@ -5728,13 +5750,22 @@ Pour faire ceci :
 
       ;; Set a blank header line string to create blank space at the top
       (setq header-line-format " ")
+      ;; (setq org-ellipsis "")
 
       ;; Display inline images automatically
-      (org-display-inline-images)
+    
+      ;; (org-display-inline-images)
+
+      ;; (hide-mode-line-mode)
+      ;; (toggle-frame-fullscreen)
+      ;; (set-frame-parameter (selected-frame) 'alpha '(85 . 100))
 
       ;; Center the presentation and wrap lines
-      (visual-fill-column-mode 1)
-      (visual-line-mode 1))
+      ;; (setq visual-fill-column-width 150)
+      ;; (setq visual-fill-column-center-text t)
+      ;; (visual-fill-column-mode 1)
+      ;; (visual-line-mode 1)
+      )
 
     (defun my/org-present-end ()
       ;; Reset font customizations
@@ -5746,7 +5777,12 @@ Pour faire ceci :
       ;; Stop displaying inline images
       (org-remove-inline-images)
 
+      (hide-mode-line-mode -1)
+      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
+      (toggle-frame-fullscreen)
       ;; Stop centering the document
+      (setq visual-fill-column-width nil)
+      (setq visual-fill-column-center-text nil)
       (visual-fill-column-mode 0)
       (visual-line-mode 0))
 
@@ -5756,11 +5792,7 @@ Pour faire ceci :
     ;; Register hooks with org-present
     (add-hook 'org-present-mode-hook 'my/org-present-start)
     (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
-    (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
-
-    )
-
-
+    (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide))
 
 #+end_src
 
@@ -5857,4 +5889,36 @@ Pour faire ceci :
 
   (setq org-latex-packages-alist '(("AUTO" "babel" t)))
 
+#+end_src
+
+
+** Gestion des flashcards
+
+
+*** brutes
+#+begin_src emacs-lisp
+
+  (use-package anki-editor
+    :straight (anki-editor
+               :type git
+               :host github
+               :repo "louietan/anki-editor"))
+
+  (use-package org-anki)
+
+#+end_src
+
+*** dans le texte directement
+
+#+begin_src emacs-lisp
+  
+  ;; (use-package org-mode-incremental-reading
+  ;;   :straight (incremental-reading
+  ;;             :type git
+  ;;             :host github
+  ;;             :repo "vascoferreira25/org-mode-incremental-reading"))
+
+  (straight-use-package '(org-mode-incremental-reading
+                          :host github
+                          :repo "vascoferreira25/org-mode-incremental-reading"))
 #+end_src

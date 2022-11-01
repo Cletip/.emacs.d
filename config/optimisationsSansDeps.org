@@ -696,6 +696,48 @@ CLOSED: [2022-04-10 Sun 23:00]
     (global-yascroll-bar-mode 1))
 #+end_src
 
+
+*** Se mettre en mode "focus"
+
+#+begin_src emacs-lisp
+
+  (use-package darkroom
+    ;; :hook (org-mode . darkroom-tentative-mode)
+    :commands darkroom-mode
+    :config
+    (setq darkroom-text-scale-increase 0))
+
+
+
+  ;;pour que les fonction marche du 1er coup, activé désactivé.
+  ;; (darkroom-mode 1)
+  ;; (darkroom-mode 0)
+
+  (defun dw/enter-focus-mode ()
+
+    (darkroom-mode 1)
+    (menu-bar-mode 0)
+    (scroll-bar-mode 0 )
+    (toggle-frame-fullscreen)
+    )
+
+  (defun dw/leave-focus-mode ()
+
+    (darkroom-mode 0)
+    ;; (menu-bar-mode 1)
+    (scroll-bar-mode 1 )
+    (toggle-frame-fullscreen)
+    )
+
+  (defun dw/toggle-focus-mode ()
+    (interactive)
+    (if (symbol-value darkroom-mode)
+        (dw/leave-focus-mode)
+      (dw/enter-focus-mode)))
+
+  ;; (add-hook 'org-mode-hook #'dw/toggle-focus-modebis)
+#+end_src
+
 ** Aesthetics of Emacs
 
 *** TODO Police
@@ -886,6 +928,66 @@ CLOSED: [2022-04-10 Sun 23:00]
     )
 
 #+end_src
+
+
+*** Emacs transparent
+
+#+begin_src emacs-lisp
+
+  ;; Toggles background transparency
+  (defun toggle-transparency ()
+    (interactive)
+    (let ((alpha (frame-parameter nil 'alpha)))
+      (set-frame-parameter
+       nil 'alpha
+       (if (eql (cond ((numberp alpha) alpha)
+                      ((numberp (cdr alpha)) (cdr alpha))
+                      ;; Also handle undocumented (<active> <inactive>) form.
+                      ((numberp (cadr alpha)) (cadr alpha)))
+                100)
+           '(85 . 50) '(100 . 100)))))
+
+  ;; (global-set-key (kbd "C-c t") 'toggle-transparency)
+
+
+  (setq transparency_level 0)
+  (defun cp/toggle-transparency ()
+    "Toggles transparency of Emacs between 3 settings (none, mild, moderate)."
+    (interactive)
+    (if (equal transparency_level 0)
+        (progn (set-frame-parameter (selected-frame) 'alpha '(85 . 85))
+               (setq transparency_level 1))
+      (if (equal transparency_level 1)
+          (progn (set-frame-parameter (selected-frame) 'alpha '(70 . 85))
+                 (setq transparency_level 2))
+        (if (equal transparency_level 2)
+            (progn (set-frame-parameter (selected-frame) 'alpha '(100 . 85))
+                   (setq transparency_level 0)))
+        )))
+  (define-key global-map (kbd "C-c t") 'cp/toggle-transparency)
+
+  (defun cp/toggle-transparency2 ()
+    (interactive)
+    (let ((alpha (frame-parameter nil 'alpha)))
+      (if (eq
+           (if (numberp alpha)
+               alpha
+             (cdr alpha)) ; may also be nil
+           100)
+          (set-frame-parameter nil 'alpha '(60 . 50))
+        (set-frame-parameter nil 'alpha '(100 . 100)))))
+
+#+end_src
+
+
+*** Cacher la mode-line
+
+
+#+begin_src emacs-lisp
+    (use-package hide-mode-line)
+#+end_src
+
+
 ** Minibuffer
 [[https://github.com/minad/vertico][Vertico]] and friends provides a minimalistic vertical completion UI, which is based on the default completion system.
 *** Other

@@ -24,7 +24,7 @@ In a nutshell, it's just a value of $HOME.")
 
 (org-babel-load-file (expand-file-name "raccourcis.org" config-directory))
 
-(org-babel-load-file (expand-file-name "optimisationsSansDeps.org" config-directory))
+;; (org-babel-load-file (expand-file-name "optimisationsSansDeps.org" config-directory))
 
 (org-babel-load-file (expand-file-name "optimisationsAvecDeps.org" config-directory))
 

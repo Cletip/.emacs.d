@@ -2,12 +2,7 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("T\303\251l\303\251chargements"
- (filename . "~/T\303\251l\303\251chargements/")
- (front-context-string . "testutil.pdf\n  -")
- (rear-context-string . " ao\303\273t  17 00:04 ")
- (position . 3496))
-("emacs code"
+(("emacs code"
  (filename . "~/Testdedossier/emacs/")
  (front-context-string . "lisp\n  drwxrwxr-")
  (rear-context-string . " juil. 13 22:11 ")
@@ -72,11 +67,6 @@
  (front-context-string . "Testdedossier\n ")
  (rear-context-string . " mai   27 10:42 ")
  (position . 271))
-("T T\303\251l\303\251chargements"
- (filename . "~/T\303\251l\303\251chargements/")
- (front-context-string . "..\n  -rw-rw-r-- ")
- (rear-context-string . " avril 29 13:30 ")
- (position . 210))
 ("c clavier"
  (filename . "~/qmk_firmware/keyboards/omkbd/ergodash/rev1/keymaps/Cletip/")
  (front-context-string . "keymap.c\n  -rw-r")
