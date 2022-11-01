@@ -1,0 +1,12 @@
+:PROPERTIES:
+:ROAM_REFS: [cite:@EffetIkea2021]
+:ID:       dc01bbbe-ccc2-4c16-97e5-630f4ab680dd
+:END:
+#+title:  Effet Ikea
+#+filetags: :draft:
+- source :: [cite:@EffetIkea2021]
+
+consommateurs accordent une valeur disproportionnée aux produits qu'ils ont partiellement créés
+#+print_bibliography:
+
+

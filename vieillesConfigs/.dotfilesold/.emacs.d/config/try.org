@@ -1,0 +1,76 @@
+#+TODO: ACTIVE | DISABLED
+
+*** TODO Indentation automatique de code block lisp
+
+
+#+begin_src emacs-lisp :tangle no
+
+  ;;pour indenter le block automatiquement
+  (defun org-in-src-block-p-emacs-lisp (&optional inside)
+    "Whether point is in a code source block.
+     When INSIDE is non-nil, don't consider we are within a source
+     block when point is at #+BEGIN_SRC or #+END_SRC."
+    (let ((case-fold-search t))
+      (or (and (eq (get-char-property (point) 'src-block) t))
+          (and (not inside)
+               (save-match-data
+                 (save-excursion
+                   (beginning-of-line)
+                   ;;trouver mon expression régulière pour le faire seulement dans emacs-lisp
+                   (looking-at ".*#\\+\\(begin\\|end\\)_src")))))))
+
+  (defun indent-org-block-automatically ()
+    (when (org-in-src-block-p-emacs-lisp)
+      (org-edit-special)
+      (indent-region (point-min) (point-max))
+      (org-edit-src-exit)))
+
+  ;;run toute les 10s
+  (run-at-time 1 10 'indent-org-block-automatically)
+
+#+end_src
+
+
+
+*** Nouveau nom de backup
+
+#+begin_src emacs-lisp :tangle no
+(defun make-backup-file-name (filename)
+  (expand-file-name
+    (concat "." (file-name-nondirectory filename) "A")
+    (file-name-directory filename)))
+#+end_src
+
+
+
+
+*** Pour lancer des commandes shell yeah, voir xah et un wiki pour +
+
+
+#+begin_src emacs-lisp :tangle no
+(shell-command "")
+
+#+end_src
+
+
+*** Configuration pour streamer yeah, mettre ailleurs ?
+**** Keycast (voir les commandes tapées)(keycast log buffer)
+#+begin_src emacs-lisp
+  (use-package keycast
+    :config
+    ;;pour rendre keycast compatible avec doom-modeline
+    (define-minor-mode keycast-mode
+      "Show current command and its key binding in the mode line (fix for use with doom-mode-line)."
+      :global t
+      (if keycast-mode
+          (add-hook 'pre-command-hook 'keycast--update t)
+        (remove-hook 'pre-command-hook 'keycast--update)))
+    (add-to-list 'global-mode-string '("" mode-line-keycast))
+    )
+
+ 
+#+end_src
+
+
+
+

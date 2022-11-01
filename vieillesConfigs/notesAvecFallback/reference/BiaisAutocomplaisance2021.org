@@ -1,0 +1,12 @@
+:PROPERTIES:
+:ROAM_REFS: [cite:@BiaisAutocomplaisance2021]
+:ID:       42c23648-67a6-41f5-981e-df5e5265e35e
+:END:
+#+title:  Biais d'autocomplaisance
+#+filetags: :draft:Biaiscognitif:
+- source :: [cite:@BiaisAutocomplaisance2021]
+
+Ceci est un test de tag
+
+#+print_bibliography:
+

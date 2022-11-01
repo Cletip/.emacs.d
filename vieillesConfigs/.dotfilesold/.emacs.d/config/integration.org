@@ -1,0 +1,243 @@
+#+TODO: ACTIVE | DISABLED
+
+
+*** Integration
+
+**** Pour écrire ou prendre des notes rapidement n'importe où !
+***** Emacs everywhere ! Pour éditer avec emacs n'importe où !     :High:
+
+Très simple :
+1. Avoir les dependencies : xclip, xdotool, xprop, and xwininfo
+2. Avoir org protocol + server start
+3. mapper ceci :
+#+begin_src sh
+emacsclient --eval "(emacs-everywhere)"
+#+end_src
+sur un raccourcis de clavier (via linux et non emacs)
+
+Puis, on se met dans une windows sur internet, on effectue le
+raccourci mapper et... voilà ! Pour finir, C-c C-c ou faire la touche bind en
+dessous (si possible PRESQUE la même que pour ouvrir emacs-everywhere)
+
+#+begin_src emacs-lisp
+  (use-package emacs-everywhere
+    :bind
+    ;; ("C-<f9>" . emacs-everywhere-finish)
+    )
+#+end_src
+
+***** TODO Prendre des notes rapidement (org-popup)                :High:
+
+
+Faire un git clone https://github.com/Parveshdhull/org-popup 
+Ajouter la commande : org-popup [touche à mettre ] P
+Voir les [[id:54e7121a-93ed-4fb8-96b7-83cba535c170][org-capture]] également pour voir OÙ mettre les notes
+For save note press - "Ctrl + Shift + Enter"
+
+
+**** Operating System
+***** Restart emacs
+
+#+begin_src emacs-lisp 
+
+  (use-package restart-emacs
+    :config (defalias 'emacs-restart #'restart-emacs)
+    )
+
+#+end_src
+
+**** Correcteur de langues
+
+***** Grammaire
+****** Français
+
+******* Correcteur grammaire fr                           :High:Medium:
+
+Il faut activer le mode flycheck-mode.
+
+#+begin_src emacs-lisp
+
+  (use-package flycheck-grammalecte
+    :after flycheck
+    ;; :hook(org-mode . flycheck)
+    :init
+    (setq
+     ;; pas de faute avec les '
+     flycheck-grammalecte-report-apos nil
+     ;; pas de faute avec les espaces insécable
+     flycheck-grammalecte-report-nbsp nil
+     ;; pas de faute avec pleins d'espaces et de tab
+     flycheck-grammalecte-report-esp nil)
+    :config
+
+    ;;à faire pour enlever l'erreur des tirés
+    ;; pour enlever l'erreur des des begin_src etc
+    (setq flycheck-grammalecte-filters-by-mode
+          '(
+            (org-mode "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
+                      "(?im)^[ \t]*#\\+begin[_:].+$"
+                      "(?im)^[ \t]*#\\+end[_:].+$"
+                      "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
+                      "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
+                      "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
+                      "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
+                      "(?ims)^\- $"
+                      ))
+          )
+    (grammalecte-download-grammalecte)
+    (flycheck-grammalecte-setup)
+    )
+
+#+end_src
+
+
+
+****** TODO Anglais
+
+***** Orthographe
+****** Le moteur
+#+BEGIN_SRC emacs-lisp
+
+  (setq ispell-local-dictionary-alist- 
+	'(("francais" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "fr") nil utf-8)
+	  ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)
+	  ))
+  (setq ispell-program-name "hunspell"          ; Use hunspell to correct mistakes
+	ispell-dictionary   "francais")
+  
+#+END_SRC
+
+
+****** Switch de dico (C-c d)
+#+BEGIN_SRC emacs-lisp
+
+  (defun switch-dictionary-fr-en ()
+    "Switch french and english dictionaries."
+    (interactive)
+    (let* ((dict ispell-current-dictionary)
+	   (new (if (string= dict "francais") "en_US"
+		     "francais")))
+      (ispell-change-dictionary new)
+      (message "Switched dictionary from %s to %s" dict new)))
+
+  ;; (global-set-key (kbd "C-c d") 'switch-dictionary-fr-en)
+
+#+END_SRC
+
+****** Indication des fautes + corriger le mot faux précédent le curseur
+#+BEGIN_SRC emacs-lisp 
+  
+  (global-set-key (kbd "C-c f") 'flyspell-check-previous-highlighted-word)
+  
+  (add-hook 'text-mode-hook 'flyspell-mode)
+  (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+  
+  ;; Highlight BUG FIXME TODO NOTE keywords in the source code.
+  (add-hook 'find-file-hook
+	    (lambda()
+	      (highlight-phrase "\\(BUG\\|FIXME\\|TODO\\|NOTE\\):")))
+  
+#+END_SRC
+
+**** Internet
+
+*****     Browser
+
+*****     Mail
+
+*****     IRC
+*****     Chat
+
+*****     Social Network
+
+*****     Web Feed
+
+**** Pdf
+
+Meilleure lecture de pdf
+
+#+begin_src emacs-lisp 
+
+  (use-package pdf-tools
+    :config
+    ;; initialise
+    (pdf-tools-install)
+    ;; open pdfs scaled to fit page
+    (setq-default pdf-view-display-size 'fit-page)
+    ;; automatically annotate highlights
+    (setq pdf-annot-activate-created-annotations t)
+    ;; use normal isearch
+    (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
+    ;;mode nuit de base
+    (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+    )
+
+#+end_src
+
+**** Console
+shell, shell popup etc
+
+**** Git/Github(Magit)
+***** Le moteur
+
+#+begin_src emacs-lisp
+
+  (use-package magit
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+    )
+
+#+end_src
+
+***** TODO Git gutter, rajoutes des plus et des moins dans les lignes d'un fichier
+
+#+begin_src emacs-lisp :tangle no
+
+(use-package git-gutter
+:config
+;; (global-git-gutter-mode 1)
+)
+
+#+end_src
+
+***** TODO Pour voir comment le fichier était dans tel commit
+
+#+begin_src emacs-lisp :tangle no
+
+(use-package git-timemachine)
+
+#+end_src
+
+***** TODO fetch tous les repos ([[https://emacs.stackexchange.com/questions/33616/magit-fetch-all-repos-from-github][ici]])
+
+**** Tools to search (void ?)
+
+**** Google
+***** Google traduction
+
+#+begin_src emacs-lisp 
+
+  (use-package go-translate
+    :config
+    (setq gts-translate-list '(("en" "fr")))
+    )
+
+#+end_src
+
+***** [[*Intégration avec Google calendar][Intégration avec Google calendar]]
+
+**** TODO Keypass                                                   :High:
+
+#+begin_src emacs-lisp
+(use-package keepass-mode)
+#+end_src
+
+
+**** SSh
+
+Tramp est de base dans emacs. 
+
+#+begin_src emacs-lisp
+  ;; (setq tramp-default-method "ssh")
+#+end_src
+

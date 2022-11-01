@@ -1,0 +1,458 @@
+
+
+Dans la config, je vais noter comment installer les choses, ainsi que les scripts à lancer pour avoir les dépendances !
+
+#+TITLE:Mon config.org
+#+TAGS: High(h) Medium Low 
+#+TODO: ACTIVE | DISABLED
+
+
+High = Call a command in a terminal to install a dependencie
+Medium = Call a command to install the dependencie in emacs
+Low = Dependencies download automaticaly by emacs (juste say "yes
+please let's go")
+
+Ici, chargement des "différents modules" placé dans [[file:config][file:~/.emacs.d/config]]. Suffit de changer le tag pour les activer ou pas.
+
+
+
+=NE PAS METTRE DE "" dans les titres !!!!!!=
+
+
+
+
+Vous pouver naviguer rapidement avec la commande =org-sidebar-tree-toggle=
+Vous pouvez aller voir le site d'un package (pour avoir plus d'info) avec la commande =straight-visit-package-website=
+=NE plus avoir un seul home msi=
+
+
+* Les choses à configurer moi-même au début sont à mettre ici :
+** Les dépendances dans ce script (a éclater): 
+:PROPERTIES:
+:ID:       b87b4251-35cb-4950-9c8e-fbdb5ae01757
+:END:
+
+script à éclaté dans chaque morceau de la config et faire un ?
+
+
+- =les language server protocol=
+
+#+begin_src sh
+  #! /usr/bin/bash
+
+  echo "salut" #installer git
+  #installer emacs etc
+  sudo apt install
+  python3			          # grammalect
+  grep					  # pour les recherches (consult-grep notamment)
+  xsel yad				  # org-popup
+  keepassxc #pour keepass-emacs (logique)
+  xclip xdotool xprop xwininfo #emacs-everywhere
+  sqlite3 fzf ripgrep silversearcher-ag # etc
+
+#+end_src
+
+** Les choses à faire soit même
+*** Où sont les fichiers org + mes documents ? 
+**** Les variables des chemins des fichiers, et c'est tout (normalement si je rerespect bien l'organisation de mes fichiers)
+=Je dois mettre les documents, et le dossier-partagé à la racine !=
+Les templatesOrgCapture sont dans le dossier org, car impossible d'y faire fonctionner autrement, si je dois faire des templates ailleurs, ba utiliser le template de base, et pas de fichiers bizarre
+
+Pour voir l'organisation de mes fichiers org :
+
+Pourquoi définir les documents ? Car je veux que [[id:46d85ca5-b98d-4612-8ba2-7b0f1e7fe71a][liens polyvalents fonctionnent]]
+
+org-directory : pour les captures etc
+documents-directory : pour les liens + choses lourdes et pas utilisé par tel
+shared-directory-private : pour org-export, choses pas trop lourde et utilisé par mon tel
+
+les trois dossiers doivent être à la racine !
+
+#+begin_src emacs-lisp
+  
+  (setq my-user-emacs-configuration (concat my-user-emacs-directory "config.org"))
+  ;; besoin d'une "liste " pour faire certaines choses sur mes fichiers de config emacs
+  (setq my-user-emacs-configuration-list (list my-user-emacs-configuration))
+
+
+  (if (file-exists-p "~/mesdocuments/")
+      (progn 
+        (setq mesdocuments-directory "~/mesdocuments/");; pour que tous les liens fonctionnes
+        )
+    (progn
+      ;; (setq mesdocuments-directory nil)
+      ;;quand c'est vide ça retourne nil
+      )
+    )
+  ;;pour que les captures fonctionne
+  (if (file-exists-p "~/sharedDirectoryPrivate/notes")
+      (progn 
+        (setq org-directory "~/sharedDirectoryPrivate/notes/")
+        )
+    (progn 
+      ;;quand c'est vide ça retourne nil
+      )
+    )
+
+  ;;est ce que j'ai un dossier partagé perso ? 
+  (if (file-exists-p "~/sharedDirectoryPrivate")
+      (progn 
+        (setq shared-directory-private "~/sharedDirectoryPrivate/")
+        )
+    (progn 
+      ;;quand c'est vide ça retourne nil
+      )
+    )
+
+
+  ;;où sont mes fichiers org accessible sur mon téléphone ?
+  (if (and (boundp 'shared-directory-private) (file-exists-p (concat shared-directory-private "notes/org/orgzly")))
+      (progn 
+        (setq orgzly-directory (concat shared-directory-private "notes/org/orgzly/"))
+        )
+    (progn 
+      ;;quand c'est vide ça retourne nil
+      )
+    )
+
+
+  ;;est ce que ma braindump existe ?
+  (if (and (boundp 'org-directory) (file-exists-p (concat org-directory "zettelkasten/")))
+      (progn 
+        (setq org-roam-directory (concat org-directory "zettelkasten/"))
+        )
+    (progn
+      (setq org-roam-directory nil)
+      ;;quand c'est vide ça retourne nil
+      )
+    )
+
+  ;; (setq org-roam-directory (concat org-directory "zettelkasten/"))
+#+end_src
+
+**** Mise en place de tous les fichiers org dans un certains dossiers
+:PROPERTIES:
+:ID:       1cb19f92-8ccc-490d-aa07-9750288efb9d
+:END:
+Ici, j'ai besoin d'aller chercher tous mes fichiers dans
+certains dossier. Je dois donc définir une fonction qui fait la
+recherche. Puis je fais un simple setq blabla
+
+Agenda-files
+refile target
+try-id
+id = partout, c'est logique je veux pouvoir faire des liens de partout (sauf de =org-roam à ailleurs=, sinon les liens seront cassé (logique))
+
+documents-directory --> au cas ou
+mesdocuments-directory --> id, try-id niveau 1
+org-directory --> pour y mettre dans refile niveau 1 + id + try id niveau 1
+shared-directory-private --> try id niveau 1
+orgzly-directory --> pour y mettre dans =Agenda-files= + refile niveau 8 , mais les id dans orgzly ne marcheront qu'entre eux
+org-roam-directory --> mais surtout pas faire de liens org-roam-directory à un autre dossier
+
+Quand on demande une liste, on prendre les variables juste en dessous : 
+
+***** Définition de la fonction
+
+NE TROUVE PAS LES FICHIERS ORG DANS LES DOSSIERS CACHÉ (/.documents/salut.org par exemple)
+
+#+begin_src emacs-lisp
+
+
+  ;; (setq max-specpdl-size 50)  ; default is 1000, reduce the backtrace level
+  (setq debug-on-error t)  
+
+    ;; recursively find .org files in provided directory
+    ;; modified from an Emacs Lisp Intro example
+    ;;
+    (defun sa-find-org-file-recursively (&optional directory filext)
+      "Return .org and .org_archive files recursively from DIRECTORY.
+                       If FILEXT is provided, return files with extension FILEXT instead."
+      (interactive "DDirectory: ")
+      (let* (org-file-list
+             (case-fold-search t)         ; filesystems are case sensitive
+              (file-name-regex "^[^.#].*") ; exclude dot, autosave, and backupfiles
+             ;; (file-name-regex "^[^#].*") ; pour trouver les fichiers cacher, ne marche pas
+             (filext (or filext "org$\\\|org_archive"));;pas prendre les archives
+             (fileregex (format "%s\\.\\(%s$\\)" file-name-regex filext))
+             (cur-dir-list (directory-files directory t file-name-regex)))
+        ;; loop over directory listing
+        (dolist (file-or-dir cur-dir-list org-file-list) ; returns org-file-list
+          (cond
+           ((file-regular-p file-or-dir)             ; regular files
+            (if (string-match fileregex file-or-dir) ; org files
+                (add-to-list 'org-file-list file-or-dir)))
+           ((file-directory-p file-or-dir)
+            (dolist (org-file (sa-find-org-file-recursively file-or-dir filext)
+                              org-file-list) ; add files found to result
+              (add-to-list 'org-file-list org-file)))))))
+
+#+end_src
+
+
+
+***** Mes fichiers org
+
+
+=Même noms, seulement derrière ya "all-org-files"= derrière
+
+mesdocuments-directory-all-org-files
+org-directory-all-org-files
+shared-directory-private-all-org-files
+orgzly-directory-all-org-files
+org-roam-directory-all-org-files
+
+
+
+
+#+begin_src emacs-lisp
+
+  ;; faire attention au custom variable dans custom.el, j'ai eu un gros "nil" qui m'a tout déréglé pour cette variable
+
+  ;;j'hésite à mettre également mes fichiers roam dans mon agenda. Pour l'instant, non
+  ;;pour éviter un bug si j'ai pas mes documents
+
+
+  (if (boundp 'mesdocuments-directory) ;; condition par pas qu'il y est de bug
+      (progn (setq ;;cas du oui
+              mesdocuments-directory-all-org-files ;; qu'elle variable je définie ? X-directory + all-org-files
+              (append (sa-find-org-file-recursively
+                       mesdocuments-directory "org")
+                      )))
+    (progn 
+      (setq mesdocuments-directory-all-org-files nil) ;;sinon je mets X-directory + all-org-files à nul
+      )
+    )
+
+  (if (boundp 'org-directory) ;; condition par pas qu'il y est de bug
+      (progn (setq ;;cas du oui
+              org-directory-all-org-files ;; qu'elle variable je définie ? X-directory + all-org-files
+              (append (sa-find-org-file-recursively
+                       org-directory "org")
+                      )))
+    (progn 
+      (setq org-directory-all-org-files nil) ;;sinon je mets X-directory + all-org-files à nul
+      )
+    )
+
+
+  (if (and (boundp 'shared-directory-private) shared-directory-private) ;; condition par pas qu'il y est de bug
+      (progn (setq ;;cas du oui
+              shared-directory-private-all-org-files ;; qu'elle variable je définie ? X-directory + all-org-files
+              (append (sa-find-org-file-recursively
+                       shared-directory-private "org")
+                      )))
+    (progn 
+      (setq shared-directory-private nil) ;;sinon je mets X-directory + all-org-files à nul
+      )
+    )
+
+  (if (and (boundp 'org-directory) org-directory) ;; condition par pas qu'il y est de bug
+      (progn (setq ;;cas du oui
+              orgzly-directory-all-org-files ;; qu'elle variable je définie ? X-directory + all-org-files
+              (append (sa-find-org-file-recursively
+                       orgzly-directory "org")
+                      )))
+    (progn 
+      (setq orgzly-directory-all-org-files nil) ;;sinon je mets X-directory + all-org-files à nul
+      )
+    )
+
+  (if (and (boundp 'org-roam-directory) org-roam-directory) ;; condition par pas qu'il y est de bug
+      (progn (setq ;;cas du oui
+              org-roam-directory-all-org-files ;; qu'elle variable je définie ? X-directory + all-org-files
+              (append (sa-find-org-file-recursively
+                       org-roam-directory "org")
+                      )))
+    (progn 
+      (setq org-roam-directory-all-org-files nil) ;;sinon je mets X-directory + all-org-files à nul
+      )
+    )
+
+  
+
+#+end_src
+*** [[id:e254ed4d-d47b-4b9d-9155-108772b8b2c7][L'extension betterbitex]] pour zotero
+* Bug connu :
+
+1. obliger de faire ceci pour éviter warning de org-mode, doit être corriger avec une maj de leur part
+   #+begin_src emacs-lisp
+     (setq org-element-use-cache nil)
+   #+end_src
+2. 
+
+  
+
+* Emacs Perfect
+
+** ACTIVE Fonction pour tangle la suite, =indispensable= !
+
+#+begin_src emacs-lisp
+
+  ;; où est le dossier des fichiers de config ?
+  (setq my-user-emacs-config-directory (concat my-user-emacs-directory "config/"))
+
+  (defun my-tangle-a-file-of-config-org (file)
+    "This function will write all source blocks from =config.org= into =config.el= that are ...
+      - not marked as =tangle: no=
+      - doesn't have the TODO state =DISABLED=
+      - have a source-code of =emacs-lisp="
+    (require 'org)
+    (let* ((body-list ())
+           (output-file (concat my-user-emacs-config-directory (concat file ".el")))
+           (input-file (concat my-user-emacs-config-directory (concat file ".org")))
+           (org-babel-default-header-args (org-babel-merge-params org-babel-default-header-args
+                                                                  (list (cons :tangle output-file)))))
+      (message "—————• Re-generating %s …" output-file)
+      (save-restriction
+        (save-excursion
+          (org-babel-map-src-blocks input-file
+            (let* (
+                   (org_block_info (org-babel-get-src-block-info 'light))
+                   ;;(block_name (nth 4 org_block_info))
+                   (tfile (cdr (assq :tangle (nth 2 org_block_info))))
+                   (match_for_TODO_keyword)
+                   )
+              (save-excursion
+                (catch 'exit
+                  ;;(when (string= "" block_name)
+                  ;;  (message "Going to write block name: " block_name)
+                  ;;  (add-to-list 'body-list (concat "message(\"" block_name "\")"));; adding a debug statement for named blocks
+                  ;;  )
+                  (org-back-to-heading t)
+                  (when (looking-at org-outline-regexp)
+                    (goto-char (1- (match-end 0))))
+                  (when (looking-at (concat " +" org-todo-regexp "\\( +\\|[ \t]*$\\)"))
+                    (setq match_for_TODO_keyword (match-string 1)))))
+              (unless (or (string= "no" tfile)
+                          (string= "DISABLED" match_for_TODO_keyword)
+                          (not (string= "emacs-lisp" lang)))
+                (add-to-list 'body-list (concat "\n\n;; #####################################################################################\n"
+                                                "(message \"config • " (org-get-heading) " …\")\n\n")
+                             )
+                (add-to-list 'body-list body)
+                ))))
+        (with-temp-file output-file
+          (insert ";; ============================================================\n")
+          (insert ";; Don't edit this file, edit config.org' instead ...\n")
+          (insert ";; Auto-generated at " (format-time-string current-date-time-format (current-time)) " on host " system-name "\n")
+          (insert ";; ============================================================\n\n")
+          (insert (apply 'concat (reverse body-list))))
+        (message "—————• Wrote %s" output-file))))
+
+  ;; when config.org is saved, re-generate the X.el:
+  (defun my-tangle-a-file-of-config-org-hook-func (file)
+    (message "%s" file)
+    (when (string= (concat file ".org") (buffer-name))
+      (let (
+            (orgfile (concat my-user-emacs-config-directory (concat file ".org")))
+            (elfile (concat my-user-emacs-config-directory (concat file ".el")))
+            )
+        (my-tangle-a-file-of-config-org file)
+        )))
+  
+  (defun export-and-load-and-hook (file)
+    (let (
+          ;;création des fichiers de base
+          (orgfile (concat my-user-emacs-config-directory (concat file ".org")))
+          (elfile (concat my-user-emacs-config-directory (concat file ".el")))
+          (gc-cons-threshold most-positive-fixnum))
+
+      ;; création du fichier si jamais ça marche pas
+      (when (or (not (file-exists-p elfile))
+                (file-newer-than-file-p orgfile elfile))
+        (my-tangle-a-file-of-config-org file)
+        )
+      ;;chargement du fichier
+      (load-file elfile)
+      )
+    ;; (add-hook 'after-save-hook '(my-tangle-a-file-of-config-org-hook-func-"file"))
+    (add-hook 'after-save-hook (apply-partially #'my-tangle-a-file-of-config-org-hook-func file))
+    )
+
+#+end_src
+
+** ACTIVE Raccourcis
+#+begin_src emacs-lisp
+(export-and-load-and-hook "raccourcis")
+#+end_src
+** ACTIVE Optimisation de base
+#+begin_src emacs-lisp
+
+(export-and-load-and-hook "basicOptimisations")
+ 
+#+end_src
+** ACTIVE Optimisation de base, mais avec des dépendances
+
+#+begin_src emacs-lisp
+
+  (export-and-load-and-hook "basicOptimisationsAvecDep")
+
+#+end_src
+
+** ACTIVE Org-mode
+
+#+begin_src emacs-lisp
+
+  (export-and-load-and-hook "org-mode")
+
+#+end_src
+
+** ACTIVE Programmations
+#+begin_src emacs-lisp
+(export-and-load-and-hook "programmation")
+#+end_src
+
+** DISABLED Integration
+CLOSED: [2022-03-02 Wed 09:58]
+
+** DISABLED Les choses à try
+CLOSED: [2022-03-02 Wed 09:58]
+
+#+begin_src emacs-lisp
+(export-and-load-and-hook "try")
+#+end_src
+
+
+* Les choses à ajouter (un jour ou pas) :
+
+** Choses général à implémenter dans emacs pas encore faîtes
+**** Nouvelles fonctionnalité
+***** TODO https://www.youtube.com/watch?v=pOFqzK1Ymr4 pour elfeed (brunce schneier pour la cyber)
+:PROPERTIES:
+:CREATED:  <2021-10-13 mer. 20:10>
+:END:
+
+***** TODO https://nyxt.atlas.engineer/download nyxt, internet like emacs
+:PROPERTIES:
+:CREATED:  <2021-09-11 sam. 11:45>
+:END:
+
+***** TODO [[https://www.youtube.com/watch?v=AfkrzFodoNw][Lien ici pour org publish (tester avec org roam, doit marcher car site déjà fait)]]Titre de l'évènement
+***** TODO Exwm
+:PROPERTIES:
+:CREATED:  [2021-09-18 Sat 11:17]
+:END:
+
+***** TODO A grammatical corrector for English-language emacs
+:PROPERTIES:
+:CREATED:  [2021-09-22 Wed 12:59]
+:END:
+
+***** TODO PEUT-ÊTRE Org ref, avec Zotero ! https://github.com/jkitchin/org-ref (pour la science  ?)
+:PROPERTIES:
+:CREATED:  <2021-09-23 jeu. 18:18>
+:END:
+
+***** TODO Le débuggueur [[https://www.reddit.com/r/emacs/comments/mxiqt6/how_to_setup_and_use_dapmode_for_c/][ici]], [[https://emacs-lsp.github.io/lsp-mode/tutorials/CPP-guide/][ici]]
+***** TODO Pour les mails [[https://www.youtube.com/watch?v=yZRyEhi4y44&list=PLEoMzSkcN8oM-kA19xOQc8s0gr0PpFGJQ][ici]]
+****** TODO https://www.youtube.com/watch?v=yZRyEhi4y44&list=PLEoMzSkcN8oM-kA19xOQc8s0gr0PpFGJQ
+***** TODO Org ref pour citer des références scientifique ?
+**** Pour emacs lisp
+***** TODO pour programmer en lisp
+
+- http://lgmoneda.github.io/2017/03/15/elisp-summary.html
+- http://ergoemacs.org/emacs/elisp_basics.html
+
+
+

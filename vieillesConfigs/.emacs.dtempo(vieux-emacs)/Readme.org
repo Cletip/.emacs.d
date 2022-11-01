@@ -1,0 +1,192 @@
+* Titre
+
+Ma version final d'emacs (d'où le perfect).
+
+Mon .emacs.d documenter en français. J'espère que ça aidera ceux qui
+ont du mal avec l'anglais
+
+Lien vers mes vidéos : (un jour peut-être)
+
+C'est encore un joli chantier.
+
+Pour l'instant je mets TOUT, même les paquets de straight, car je veux
+être sûr de, pour l'instant, avoir la même config partout.
+
+
+* Mon système de fonctionnement général
+
+3 dossiers principal : .emacs.d. documents, dossier_partage
+Ces 3 dossiers correspondent à quatre syncthing différents
+
+1. .emacs.d, mon éditeur de texte et +
+2. dossier_partage. Il y a plusieurs dossiers (un pour chaque membre de la famille par exemple). On y met les choses ="légères"= et qui doivent être accessible sur d'autres appareils (=téléphone=) souvent. Il y a notamment le dossier =orgzly= qui est le =seul lien où je peux modifier mes notes org= depuis mon tel. 
+3. documents. Sert à stocker tout le reste, dont =mes notes= (diviser en plusieurs dossiers, dont org et braindump. org pour des notes normales, et braindump pour méthode Zettelkasten. Rien ne m'empêche de faire des notes dans les autres dossiers, par contre je pourrais accéder qu'aux notes présentes dans le dossier =orgzly= (GTD, pas besoin de plus). =orgzly se trouve dans :=) les cours, administratif, archives, etc. tout ce qui est "gros" et pas besoin d'accéder en temps réel (mais seulement depuis mon ordi).
+
+
+* Mon système de fonctionnement avec org-mode
+
+Avec org-mode, je gère : 
+
+** Mon (ma) futur organisation de fichier
+*** Org
+**** Ancien (à enlever)
+Erreur apprise : optimiser le nombre de dossiers
+
+=Tous mettre org-roam dans braindump/notes=
+
+
+
+- org (Notes)
+  - .stfolder (créer par syncthing)
+  - LatexpourOrg, (à mettre dans.emacs.d), ma configuration perso de latex, marche partout, juste copier l'exemple. Voir des exemples dans S3 puis dans les cours
+  - Org
+    - Roam, où est "mon second cerveau", lieu pour prendre des notes
+      - Orgzly (renommer GTD ), c'est fichiers orgzly, et donc qui doivent être modifié (tous les fichiers sur mon tel), =unique lien avec mon TEL. IMPORTANT : 1INBOX=
+	- 1Inbox.org, là où je mets toutes mes idées en vrac
+	- 2Agendatickler.org, où
+	- 3Bookmarks.org
+	- 4GTD.org
+	- 5References.org
+	- 6Archives.org
+	- 7Contact.org
+	- 8Artiste.org, ailleurs
+    - Classique, classique org file (vide ?)
+  - Référencesbib, pour mes futurs références
+  - TemplatesOrgCapture, là où sont mes templates de org
+**** Nouveau
+
+Les notes sont très très très légères. Je pense donc que je me permets de syncthing tout ceci sur mon téléphone. Sinon je déplacerais org-roam, juste une variable à changer dans config.org
+
+Trois dossier essentiels pour tous manager :
+org-directory : pour les captures etc
+documents-directory : pour les liens + choses lourdes et pas utilisé par tel
+shared-directory : pour org-export, choses pas trop lourde et utilisé par mon tel
+
+les trois dossiers doivent être à la racine !
+
+- notes
+  - .stfolder (créer par syncthing)
+  - templatesOrgCapture (pour mes capture org mode et org roam. mis ici car très pratique (et impossible d'y mettre ailleurs pour que ça marche sans passer par des variables relatives mdrr))
+  - org
+    - archives (tous mes archives, pas besoins de l'avoir dans orgzly)
+      - archivetickler.org
+      - etc TODO
+    - onenote.org
+    - anotheretc
+    - orgzly (tous les fichiers qui doivent être =modifié=, =unique lien avec mon tel= directement.)
+      - Inbox.org (là où je mets toutes mes idées en vrac + mes org scheduled et deadline. Fonction à faire)
+      - Agendatickler.org (où il y a tous ce qui va dans l'edt)
+      - Bookmarks.org (tous mes raccourcis html)
+      - GTD.org (mes projets en cours)
+      - References.org (fichiers où je met presque tout. À ranger d'ailleurs)
+      - Contact.org (tous mes contacts)
+      - 8Artiste.org, à mettre ailleurs
+  - Classique, classique org file (vide ?)
+  - roam (où est "mon second cerveau", lieu pour prendre des notes. =le mettre dans mes documents ?=)
+    
+    
+*** Notes  (mettre ici)
+**** Org
+Archives.org
+***** Orgzly (tous ceux à quoi je dois avoir accès avec mon téléphone)
+GTD.org
+INBOX.org
+etc
+**** Roam
+
+** Mes contacts :
+
+Org contact + org-vcard + org capture     (setq org-vcard-default-version "3.0") ;;la version utilisée (pour
+
+Cela me permet de gérer mes contacts rapidement et efficacement + de les exporter sur google agenda. 
+
+** Mes todo avec Org mode, Task Management
+
+Les différents fichiers et leurs utilités, doivent être évidemment placé dans org agenda : 
+
+Inbox.org, là où je mets toutes mes idées en vrac
+Appelle la fonction : org-refile-schedulded-or-deadline, qui me permettra de transférer les tâches programmé (tickler + edt) dans
+Agendatickler.org, où je mets tout mes ticklers (choses à penser avec SCHEDULED + TODO) ou des choses dans l'edt (avec DEADLINE). Pk séparé ? plus propre pour les archives + plus clair
+Bookmarks.org
+GTD.org
+References.org
+Contact.org
+
+
+*** Comment ça marche ?
+
+Tout démarre sur téléphone, où j'enregistre toutes mes idées dans "Inbox". Puis, j'applique la méthode GTD.
+Si je dois en faire un projet --> GTD.org. Je divise en plusieurs tâche que je dois faire dans l'ordre, et je mets la tâche suivante en NEXT. 
+
+** Mon second cerveau
+
+
+Deux idées principales :
+Mes projets, dans un dossier, relié à orgzly. Je veux pouvoir les consulter ET les modifier
+Mes connaissances, dans un autre dossier, pour roam. Je veux juste pouvoir les consulter (donc faire mon site web pour cela)
+
+Tous sont dans mon org-agenda.
+Org directories = org. 
+
+Mais rien ne m'empêche de faire des liens entre les deux, si, pas de
+liens de roam à org, mais l'inverse oui.
+
+
+
+
+*** Gestion des "citations"
+
+Définition d'une citation :
+Un marque page mais en bien mieux TODO
+
+**** TODO Zotero
+
+
+
+**** Dans emacs 
+
+Pas dur :
+
+Org-cite + citar : les insérer
+Pour exporter : citeproc (qui necessite encore deux variables manuellement ? donc je pourrais pas exporter mes notes pour l'instant)
+
+      
+
+
+*** Pour l'exporter
+
+Pour l'instant :
+Je fais tout avec le workflow de jethro, sauf la conversion des notes : 
+Je mets tout manuellement dans le braindump de ayrat, je rajouter bien les packages (comme citar) dans le init.el, je fais le bon make, et voilà, j'ai convertit toutes mes notes. Puis, je les remets toutes dans braindump/content/post de jethro. Plus qu'à push
+
+
+
+*** Workflow complet :
+
+Les références doivent toujours avoir : 
+1. author ou editor
+2. une année
+3. Un titre
+4. (optionnel) un url
+
+
+1. Je stocke des informations à un endroit, que ce soit des infos sur internet ou livre. (dans inbox.org)
+2. Je note la référence grâce à Zotero
+3. Je fais un résumé, que je placerais dans main, et je peux rajouter des références
+4. je découperai mon résumé en zettel, je me renseigne et j'enregistre les références grâce à Zotero, puis j'appelle la fonction jethro/org-roam-node-from-cite pour me permettre de faire une clé (roam_ref) grâce aux références que j'ai prises
+5. puis je peux me resservir des concepts en créer des "articles", et j'affiche la bibliographie avec #+print_bibliography: là où je veux que ma biblio change
+
+
+
+Pour exporter :
+1. je prends mes 3 dossiers de notes, et je mets toutes mes notes dans TODO ou bien je sais faire fonctionner ninja...
+2. puis, après l'export, je remets tout dans braindump/content/posts, et je fais tourner le site
+
+
+Pour l'héberger :
+Netlify, avec git
+
+
+
+
+

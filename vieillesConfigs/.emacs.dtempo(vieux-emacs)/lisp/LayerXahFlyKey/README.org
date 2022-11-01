@@ -1,0 +1,121 @@
+* Le readme
+
+*HARD DEPENDECIE with [[https://github.com/xahlee/xah-fly-keys][xah-fly-keys]].*
+
+Dans ce readme, je suppose que vous utiliser straight ou use-package (ou les deux) correctement.
+
+** Speed Installation
+
+
+#+begin_src emacs-lisp 
+
+(use-package LayerXahFlyKey
+   ;; :after (xah-fly-keys)
+    :straight '(LayerXahFlyKey :host github
+			:repo "Cletip/LayerXahFlyKey"
+			:branch "main"
+			:files ("*.el" "out")
+			)
+    
+    )
+
+#+end_src
+
+** Comment
+
+Ceci est une surcouche de Xah fly keys qui permet de simplifier certaines utilisations. Elle nécessite d'autres packages (si une commande ne marche pas, regarder le nom de la commande et télécharger le package sur internet).
+
+Le but de ce package et d'ajouter des raccourcis au package xah-fly-keys. De plus, "g" en azerty permet d'appeler un menu différent à chaque major mode. Ce n'est pas vraiment dans la philosophie de xah-fly-keys, mais je trouve ça très pratique dans certains cas.
+
+
+You can install xah-fly-keys like this (minimal configuration):
+
+
+#+begin_src emacs-lisp 
+  
+  (use-package xah-fly-keys	     
+    :config
+     ;;chose your layout
+    (xah-fly-keys-set-layout "azerty")
+
+    (xah-fly-keys)
+
+    )
+  
+#+end_src
+
+Je ne l'ai pas inclut en dépendance direct, car il faut choisir votre clavier + vous pouvez rajouter des options en plus.
+
+Pour moi, j'ai ceci  :
+
+#+begin_src emacs-lisp 
+  
+  (use-package xah-fly-keys	     
+    :config
+    
+    ;; (global-set-key (kbd "<menu>") 'xah-fly-command-mode-activate)
+    
+    ;; To disable both Control and Meta shortcut keys, add the following lines to you init.el before (require 'xah-fly-keys):
+    (setq xah-fly-use-control-key nil)
+    (setq xah-fly-use-meta-key nil)
+      
+    ;; choisir son clavier, important
+    (xah-fly-keys-set-layout "beopy")
+    
+    ;;M-x of your choice
+    ;;(setq xah-fly-M-x-command 'counsel-M-x)
+    ;;(setq xah-fly-M-x-command 'helm-M-x)
+    
+    ;; Les hook	     
+    ;; sauvegarde automatique avec command mode
+    (add-hook 'xah-fly-command-mode-activate-hook 'xah-fly-save-buffer-if-file)
+    
+    (xah-fly-keys);;activer xah au démarrage...
+    ;; (xah-fly-insert-mode-init) ;;avec le mode insertion
+    ) 
+  
+  
+  
+  
+  ;;Suites des hook
+  (defvar my/xfk-auto-insert-mode-fns '()
+    "List of functions to automatically call xah-fly-insert-mode-activate on.")
+  (setq my/xfk-auto-insert-mode-fns
+	'(org-meta-return
+	  org-insert-heading-respect-content
+	  org-insert-link
+	  recentf-open-files
+	  org-capture
+	  
+	  ;; More function names here
+	  ))
+  (defun my/xfk-auto-insert-mode-activate ()
+    "Wires xah-fly-insert-mode-activate to all functions from my/xfk-auto-insert-mode-fns."
+    (dolist (element my/xfk-auto-insert-mode-fns)
+      (advice-add element :after #'xah-fly-insert-mode-activate)))
+  (my/xfk-auto-insert-mode-activate)
+  
+  
+  (defvar my/xfk-auto-command-mode-fns '()
+    "List of functions to automatically call xah-fly-command-mode-activate on.")
+  (setq my/xfk-auto-command-mode-fns
+	'(dashboard-jump-to-recent-files
+	  dashboard-jump-to-projects
+	  recentf-cancel-dialog
+	  dashboard-jump-to-bookmarks
+	  org-agenda-show-dashboard
+	  dashboard-jump-to-if-dashboardweekagenda-agenda-for-the-coming-week-agenda-for-today
+	  ;; More function names
+	  ))
+  
+  (defun my/xfk-auto-command-mode-activate ()
+    "Wires xah-fly-command-mode-activate to all functions from my/xfk-auto-command-mode-fns."
+    (dolist (element my/xfk-auto-command-mode-fns)
+      (advice-add element :after #'xah-fly-command-mode-activate)))
+  (my/xfk-auto-command-mode-activate)
+  
+  
+  
+  
+#+end_src
+

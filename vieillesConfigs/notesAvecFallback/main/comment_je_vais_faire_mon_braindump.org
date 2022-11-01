@@ -1,0 +1,41 @@
+:PROPERTIES:
+:ID:       7dfe50ff-a61d-420c-a480-428f215e891d
+:END:
+#+title: Comment je vais faire mon braindump
+#+filetags: :draft:
+
+Je veux que ce qu'il y a dans mon braindump soit la "suite" de mon cerveau. Je veux pouvoir y référer rapidement plus tard.
+Chaque catégorie est dans un dossier, et j'utilise les tags pour ? (classer ?)
+
+* Notes de références, inbox.org
+
+Un titre = une note
+Ce sont les notes classiques, les choses que l'on surligne dans un texte pour le retenir plus tard, qui contiennent sûrement plusieurs idées.
+=But : aller vite, notes temporaires=
+
+* Notes littéraire, main
+
+Copiez coller les notes de références et résumé les pensées de l'auteur avec mes =propres mots=. =Faire comme si j'écrivais pour quelqu'un d'autre=
+=But : avoir un résumé clair et synthétique=.
+Fait de 2 ou 3 paragraphes
+
+* Construire mes zettel, dans reference
+
+Ils auront comme référence : 
+
+
+
+[cite:key], pour tout ce qui est vidéo, livre etc
+    ou bien
+https://google.com
+    Pour les websites, juste l'url du site
+
+    Les citations sont issus de la capture via Zotero. Puis ma bibliothèque est automatiquement exporté grâce à l'extension [[https://retorque.re/zotero-better-bibtex/][Better Bibtex for zotero]]
+
+Après les notes littéraires, je découpe les concepts dans ces notes littéraires en zettel. 
+Elle contient UNE idée, un concept. Elles peuvent être comprises sans le reste. Peut-être lié avec d'autres Zettel. =Elles sont liés aux sources originelles= (=elles peuvent avoir plusieurs références, auquel cas il faudra rajouter les sources=) par une roam-ref avec une "citation" (au sens une référence en français) ou par un site web. Écrite comme si un enfant devait le lire.
+Chaque Zettel est un brouillon avant de le décocher brouillon (avant d'être lié par exemple).
+
+
+
+* Créer des choses avec les notes permannente, comme des idées ou des choses, dossier articles

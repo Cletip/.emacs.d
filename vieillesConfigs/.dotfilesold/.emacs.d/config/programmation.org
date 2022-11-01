@@ -1,0 +1,286 @@
+#+TODO: ACTIVE | DISABLED
+
+*** Programming 
+Lsp + autres choses. LSP gère tout, le reste se connecte à lsp. De plus, je hook les modes à lsp, et j'active le reste lorque lsp-mode est activé. Mettre les commandes pour installer les languages server protoc
+
+Pour installer facilement un language server protocol, deux cas :
+1. Soit vous avez lsp ou lsp-nomDuLanguage (comme lsp-java) qui existe, vous l'activer correctement avec le mode (java, C, etc), et LSP va alors voir qu'il n'y a aucun language server protocol d'installer.
+   dans ce cas, il va le télécharger (une fois), puis se connecter et en avant.
+2. Sinon, il va falloir télécharger manuellement le language-server-protocol pour que LSP le détecte et se connecte à celui-ci. Suivre les instructions ici :
+   https://emacs-lsp.github.io/lsp-mode/page/languages/
+
+[[https://www.mortens.dev/blog/emacs-and-the-language-server-protocol/index.html][un lien qui permet peut-être de mieux expliquer ?]]
+   
+**** Lsp 
+***** TODO Lsp moteur + quand se déclare lsp
+****** Moteur de lsp-mode
+#+begin_src emacs-lisp
+
+  (use-package lsp-mode
+    :hook (((
+             ;; les modes qui active lsp, et donc tout le reste
+             typescript-mode
+             js2-mode
+             web-mode
+             c-mode
+             python-mode
+             java-mode
+             )
+            . lsp)
+
+           ;; compatibilité avec which-key
+           (lsp-mode . lsp-enable-which-key-integration)
+           )
+    :config
+    ;; pour mapper lsp-command-map
+    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+
+    ;;pour de meilleurs performances
+    ;; (setq gc-cons-threshold 100000000)
+    ;; (setq read-process-output-max (* 1024 1024)) ;; 1mb
+    ;; (setq lsp-idle-delay 0.500)
+    (setq lsp-log-io nil) ; if set to true can cause a performance hit
+
+    ;; les options, voir le lien au dessus
+
+    ;; (setq lsp-ui-doc-enable nil)
+    ;; (setq lsp-ui-doc-show-with-cursor nil) ;; enlever les gros pavés qui se mettent à chaque fois
+    )
+
+
+#+end_src
+****** Lsp-ui (pour les infos qd curseur dessus)
+#+begin_src emacs-lisp
+  (use-package lsp-ui
+    :hook (lsp-mode . lsp-ui-mode)
+    :custom
+    (lsp-ui-doc-position 'bottom))
+#+end_src
+****** Pour les fichiers sur le côté
+#+begin_src emacs-lisp
+  (use-package lsp-treemacs
+    :after lsp
+    :config
+    ;; pour syncro les dossier treemacs avec lsp
+    ;;suis pour lsp
+    ;; (lsp-treemacs-sync-mode 1)	 
+    )
+#+end_src
+
+***** New language understand with emacs + lsp mode
+****** C
+****** Python
+
+#+begin_src emacs-lisp :tangle no
+(setq python-shell-interpreter "/home/msi/anaconda3/bin/python3")
+	
+	(use-package python-mode
+	  :config
+	  ;; (setq python-shell-interpreter "python3")
+	  ;; (setq python-shell-interpreter "ipython")
+	  ;; (setq python-shell-interpreter-args "/home/msi/anaconda3/lib/python3.8/site-packages/bokeh/_testing/plugins/ipython.py") 
+	  (require 'dap-python)
+	
+	     (add-to-list 'auto-mode-alist '("\\.rpy\\'" . python-mode))
+	  )
+	
+	;; pour éviter les erreurs de doctstring	
+	(setq lsp-pylsp-plugins-pydocstyle-enabled nil)
+	
+#+end_src
+****** Java                                                        :Low:
+
+#+begin_src emacs-lisp
+
+    ;; pour corriger la variable $JAVA_HOME
+    (use-package exec-path-from-shell
+      :config
+      (exec-path-from-shell-initialize)
+      )
+    ;; (when (daemonp)
+      ;; (exec-path-from-shell-initialize)
+      ;; )
+
+    (use-package lsp-java
+      :config
+      ;; (setq lsp-java-jdt-download-url  "https://download.eclipse.org/jdtls/milestones/0.57.0/jdt-language-server-0.57.0-202006172108.tar.gz")
+      )
+#+end_src
+
+**** Completion et proposition
+***** Voir les propositions avec company
+
+Auto-complete existe aussi, mais pas aussi efficace.
+****** Le moteur
+
+
+
+#+begin_src emacs-lisp 
+
+  (use-package company
+    :after lsp-mode  ;;si ya lsp-mode
+    :hook (lsp-mode . company-mode)  ;; au lieu de lsp, mettre c-mode, python mode etc
+    :custom
+    (company-minimum-prefix-length 1) ;;taille avant que le popup arrive
+    (company-idle-delay 0.6);;temps avant qu'il pop
+    ;;pour cycler dans les sélections
+    (company-selection-wrap-around t)
+
+
+
+    ;; réglemeent des touches, assez explicite, sur azerty :
+    ;; k i s 
+    (define-key company-active-map (kbd "M-n") nil)
+    (define-key company-active-map (kbd "M-p") nil)
+    ;; (define-key company-active-map (kbd "s") #'company-select-next)
+    ;; (define-key company-active-map (kbd "d") #'company-select-previous)
+    (define-key company-active-map (kbd "C-s") #'company-select-next)
+    (define-key company-active-map (kbd "C-d") #'company-select-previous)
+    (define-key company-active-map (kbd "u") 'company-complete-selection)
+    (define-key company-active-map (kbd "SPC") #'company-abort)
+
+    )
+
+
+  ;; ne pas y mettre dans :config
+  (with-eval-after-load 'company
+    ;;pour =activer les yasnippets dans company !!!!!!=
+    (setq lsp-completion-provider :none)
+    ;; Add yasnippet support for all company backends
+    ;; https://github.com/syl20bnr/spacemacs/pull/179
+    (defvar company-mode/enable-yas t
+      "Enable yasnippet for all backends.")
+
+    (defun company-mode/backend-with-yas (backend)
+      (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+          backend
+        (append (if (consp backend) backend (list backend))
+                '(:with company-yasnippet))))
+
+    (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))       
+    )
+
+#+end_src
+
+****** Pour l'esthétique de l'affichage
+
+#+begin_src emacs-lisp
+    (use-package company-box
+      :after company ;;logique
+      :hook (company-mode . company-box-mode) ;;logique également
+      )
+#+end_src
+
+***** Candidats intelligent, se base sur la fréquence d'apparition
+
+#+begin_src emacs-lisp
+  
+  (use-package company-prescient
+    :after company
+    :config
+    (company-prescient-mode 1)
+    ;; Remember candidate frequencies across sessions
+    (prescient-persist-mode 1)
+    )
+  
+  
+#+end_src
+***** Expand des choses préfaites
+
+#+begin_src emacs-lisp
+
+  (use-package yasnippet
+    ;; si on veux les yas que en prog mode, décocher ça et cocher yas global mode
+    ;; :hook (prog-mode . yas-minor-mode)
+    :config
+    (yas-reload-all)
+    (yas-global-mode 1)
+    (setq yas-triggers-in-field t) ;;appeler des snippets dans des snippets
+
+    (define-key yas-minor-mode-map (kbd "<tab>") nil)
+    (define-key yas-minor-mode-map (kbd "TAB") nil)
+    (define-key yas-minor-mode-map (kbd "<C-tab>") 'yas-expand)
+    )
+
+  (use-package yasnippet-snippets ;; un pack de snippets
+    :diminish)
+
+#+end_src
+**** TODO Pour plier du code ?
+
+#+begin_src emacs-lisp
+
+  ;; (use-package origami)
+
+    ;; (use-package lsp-origami
+      ;; :config
+      ;; (add-hook 'lsp-after-open-hook #'lsp-origami-try-enable)
+    ;; (define-key origami-mode-map (kbd "<tab>") 'origami-toggle-node)
+    ;; (define-key origami-mode-map (kbd "C-s") 'origami-next-fold)
+    ;; (define-key origami-mode-map (kbd "C-d") 'origami-previous-fold)
+      ;; )
+
+#+end_src
+
+**** TODO Debugging
+**** TODO Code Folding
+
+
+
+**** Error Checkinkg
+
+#+begin_src emacs-lisp
+
+  (use-package flycheck
+    :defer t
+    :diminish
+    ;; :hook (lsp-mode . flycheck-mode)
+    :config
+    (global-flycheck-mode t)
+    (set-face-attribute 'flycheck-error nil :foreground "black" :background
+                        "#EE4400")
+    (set-face-attribute 'flycheck-warning nil :foreground "black" :background
+                        "#EE9900")
+    (set-face-attribute 'flycheck-info nil :foreground "black" :background
+                        "#008800")
+    )
+
+#+end_src
+
+**** Compiling
+**** Other
+***** [[*Parenthèse et <> autres auto, pour modifier pair de parenthèse][Parenthèse et <> autres auto, pour modifier pair de parenthèse]]
+***** Affiche les numéros de lignes qd on programme
+#+begin_src emacs-lisp
+   (add-hook 'prog-mode-hook #'linum-mode) 
+#+end_src
+**** Gestion de projet
+#+begin_src emacs-lisp 
+  (use-package projectile
+    :config
+    ;; (projectile-global-mode)
+    ;;(setq projectile-completion-system 'ivy)
+    )
+#+end_src
+**** Language without lsp
+***** xah fly elisp mode, pas encore utilisé
+Documentation : 
+http://ergoemacs.org/emacs/xah-elisp-mode.html
+
+Liste des abbrev : M-x list-abbrevs
+
+#+begin_src emacs-lisp
+(use-package xah-elisp-mode)
+#+end_src
+
+***** Processing 3 (cours)
+
+#+begin_src emacs-lisp 
+  
+  (use-package processing-mode)
+  (add-to-list 'auto-mode-alist '("\\.pde\\'" . processing-mode))
+
+  
+  (setq processing-location "/home/msi/Téléchargements/processing-3.5.4/processing-java")
+  
+#+end_src

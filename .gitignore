@@ -17,6 +17,7 @@
 
 # les variables
 /var/backup/
+/var/backupcopie/
 /var/auto-save/
 /var/emacs-session/
 /var/lsp/server/
@@ -28,6 +29,7 @@
 /var/tramp/
 /auto-save-list/
 
+var/request/
 
 
 

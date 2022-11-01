@@ -1,0 +1,28 @@
++++
+title = "Voit My GNU Emacs Configuration"
+author = ["msi"]
+tags = ["draft"]
+draft = false
++++
+
+source
+: [<a href="#citeproc_bib_item_1">1</a>]
+
+Lien avec [Comment Ne plus RIEN OUBLIER Grâce à Un SECOND CERVEAU ?]({{< relref "eliottmeunierCommentNeRIEN2020.md" >}}).
+
+[lien](https://github.com/Cletip/.emacs.dtempo)
+
+## Bibliographie
+
+<style>.csl-left-margin{float: left; padding-right: 0em;}
+ .csl-right-inline{margin: 0 0 0 1em;}</style><div class="csl-bib-body">
+  <div class="csl-entry"><a id="citeproc_bib_item_1"></a>
+    <div class="csl-left-margin">1. </div><div class="csl-right-inline">Voit K. My GNU Emacs Configuration [Internet]. 2022 [cited 2022 Feb 6]. Available from: <a href="https://github.com/novoid/dot-emacs">https://github.com/novoid/dot-emacs</a></div>
+  </div>
+</div>
+
+
+
+
+
+
