@@ -1,4 +1,3 @@
-;;;; Emacs Bookmark Format Version 1;;;; -*- coding: no-conversion; mode: lisp-data -*-
 ;;;; Emacs Bookmark Format Version 1;;;; -*- coding: utf-8-emacs; mode: lisp-data -*-
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
@@ -49,10 +48,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20221024221341-test_de_chose_yes.org")
- (front-context-string)
- (rear-context-string . "st de chose yes\n")
- (position . 79))
+ (filename . "~/braindump/org/inbox-utilisateur-GL65-Leopard-10SER.org")
+ (front-context-string . "* TODO parler à ")
+ (rear-context-string . "2022-11-10 Thu>\n")
+ (position . 390))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

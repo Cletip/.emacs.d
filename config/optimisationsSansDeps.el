@@ -99,10 +99,18 @@
 
 (cd user-emacs-directory)
 
-(defun cp/find-symbol-at-point ()
-  "DOCSTRING"
+(defun cp/find-symbol ()
+  "Find symbol at point or proprose to find a symbol"
   (interactive)
-  (let ((symbol (symbol-at-point)))
+  (let ((symbol
+         (or
+          ;; (symbol-at-point)
+          (helpful--symbol-at-point)
+          ;; (intern (completing-read "Symbol: " obarray))
+          (helpful--read-symbol
+           "Symbol: "
+           (helpful--symbol-at-point)
+           #'helpful--bound-p))))
     (cond
      ((and (boundp symbol) (fboundp symbol))
       (if (y-or-n-p
@@ -121,9 +129,7 @@
      ;; ((condition-case nil
      ;; (find-variable-at-point)
      ;; (error nil)) (find-variable-at-point))
-     (t (message "no symbol at point or don't find the path"))
-     ))
-  )
+     (t (message "no symbol at point or don't find the path")))))
 
 
 
@@ -870,6 +876,7 @@ reuse it's window, otherwise create new one."
   (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
   ;;mode nuit de base
   (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+  ;; pour que "pdf-annot-list-annotations" marche, il faut remove les .emacs.d/straight/repos/tablist/*.elc
   )
 
 (use-package engine-mode

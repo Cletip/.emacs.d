@@ -229,11 +229,15 @@
 ;; (setq org-ellipsis " ")
 
 (setq org-startup-with-inline-images t)
-(setq org-image-actual-width 800)
+  (setq org-image-actual-width '(800)) ;; dans une liste. voir la doc string. comme cela, je peux me servir de #+ATTR_ORG: :width 1000 ce qui est cool. un nombre simple écrase tout, une liste est le fallback
+;;  (setq org-image-actual-width (* (display-pixel-width) 0.8))
+(setq shr-max-image-proportion 0.9) ;; proportion de l'image prise au max. pas sûr que cela marche
 
 (use-package org-fragtog
-  :hook (org-mode . org-fragtog-mode)
-  )
+:hook (org-mode . org-fragtog-mode)
+:config
+;;taille du latex
+(plist-put org-format-latex-options :scale 1.5))
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 (diminish org-indent-mode)
@@ -785,10 +789,11 @@ Add this function to `org-mode-hook'."
 ;; (advice-remove 'org-roam-db-sync #'org-icalendar-combine-agenda-files-background)
 
 (setq org-agenda-prefix-format
-        '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
-          (todo . " %i %(vulpea-agenda-category 12) ")
-          (tags . " %i %(vulpea-agenda-category 12) ")
-          (search . " %i %(vulpea-agenda-category 12) ")))
+      '((agenda . " %i %(vulpea-agenda-category 12)%?-12t% s")
+        ;; (agenda . " %i %(vulpea-agenda-category 12)%?-12t%-6e% s") ;; pour voir l'effort estimate
+        (todo . " %i %(vulpea-agenda-category 12) ")
+        (tags . " %i %(vulpea-agenda-category 12) ")
+        (search . " %i %(vulpea-agenda-category 12) ")))
 
 ;; (todo . " %i %(vulpea-agenda-category 12) %(let ((scheduled (org-get-scheduled-time (point)))) (if scheduled (format-time-string \"Schedulded to <%Y-%m-%d-%H-%M %a>\" scheduled) \"\"))")
 
@@ -834,6 +839,8 @@ Refer to `org-agenda-prefix-format' for more information."
 
 ;; si je veux que cela commence en mode log-mode. Pas sûr que ce soit CETTE variable
 ;; (setq org-agenda-start-with-log-mode '(closed clock state))
+
+(setq org-deadline-warning-days 5)
 
 (setq org-tags-exclude-from-inheritance '(
                                           "PROJET"
@@ -1369,7 +1376,7 @@ Refer to `org-agenda-prefix-format' for more information."
       (vulpea-buffer-prop-get-list "filetags" "[ :]")))
 
 ;; tags à ignorer
-(setq ignore-meta '("Origine" "Lieu" "Fait" ""))
+(setq ignore-meta '("Origine" "Lieu" "Fait" "" cp/vulpea-date))
 
 ;; mes tags avec leurs propriétés
 (setq tags-for-meta-list '(
@@ -1759,7 +1766,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   (setq-default
    org-archive-file-header-format "" ;;ce qui est affiché au début du fichier
    org-archive-location
-   (concat braindump-directory "org/.archive/%s_archive" "::" "* Tâches archivées")
+   (concat braindump-directory "org/.archive/%s_archive" "::")
+   ;; (concat braindump-directory "org/.archive/%s_archive" "::" "* Tâches archivées") pléonasme
    ;; (concat braindump-directory "org/.archive/%s_archive" "::" "datetree/")
    ;; (concat braindump-directory "org/.archive/datetree.org::datetree/")
    org-archive-save-context-info
@@ -1837,6 +1845,40 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   :config
   (setq wikinforg-wikipedia-edition-code "fr")
   )
+
+;; modification de ma fonction d'annotation
+(setq vulpea-select-annotate-fn #'cp/vulpea-select-annotate)
+
+;; variable de la date
+(setq cp/vulpea-date "date")
+
+;; ajout de la date dans les annotations
+(defun cp/vulpea-select-annotate (note)
+  "Annotate a NOTE for completion."
+  (let* ((alias-str
+          (if (vulpea-note-primary-title note)
+              (concat "("
+                      (vulpea-note-primary-title note)
+                      ")")
+            ""))
+         (tags-str (mapconcat
+                    (lambda (x) (concat "#" x))
+                    (vulpea-note-tags note)
+                    " "))
+         (date-str (if (vulpea-meta-get note cp/vulpea-date)
+                       (vulpea-meta-get note cp/vulpea-date)
+                     ;; (make-string 8 (string-to-char " "))
+                     ""
+                     ))
+         (sections (seq-remove #'string-empty-p
+                               (list
+                                date-str
+                                alias-str
+                                tags-str
+                                ))))
+    (if (null sections)
+        ""
+      (concat " " (string-join sections " ")))))
 
 )
 
@@ -2763,10 +2805,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   (setq zotra-url-retrieve-timeout 5) ;; plus de temps pour les demandes
   )
 
-(use-package visual-fill-column
-  :config
-  ;; Configure fill width
-  )
+(use-package visual-fill-column)
 
 (use-package org-present
   :config
@@ -2783,24 +2822,32 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
   (defun my/org-present-start ()
     ;; Tweak font sizes
-    (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+    (setq-local face-remapping-alist '(
+                                       ;; (default (:height 1.5) variable-pitch)
+                                       ;; ;;provoque très sur les images
                                        (header-line (:height 4.0) variable-pitch)
                                        (org-document-title (:height 1.75) org-document-title)
                                        (org-code (:height 1.55) org-code)
                                        (org-verbatim (:height 1.55) org-verbatim)
                                        (org-block (:height 1.25) org-block)
-                                       (org-block-begin-line (:height 0.7) org-block)))
+                                       (org-block-begin-line (:height 0.7)
+                                                             org-block)))
+
+    ;; (setq-local org-image-actual-width 1500) ;; réglé directement au niveau des images
 
     ;; Set a blank header line string to create blank space at the top
     (setq header-line-format " ")
     ;; (setq org-ellipsis "")
+
+    ;;joli écri
+    (variable-pitch-mode 1)
 
     ;; Display inline images automatically
     (org-display-inline-images)
 
     (hide-mode-line-mode)
     (toggle-frame-fullscreen)
-    (set-frame-parameter (selected-frame) 'alpha '(85 . 100))
+    (set-frame-parameter (selected-frame) 'alpha '(90 . 100))
 
     ;; Center the presentation and wrap lines
     (setq visual-fill-column-width 150)
@@ -2814,6 +2861,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
     ;; Clear the header line string so that it isn't displayed
     (setq header-line-format nil)
+
+    (variable-pitch-mode -1)
 
     ;; Stop displaying inline images
     (org-remove-inline-images)
@@ -2833,7 +2882,41 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   ;; Register hooks with org-present
   (add-hook 'org-present-mode-hook 'my/org-present-start)
   (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
-  (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide))
+  (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+  ;; (remove-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+
+  ;; null. fonction à faire :
+  (defun cp/org-present-next-heading ()
+    "Jump to next top-level heading."
+    (interactive)
+
+    ;; (widen)
+    (if (org-current-level)	      ;; inside heading
+        (if (= (org-current-level) 1) ;;inside heading 1
+            (progn
+              (outline-next-heading)
+              (recenter)
+              (org-show-subtree))
+  ;if that was last, go back to top before narrow
+          ;; else go to children
+          (if (org-get-next-sibling)
+              (progn
+                (recenter)
+                (outline-show-children)
+                (outline-show-entry))
+            (progn
+              (widen)
+              (outline-next-heading)
+              (org-present-narrow)
+              (org-present-run-after-navigate-functions))))
+      (org-present-next)))
+
+  ;; désactiver le hook de system crafter pour faire la fonction. il faut donc : si titre 0, alors go titre 1. Si titre 1, alors allez au prochain
+  ;; titre 2 et le déplier. doit être en haut. puis, deux choix : soit pas de
+  ;; fils. donc, on passe au prochain titre 2. soit, il a un fils. donc, on
+  ;; plie les précédents et on affiche titre 3. puis deux solution, soit etc.
+
+  )
 
 ;; deleted unwanted file extensions after latex export
 (setq
