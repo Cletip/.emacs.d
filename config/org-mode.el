@@ -243,38 +243,39 @@
 (diminish org-indent-mode)
 
 (org-babel-do-load-languages
-   'org-babel-load-languages
-   '(
-     ;; (ditaa      . t)
-     (C          . t)
-     ;; (dot        . t)
-     (emacs-lisp . t)
-     ;; (scheme     . t)
-     ;; (gnuplot    . t)
-     ;; (haskell    . t)
-     (latex      . t)
-     ;; (js         . t)
-     ;; (ledger     . t)
-     ;; (matlab     . t)
-     ;; (ocaml      . t)
-     ;; (octave     . t)
-     ;; (plantuml   . t)
-     (python     . t)
-     ;; (R          . t)
-     ;; (ruby       . t)
-     ;; (screen     . nil)
-     ;; (scheme     . t)
-     (shell      . t)
-     (sql        . t)
-     (sqlite     . t)
-     (java     . t)
-     (js . t) ;;javascripts
-     )
-   )
+ 'org-babel-load-languages
+ '(
+   ;; (ditaa      . t)
+   (C          . t)
+   (dot        . t)
+   (emacs-lisp . t)
+   ;; (scheme     . t)
+   ;; (gnuplot    . t)
+   ;; (haskell    . t)
+   (latex      . t)
+   ;; (js         . t)
+   ;; (ledger     . t)
+   ;; (matlab     . t)
+   ;; (ocaml      . t)
+   ;; (octave     . t)
+   ;; (plantuml   . t)
+   (python     . t)
+   ;; (R          . t)
+   ;; (ruby       . t)
+   ;; (screen     . nil)
+   ;; (scheme     . t)
+   (shell      . t)
+   (sql        . t)
+   (sqlite     . t)
+   (java     . t)
+   (js . t) ;;javascripts
+   ))
 
 (setq org-babel-python-command "python3")
 
-(setq org-confirm-babel-evaluate nil)
+(setq org-confirm-babel-evaluate nil	  ;; for running code blocks
+      org-confirm-elisp-link-function nil ;; for elisp links
+      org-confirm-shell-link-function nil)  ;; for shell links
 
 (setq org-src-tab-acts-natively t)
 
@@ -458,6 +459,18 @@ Add this function to `org-mode-hook'."
     (expand-file-name (format "inbox-%s.org" (system-name)) org-roam-directory)
     )
 
+;; possible de faire une fonction pour renvoyer un chemin. Faire en sorte de faire un template et de choisir dynamiquement le template ? avec des fichiers "truc.org" avec le tag "configOrgCapture" ?
+(setq cp-template-path "/home/utilisateur/braindump/templatesOrgCapture/")
+
+(defun cp-return-path-of-template (type)
+  "DOCSTRING"
+  (concat cp-template-path type)
+  )
+
+(cp-return-path-of-template "test.org")
+
+
+
 (defun cp/return-key-for-capture (theKey)
   "theKey is a string"
   (let ((result nil))
@@ -484,6 +497,12 @@ Add this function to `org-mode-hook'."
         ("T" "test" entry
          (function cp/vulpea-capture-tickler-target)
          "* TODO %^{Nom du tickler} :tickler:\nSCHEDULED: %^T\n%?"
+         )
+
+        (,(cp/return-key-for-capture "N") "Test de chemin" entry
+         (function cp/vulpea-capture-rdv-target)
+         (file ,(cp-return-path-of-template "tickler.org"))
+         :immediate-finish t
          )
 
         ;; ("c" "nouvelle connaissance" entry
@@ -1789,6 +1808,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         ;; (goto-char (line-beginning-position))
         (when (= (org-outline-level) 1)
           ;; (when (y-or-n-p  (format "voulez vous archiver %S ?" (org-entry-get nil "ITEM")))
+          ;; ici pour voir si c'est un heading "évènement"
+          ;;if
           (org-archive-subtree)
           ;; )
           )))))
@@ -1880,6 +1901,26 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         ""
       (concat " " (string-join sections " ")))))
 
+;; (use-package org-mode-incremental-reading
+;;   :straight (incremental-reading
+;;             :type git
+;;             :host github
+;;             :repo "vascoferreira25/org-mode-incremental-reading"))
+
+(straight-use-package '(org-mode-incremental-reading
+                        :host github
+                        :repo "vascoferreira25/org-mode-incremental-reading"))
+
+(use-package anki-editor
+  :straight (anki-editor
+             :type git
+             :host github
+             :repo "louietan/anki-editor"))
+
+(use-package org-anki)
+
+
+
 )
 
 (use-package org-roam
@@ -1943,8 +1984,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 
 (setq org-roam-capture-templates
-      '(
-        ("d" "default" plain "%?"
+      '(("d" "default" plain "%?"
          :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                             "#+title: ${title}\n")
          :unnarrowed t)
@@ -1973,7 +2013,6 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
                             "#+title: ${title}\n")
          :unnarrowed t)
 
-
         ("T" "Test de nouveau nom" plain "%?"
          :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                             "#+title: ${title}\n")
@@ -1981,11 +2020,10 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
         ("r" "bibliography reference" plain
          (file "../templatesOrgCapture/key.org")
-         :if-new 
+         :if-new
          (file+head "reference/${citekey}.org" "#+title: ${title}\n")
          :unnarrowed t
          :jump-to-captured t)
-
 
         ("r" "bibliography reference" plain
          (file "../templatesOrgCapture/key.org")
@@ -1993,8 +2031,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
          (file+head "reference/${citekey}.org" "#+title: ${title}\n")
          :unnarrowed t)
 
-        )
-      )
+        ))
 
 ;;défini la capture de mon journal
 (setq org-roam-dailies-directory "journals/")
@@ -2922,7 +2959,11 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 (setq
  org-latex-remove-logfiles t
  org-latex-logfiles-extensions
- (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl" "xmpi" "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
+ (quote ("lof" "lot" "tex~" "aux" "idx"
+         "log"
+         "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl"
+         "xmpi"
+         "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
 
 
 (setq org-latex-packages-alist 'nil)
@@ -2946,55 +2987,65 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 (add-to-list 'org-latex-classes
              '("altacv" "\\documentclass[10pt,a4paper,ragged2e,withhyper]{altacv}
 
-          % Change the page layout if you need to
-          \\geometry{left=1.25cm,right=1.25cm,top=1.5cm,bottom=1.5cm,columnsep=1.2cm}
+              % Change the page layout if you need to
+              \\geometry{left=1.25cm,right=1.25cm,top=1.25cm,bottom=1.25cm,columnsep=1.2cm}
 
-          % Use roboto and lato for fonts
-          \\renewcommand{\\familydefault}{\\sfdefault}
+              % Use roboto and lato for fonts
+              \\renewcommand{\\familydefault}{\\sfdefault}
 
-          % Change the colours if you want to
-          \\definecolor{SlateGrey}{HTML}{2E2E2E}
-          \\definecolor{LightGrey}{HTML}{666666}
-          \\definecolor{DarkPastelRed}{HTML}{450808}
-          \\definecolor{PastelRed}{HTML}{8F0D0D}
-          \\definecolor{GoldenEarth}{HTML}{E7D192}
-          \\colorlet{name}{black}
-          \\colorlet{tagline}{PastelRed}
-          \\colorlet{heading}{DarkPastelRed}
-          \\colorlet{headingrule}{GoldenEarth}
-          \\colorlet{subheading}{PastelRed}
-          \\colorlet{accent}{PastelRed}
-          \\colorlet{emphasis}{SlateGrey}
-          \\colorlet{body}{LightGrey}
+              % Change the colours if you want to
+              \\definecolor{SlateGrey}{HTML}{2E2E2E}
+              \\definecolor{LightGrey}{HTML}{666666}
+              \\definecolor{DarkPastelRed}{HTML}{450808}
+              \\definecolor{PastelRed}{HTML}{8F0D0D}
+              \\definecolor{GoldenEarth}{HTML}{E7D192}
+              \\colorlet{name}{black}
+              \\colorlet{tagline}{PastelRed}
+              \\colorlet{heading}{DarkPastelRed}
+              \\colorlet{headingrule}{GoldenEarth}
+              \\colorlet{subheading}{PastelRed}
+              \\colorlet{accent}{PastelRed}
+              \\colorlet{emphasis}{SlateGrey}
+              \\colorlet{body}{black}
 
-          % Change some fonts, if necessary
-          \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
-          \\renewcommand{\\personalinfofont}{\\footnotesize}
-          \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
-          \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
+              % les variables de couleurs
+              \\colorlet{Info}{red}
+              \\colorlet{Langue}{blue}
+              \\colorlet{Soft}{blue}
 
-          % Change the bullets for itemize and rating marker
-          % for \cvskill if you want to
-          \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
-          \\renewcommand{\\ratingmarker}{\\faCircle}
-          "
+              % Change some fonts, if necessary
+              \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
+              \\renewcommand{\\personalinfofont}{\\footnotesize}
+              \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
+              \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
+
+              % Change the bullets for itemize and rating marker
+              % for \cvskill if you want to
+              \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
+              \\renewcommand{\\ratingmarker}{\\faCircle}
+              "
 
                ("\\cvsection{%s}" . "\\cvsection*{%s}")))
 
-(use-package anki-editor
-  :straight (anki-editor
-             :type git
-             :host github
-             :repo "louietan/anki-editor"))
+(use-package org-discuss
+    :if (not termux-p)
+    :straight (org-discuss
+               :type git
+               :host github
+               :repo "Cletip/org-discuss")
+    :config
+;; faire un truc avec braindump-directory
+    (setq org-discuss-directory "/home/utilisateur/mesdocuments/personnel/discussionTheSystem/"
+          org-discuss-discussion-directory "org-discuss"
+          org-discuss-pseudo "Cletip"
+          org-discuss-capture-key "N"
+          )
 
-(use-package org-anki)
+    (org-discuss-db-sync))
 
-;; (use-package org-mode-incremental-reading
-;;   :straight (incremental-reading
-;;             :type git
-;;             :host github
-;;             :repo "vascoferreira25/org-mode-incremental-reading"))
+(use-package org-make-toc
+  :config
+  ;;refresh la table of content
+  (add-hook 'org-mode-hook #'org-make-toc-mode))
 
-(straight-use-package '(org-mode-incremental-reading
-                        :host github
-                        :repo "vascoferreira25/org-mode-incremental-reading"))
+(use-package denote)

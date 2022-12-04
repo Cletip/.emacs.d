@@ -18,7 +18,11 @@
     ("bjr" "bonjour")
     ("cad" "bonjour")
     ("pb" "problème")
-    ("c'" "c'est")
+    ("c" "c'est")
+    ("rdv" "rendez-vous")
+    ("pdt" "pendant")
+    ("nb" "nombre")
+    ("tjr" "toujours")
 
     ;; net abbrev
     ("afaik" "as far as i know")

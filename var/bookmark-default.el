@@ -2,16 +2,36 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("emacs code"
+(("the-System doc"
+ (filename . "~/mesdocuments/personnel/informatique/the-System/the-System-core/docs/the-System.org")
+ (front-context-string . "#+title: the-Sys")
+ (rear-context-string)
+ (position . 1))
+("org-discuss.el"
+ (filename . "~/mesdocuments/personnel/informatique/org-discuss/org-discuss.el")
+ (front-context-string . "`(,org-discuss-c")
+ (rear-context-string . "es\n             ")
+ (position . 5009))
+("vulpea.el"
+ (filename . "~/.dotfiles/.emacs.d/straight/repos/vulpea/vulpea.el")
+ (front-context-string . "(defun vulpea-in")
+ (rear-context-string . "\n;;;###autoload\n")
+ (position . 4366))
+("Téléchargements"
+ (filename . "~/Téléchargements/")
+ (front-context-string . "These_Yannick_Lo")
+ (rear-context-string . " oct.  31 14:34 ")
+ (position . 3303))
+("emacs code"
  (filename . "~/Testdedossier/emacs/")
  (front-context-string . "lisp\n  drwxrwxr-")
  (rear-context-string . " juil. 13 22:11 ")
  (position . 2159))
 ("org-refile-last-stored"
  (filename . "~/braindump/org/pages/20220616193340-comment_faire_un_second_cerveau.org")
- (front-context-string . "*** TODO backend")
- (rear-context-string . "mettre ca tard\n\n")
- (position . 19741))
+ (front-context-string . "*** TODO en fait")
+ (rear-context-string . "urce et demande\n")
+ (position . 33323))
 ("straight"
  (filename . "~/.emacs.d/straight/")
  (front-context-string . "build-cache.el\n ")
@@ -48,10 +68,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/inbox-utilisateur-GL65-Leopard-10SER.org")
- (front-context-string . "* TODO parler à ")
- (rear-context-string . "2022-11-10 Thu>\n")
- (position . 390))
+ (filename . "~/braindump/org/inbox-localhost.org")
+ (front-context-string . "* TODO equilibri")
+ (rear-context-string . "ri 13:06]\n:END:\n")
+ (position . 20263))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

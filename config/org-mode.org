@@ -9,7 +9,7 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 * Config + code final
 
 ** Variables de chemins et autres utile dans tous les cas
-*** Lieu de mon dossier org-directory (tout se base sur lui)
+*** Lieu de mon dossier org-directory 
 
 #+begin_src emacs-lisp
   (setq org-directory (expand-file-name "org/" braindump-directory))
@@ -552,12 +552,12 @@ Tout se trouve dans .dotfiles/.fonts
 Do not load all to booste the startup time 
 
 #+begin_src emacs-lisp
-  (org-babel-do-load-languages
+    (org-babel-do-load-languages
    'org-babel-load-languages
    '(
      ;; (ditaa      . t)
      (C          . t)
-     ;; (dot        . t)
+     (dot        . t)
      (emacs-lisp . t)
      ;; (scheme     . t)
      ;; (gnuplot    . t)
@@ -579,15 +579,16 @@ Do not load all to booste the startup time
      (sqlite     . t)
      (java     . t)
      (js . t) ;;javascripts
-     )
-   )
+     ))
 
-(setq org-babel-python-command "python3")
+  (setq org-babel-python-command "python3")
 
 #+end_src
-***** Annulation de la demande de confirmation lors de la demande d'évaluation du code
+***** Annulation de la demande de confirmation lors de la demande d'évaluation du code (babel, elisp-link, shell link)
 #+begin_src emacs-lisp 
-  (setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate nil	  ;; for running code blocks
+        org-confirm-elisp-link-function nil ;; for elisp links
+        org-confirm-shell-link-function nil)  ;; for shell links
 #+end_src
 ***** Indente le code selon le language
 Dans les blocs de code, on veut la mise en évidence de syntaxe, et l'on
@@ -1075,7 +1076,7 @@ Maj du package : j'enlève la création de ctime, car c'est donné par l'id ! et
 
 #+begin_src emacs-lisp :tangle no
 
-  
+
   (use-package org-roam-timestamps
     :after org-roam
     :config
@@ -1183,9 +1184,6 @@ Ancienne méthode :
 
 #+end_src
 
-
-
-
 ***** Fonctions pour "Fait", permet de mettre quand j'ai fait quelque chose
 
 #+begin_src emacs-lisp
@@ -1256,6 +1254,18 @@ Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
 
 #+begin_src emacs-lisp
 
+  ;; possible de faire une fonction pour renvoyer un chemin. Faire en sorte de faire un template et de choisir dynamiquement le template ? avec des fichiers "truc.org" avec le tag "configOrgCapture" ?
+  (setq cp-template-path "/home/utilisateur/braindump/templatesOrgCapture/")
+
+  (defun cp-return-path-of-template (type)
+    "DOCSTRING"
+    (concat cp-template-path type)
+    )
+
+  (cp-return-path-of-template "test.org")
+
+
+
   (defun cp/return-key-for-capture (theKey)
     "theKey is a string"
     (let ((result nil))
@@ -1284,6 +1294,12 @@ Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
            "* TODO %^{Nom du tickler} :tickler:\nSCHEDULED: %^T\n%?"
            )
 
+          (,(cp/return-key-for-capture "N") "Test de chemin" entry
+           (function cp/vulpea-capture-rdv-target)
+           (file ,(cp-return-path-of-template "tickler.org"))
+           :immediate-finish t
+           )
+
           ;; ("c" "nouvelle connaissance" entry
           ;; (file capture-inbox-file)
           ;; (file "../templatesOrgCapture/connaissances.org")
@@ -1291,6 +1307,9 @@ Si la touche à appuyer est en maj, ceci est fait pour org-protocol !
           ;; )
 
           ))
+
+
+
 #+end_src
 
 Ancien : 
@@ -1470,8 +1489,6 @@ Ancien :
 
 #+end_src
 
-
-
 ****** un rdv
 #+begin_src emacs-lisp
 
@@ -1517,7 +1534,6 @@ Ancien :
 
 
 #+end_src
-
 
 ****** Meeting avec une personne
 
@@ -1575,7 +1591,6 @@ Ancien :
           (widen)))))
 
 #+end_src
-
 
 **** Gestion changement rapide de place pour les noeuds
 :LOGBOOK:
@@ -1637,8 +1652,6 @@ Ne pas oublier la commande org-roam-refile.
   (setq org-agenda-span 8)
 
 #+end_src
-
-
 
 ***** Gestion des priorité
 
@@ -1767,7 +1780,6 @@ Même si la priorité n'est pas marqué, la priorité des subheading est bien la
 
 #+end_src
 
-
 ***** Gestion de l'agenda (visuel) 
 
 
@@ -1859,7 +1871,6 @@ Faire la touche "v" dans l'agenda ! A pour voir les task dans fichiers archivé.
 #+begin_src emacs-lisp
   (setq org-deadline-warning-days 5)
 #+end_src
-
 
 ***** Gestion de l'agenda (commandes)
 ****** Construction dynamique de mon agenda
@@ -2018,7 +2029,6 @@ Now all we have to do is to check if the buffer list contains at least one keywo
     (vulpea-project-update-tag)
     (save-buffer)))
 #+end_src
-
 
 ****** TODO org-super-agenda
 
@@ -2473,7 +2483,12 @@ Ne garde que les première conditions, pourquoi ?
         (org-refile nil nil rfloc))))))
 #+end_src
 
-****** Faire des requête avec des commandes
+****** TODO Faire des requête avec des commandes
+:LOGBOOK:
+- State "TODO"       from              [2022-11-20 Sun 22:17]
+:END:
+
+prendre la branvhe de @dmitrym0 pour les requêtes sur les 15h-16 (intervales de temps) ? 
 
 [[https://github.com/alphapapa/org-ql/blob/master/examples.org#stuck-projects-block-agenda][voir des exemples ici]]
 
@@ -2673,7 +2688,6 @@ pour tester :
       '((sequence "TODO(!)" "|" "DONE(!)" )))
 #+end_src
 
-
 ***** Tracer les états / states des todo dans des tiroirs 
 
 Il faut rajouter "!" dans les org-todo-keywords.
@@ -2685,8 +2699,8 @@ Il faut rajouter "!" dans les org-todo-keywords.
 
 #+end_src
 
-
 ***** Gestion des projets
+
 ****** Empêche les parent d'être coché si les fils ne le sont pas
 
 #+begin_src emacs-lisp
@@ -3106,13 +3120,16 @@ Se base sur les ids pour la date ctime
 #+end_src
 
 
-**** Gestion des polysèmes
+**** TODO Gestion des polysèmes
+:LOGBOOK:
+- State "TODO"       from              [2022-11-20 Sun 22:05]
+:END:
+
+Mise à jour necessaire : il faut mettre la désambiguïsation dans une propriété, et l'afficher grâce à vulpea-select-describe-fn (faire concaténation titre+[cette propriété]) !
 
 ***** Fonction permettant de faire la pages de polysémes : 
 
 gestion des homonymes : une page homonyme généré automatiquement. Fonction : scan les notes et dès que trouve "logique (blabla)" et "logique (blublu)", soit créer la page logique homonyme et insère une liste de liens dedans, soit la page est déjà créer et met à jour la liste. Fonction différentes pour mettre à jour (rajoute à la fin quoi)
-
-
 
 Principe de base :
 =simplifier les choses en stockant directements les notes au lieu des id ?=
@@ -3399,13 +3416,12 @@ Test de performances OK :
    1. comparer la nouvelle notes à toutes les autres
    2. cas nouveau polysème
    3. cas ancien polysème
-9. 
+9.
 
-
-
-
-
-***** Fonction permettant de supprimer les parenthèses lors de l'insertion de polysèmes 
+***** TODO Fonction permettant de supprimer les parenthèses lors de l'insertion de polysèmes (à supprimer du coup)
+:LOGBOOK:
+- State "TODO"       from              [2022-11-20 Sun 22:16]
+:END:
 
 Pratique pour pas lire à chaque fois "Mercure (dieu)" alors que je sais très bien qu'avec le contexte c'est le dieu.
 
@@ -3920,11 +3936,6 @@ Patch de la fonction pour pouvoir attach des dossiers
               )
           ))))
 
-          
-
-
-
-
 ***** Pour prendre des notes sur des fichiers
 
 #+begin_src emacs-lisp
@@ -4017,6 +4028,8 @@ Patch de la fonction pour pouvoir attach des dossiers
           ;; (goto-char (line-beginning-position))
           (when (= (org-outline-level) 1)
             ;; (when (y-or-n-p  (format "voulez vous archiver %S ?" (org-entry-get nil "ITEM")))
+            ;; ici pour voir si c'est un heading "évènement"
+            ;;if
             (org-archive-subtree)
             ;; )
             )))))
@@ -4046,7 +4059,6 @@ Patch de la fonction pour pouvoir attach des dossiers
 ****** Les rdv passés en done automatiquement, et donc provoque l'archivage
 
 Au final, je fais les actions, puis à la sauvegarde, j'archive.
-
 
 #+begin_src emacs-lisp
   ;; commande pour trouver et mettre en done les évènement passée
@@ -4195,8 +4207,6 @@ allow-emacs-pinentry
 
 #+begin_src emacs-lisp
 
-
-
   (use-package org-crypt
     :straight nil  ;; included with org-mode
     :after org
@@ -4224,7 +4234,6 @@ allow-emacs-pinentry
 #+end_src
 
 **** Gestion des dates
-
 
 ***** Gestion de la fonction d'annotation
 #+begin_src emacs-lisp
@@ -4281,6 +4290,77 @@ Je peux juste afficher les tâche sup inf ou égale à quelque chose avec org-ag
 
 R dans org-agenda pour tout voir
 
+**** Gestion des flashcards
+
+***** FlashCards dans le texte directement
+
+****** La base
+#+begin_src emacs-lisp
+  
+  ;; (use-package org-mode-incremental-reading
+  ;;   :straight (incremental-reading
+  ;;             :type git
+  ;;             :host github
+  ;;             :repo "vascoferreira25/org-mode-incremental-reading"))
+
+  (straight-use-package '(org-mode-incremental-reading
+                          :host github
+                          :repo "vascoferreira25/org-mode-incremental-reading"))
+#+end_src
+
+
+****** TODO Automatisation avec Vulpea
+:LOGBOOK:
+- State "TODO"       from              [2022-11-04 Fri 14:48]
+:END:
+
+Réfléchir à une carte anki par noeud ? Faire un tag avec ceci ?
+
+vulpea-buffer-X 
+
+******* Création d'une anki card
+
+******* Modification etc
+
+******* Récupération de toutes les cartes
+
+***** FlashCards basique avec des heading, à ne pas utiliser je pens
+#+begin_src emacs-lisp
+
+  (use-package anki-editor
+    :straight (anki-editor
+               :type git
+               :host github
+               :repo "louietan/anki-editor"))
+
+  (use-package org-anki)
+
+#+end_src
+
+***** TODO Mise à jour des flashcard
+:LOGBOOK:
+- State "TODO"       from              [2022-11-05 Sat 18:02]
+:END:
+
+Faire fonction qui : 
+- sélectionne toutes les notes
+- va dans le fichier
+- update la liste (incremental-reading-parse-cards)
+- ferme les notes 
+
+#+begin_src emacs-lisp
+
+#+end_src
+
+**** Gestion d'une note aléatoire
+
+Gérer par org-roam
+
+#+begin_src emacs-lisp :tangle no
+  (use-package org-randomnote
+    :config
+    (setq org-randomnote-candidates (org-roam-list-files)))
+#+end_src
 
 
 **** TODO Publier son site un jour
@@ -4404,8 +4484,7 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 
   (setq org-roam-capture-templates
-        '(
-          ("d" "default" plain "%?"
+        '(("d" "default" plain "%?"
            :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+title: ${title}\n")
            :unnarrowed t)
@@ -4434,7 +4513,6 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
                               "#+title: ${title}\n")
            :unnarrowed t)
 
-
           ("T" "Test de nouveau nom" plain "%?"
            :target (file+head "pages/%(substring (shell-command-to-string \"uuidgen\")0 -1).org"
                               "#+title: ${title}\n")
@@ -4442,20 +4520,18 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
           ("r" "bibliography reference" plain
            (file "../templatesOrgCapture/key.org")
-           :if-new 
+           :if-new
            (file+head "reference/${citekey}.org" "#+title: ${title}\n")
            :unnarrowed t
            :jump-to-captured t)
-
 
           ("r" "bibliography reference" plain
            (file "../templatesOrgCapture/key.org")
            :target
            (file+head "reference/${citekey}.org" "#+title: ${title}\n")
            :unnarrowed t)
-        
-          )
-        )
+
+          ))
 
 #+end_src
 
@@ -4529,23 +4605,21 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
   (with-eval-after-load 'org-roam
 
-
-    ;; pour avoir la hiérarchie lorsque c'est une sous note 
+    ;; pour avoir la hiérarchie lorsque c'est une sous note
     (cl-defmethod org-roam-node-filetitle ((node org-roam-node))
-    "Return the file TITLE for the node."
-    (org-roam-get-keyword "TITLE" (org-roam-node-file node)))
-
+      "Return the file TITLE for the node."
+      (org-roam-get-keyword "TITLE" (org-roam-node-file node)))
 
     (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
-    "Return the hierarchy for the node."
-    (let ((title (org-roam-node-title node))
-    (olp (org-roam-node-olp node))
-    (level (org-roam-node-level node))
-    (filetitle (org-roam-node-filetitle node)))
-    (concat
-    (if (> level 0) (concat filetitle " -> "))
-    (if (> level 1) (concat (string-join olp " -> ") " -> "))
-    title))) ;; soit disant une erreur ici, mais tout va bien
+      "Return the hierarchy for the node."
+      (let ((title (org-roam-node-title node))
+            (olp (org-roam-node-olp node))
+            (level (org-roam-node-level node))
+            (filetitle (org-roam-node-filetitle node)))
+        (concat
+         (if (> level 0) (concat filetitle " -> "))
+         (if (> level 1) (concat (string-join olp " -> ") " -> "))
+         title))) ;; soit disant une erreur ici, mais tout va bien
 
     )
 
@@ -4574,9 +4648,17 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
     (setq org-roam-node-display-template "${type:15} ${hierarchy:130} ${tags:40} ${backlinkscount:2}")
 
     )
+  
 #+end_src
 
+***** Gestion des unlinked references
 
+****** TODO Exclure une expression particulière
+:LOGBOOK:
+- State "TODO"       from              [2022-11-20 Sun 22:39]
+:END:
+
+[[https://org-roam.discourse.group/t/solved-exclude-properties-drawer-from-unlinked-references-rg/2025/23?u=cletip][voir ici]], moddifier la fonction org-roam-unlinked-references-section
 
 **** Fin de use-package org-roam
 #+begin_src emacs-lisp
@@ -4804,8 +4886,6 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 #+end_src
 
-
-
 ****** Fonction pour naviguer rapidement au niveau des noeuds (ou bien utiliser org-roam-ui !!!!)
 
 Deux fonctions : une qui ajoute "Backlinks :" au debut des titres et l’autre "Links :". prend en paramétre une liste de note vulpea (gérer le cas vide). et retourne une nouvelle liste modifié.
@@ -4996,7 +5076,6 @@ Autre version, peut-être à choisir (mais break la sémantique de vulpea-find) 
 
 #+end_src
 
-
 ****** Fonction pour savoir où je parle de X chose. Super 
 
 
@@ -5073,8 +5152,6 @@ https://github.com/chrisbarrett/nursery
   (remove-hook 'org-capture-after-finalize-hook #'(lambda () (when (member (buffer-file-name) (org-roam-list-files)) (test))))
 
 #+end_src
-
-
 
 ****** Transforme un heading en note
 
@@ -5225,9 +5302,6 @@ https://github.com/chrisbarrett/nursery
 
 #+end_src
 
-
-
-
 ***** Deft, pour chercher dans toutes les notes d'org-roam, remplacé par consult org-roam
 
 #+begin_src emacs-lisp :tangle no
@@ -5252,7 +5326,6 @@ https://github.com/chrisbarrett/nursery
      (setq consult-org-roam-grep-func #'consult-ripgrep))
 #+end_src
 
-
 ***** Convertir les fichiers org en markdown hugo
 
 #+begin_src emacs-lisp
@@ -5263,7 +5336,6 @@ https://github.com/chrisbarrett/nursery
     ;; (org-hugo-base-dir "/home/msi/Documents/Projet/SitesWeb/braindump")
     )
 #+end_src
-
 
 ***** Org roam ui (org roam server pour org roam v2)
 
@@ -5304,7 +5376,6 @@ Se trouve à cette adresse http://127.0.0.1:35901/
   (setq bibtex-completion-pdf-field "File") ;; pour trouver les pdf
 
 #+end_src
-
 
 *** Gestion des insertions et de l'export
 **** Ce qu'il reste à fairepour org-cite (un jour)
@@ -5913,7 +5984,11 @@ Pour faire ceci :
   (setq
    org-latex-remove-logfiles t
    org-latex-logfiles-extensions
-   (quote ("lof" "lot" "tex~" "aux" "idx" "log" "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl" "xmpi" "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
+   (quote ("lof" "lot" "tex~" "aux" "idx"
+           "log"
+           "out" "toc" "nav" "snm" "vrb" "dvi" "fdb_latexmk" "blg" "brf" "fls" "entoc" "ps" "spl" "bbl"
+           "xmpi"
+           "run.xml" "bcf" "acn" "acr" "alg" "glg" "gls" "ist")))
 
 
   (setq org-latex-packages-alist 'nil)
@@ -5937,38 +6012,43 @@ Pour faire ceci :
   (add-to-list 'org-latex-classes
                '("altacv" "\\documentclass[10pt,a4paper,ragged2e,withhyper]{altacv}
 
-            % Change the page layout if you need to
-            \\geometry{left=1.25cm,right=1.25cm,top=1.5cm,bottom=1.5cm,columnsep=1.2cm}
+                % Change the page layout if you need to
+                \\geometry{left=1.25cm,right=1.25cm,top=1.25cm,bottom=1.25cm,columnsep=1.2cm}
 
-            % Use roboto and lato for fonts
-            \\renewcommand{\\familydefault}{\\sfdefault}
+                % Use roboto and lato for fonts
+                \\renewcommand{\\familydefault}{\\sfdefault}
 
-            % Change the colours if you want to
-            \\definecolor{SlateGrey}{HTML}{2E2E2E}
-            \\definecolor{LightGrey}{HTML}{666666}
-            \\definecolor{DarkPastelRed}{HTML}{450808}
-            \\definecolor{PastelRed}{HTML}{8F0D0D}
-            \\definecolor{GoldenEarth}{HTML}{E7D192}
-            \\colorlet{name}{black}
-            \\colorlet{tagline}{PastelRed}
-            \\colorlet{heading}{DarkPastelRed}
-            \\colorlet{headingrule}{GoldenEarth}
-            \\colorlet{subheading}{PastelRed}
-            \\colorlet{accent}{PastelRed}
-            \\colorlet{emphasis}{SlateGrey}
-            \\colorlet{body}{LightGrey}
+                % Change the colours if you want to
+                \\definecolor{SlateGrey}{HTML}{2E2E2E}
+                \\definecolor{LightGrey}{HTML}{666666}
+                \\definecolor{DarkPastelRed}{HTML}{450808}
+                \\definecolor{PastelRed}{HTML}{8F0D0D}
+                \\definecolor{GoldenEarth}{HTML}{E7D192}
+                \\colorlet{name}{black}
+                \\colorlet{tagline}{PastelRed}
+                \\colorlet{heading}{DarkPastelRed}
+                \\colorlet{headingrule}{GoldenEarth}
+                \\colorlet{subheading}{PastelRed}
+                \\colorlet{accent}{PastelRed}
+                \\colorlet{emphasis}{SlateGrey}
+                \\colorlet{body}{black}
 
-            % Change some fonts, if necessary
-            \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
-            \\renewcommand{\\personalinfofont}{\\footnotesize}
-            \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
-            \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
+                % les variables de couleurs
+                \\colorlet{Info}{red}
+                \\colorlet{Langue}{blue}
+                \\colorlet{Soft}{blue}
 
-            % Change the bullets for itemize and rating marker
-            % for \cvskill if you want to
-            \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
-            \\renewcommand{\\ratingmarker}{\\faCircle}
-            "
+                % Change some fonts, if necessary
+                \\renewcommand{\\namefont}{\\Huge\\rmfamily\\bfseries}
+                \\renewcommand{\\personalinfofont}{\\footnotesize}
+                \\renewcommand{\\cvsectionfont}{\\LARGE\\rmfamily\\bfseries}
+                \\renewcommand{\\cvsubsectionfont}{\\large\\bfseries}
+
+                % Change the bullets for itemize and rating marker
+                % for \cvskill if you want to
+                \\renewcommand{\\itemmarker}{{\\small\\textbullet}}
+                \\renewcommand{\\ratingmarker}{\\faCircle}
+                "
 
                  ("\\cvsection{%s}" . "\\cvsection*{%s}")))
 
@@ -6000,34 +6080,39 @@ Pour faire ceci :
 
 #+end_src
 
+** Org-discuss
 
-** Gestion des flashcards
-
-
-*** brutes
 #+begin_src emacs-lisp
-
-  (use-package anki-editor
-    :straight (anki-editor
+    (use-package org-discuss
+    :if (not termux-p)
+    :straight (org-discuss
                :type git
                :host github
-               :repo "louietan/anki-editor"))
+               :repo "Cletip/org-discuss")
+    :config
+;; faire un truc avec braindump-directory
+    (setq org-discuss-directory "/home/utilisateur/mesdocuments/personnel/discussionTheSystem/"
+          org-discuss-discussion-directory "org-discuss"
+          org-discuss-pseudo "Cletip"
+          org-discuss-capture-key "N"
+          )
 
-  (use-package org-anki)
+    (org-discuss-db-sync))
 
 #+end_src
 
-*** dans le texte directement
+** Génerer des tables of content ?
 
 #+begin_src emacs-lisp
-  
-  ;; (use-package org-mode-incremental-reading
-  ;;   :straight (incremental-reading
-  ;;             :type git
-  ;;             :host github
-  ;;             :repo "vascoferreira25/org-mode-incremental-reading"))
+  (use-package org-make-toc
+    :config
+    ;;refresh la table of content
+    (add-hook 'org-mode-hook #'org-make-toc-mode))
+#+end_src
 
-  (straight-use-package '(org-mode-incremental-reading
-                          :host github
-                          :repo "vascoferreira25/org-mode-incremental-reading"))
+
+** Denote
+
+#+begin_src emacs-lisp
+  (use-package denote)
 #+end_src

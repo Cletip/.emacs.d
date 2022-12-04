@@ -1,0 +1,3 @@
+* Titre
+
+ceci est ma configuration emacs sans straight

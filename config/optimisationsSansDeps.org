@@ -135,8 +135,16 @@ Cela permet de ré-avoir les commandes faites lors de la dernière session d'ema
 #+begin_src emacs-lisp 
 
   (global-auto-revert-mode t)
+  
 
 #+end_src
+
+** Ne demande pas de confirme pour certains revert
+
+#+begin_src emacs-lisp
+(setq revert-without-query '(".pdf"))
+#+end_src
+
 ** Échap en une fois
 #+begin_src emacs-lisp
 
@@ -300,8 +308,8 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 #+begin_src emacs-lisp
 
-  (use-package smartparens
-    ;; :after lsp
+    (use-package smartparens
+      ;; :after lsp
     :hook ((lsp-mode text-mode emacs-lisp-mode scheme-mode) . smartparens-mode)
     :config
     (sp-pair "\«" "\»")
@@ -314,6 +322,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
     ;; (sp-local-pair 'xah-elisp-mode "'" nil :actions nil)
     ;; (sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
     ;; (sp-local-pair 'xah-elisp-mode "`" nil :actions nil)
+    (sp-local-pair 'scheme-mode "'" nil :actions nil)
 
     (defun cp/remove-local-pair-for-emacs-lisp-mode ()
       "Obligé de créer cette fonction, car pour prendre les même hook que emacs-lisp-mode pour xah-lisp-mode, pas de fonction lambda"
@@ -451,6 +460,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 #+begin_src emacs-lisp
 (use-package trashed)
 #+end_src
+
 
 ** Visualize
     
@@ -789,10 +799,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Thèmes (faire M-x customize-themes pour choisir)
-
-
-
+*** Thèmes 
 
 #+begin_src emacs-lisp
 
@@ -1227,6 +1234,14 @@ winner-undo and winner-redo
   (winner-mode 1) ;;naviguer avec les fenêtres
 
 #+end_src
+*** Gestion des bookmarks classique
+
+**** Encodage du fichier des raccourcis
+
+#+begin_src emacs-lisp
+  (setq bookmark-file-coding-system "utf-8-emacs")
+#+end_src
+
 *** Bookmark mais pour les fenêtre + frame
 
 #+begin_src emacs-lisp
@@ -1579,8 +1594,9 @@ Dépendances : all-the-icons et projectile
     (setq pdf-annot-activate-created-annotations t)
     ;; use normal isearch
     (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
-    ;;mode nuit de base
+    ;;mode nuit de base (active le thème actuel)
     (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+  ;;(remove-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
     ;; pour que "pdf-annot-list-annotations" marche, il faut remove les .emacs.d/straight/repos/tablist/*.elc
     )
 

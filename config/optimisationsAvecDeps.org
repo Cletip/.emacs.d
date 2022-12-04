@@ -69,17 +69,17 @@ Pas vraiment trier ici
 
 #+begin_src emacs-lisp
 
-  (use-package flycheck
-    :config
-    (global-flycheck-mode t)
-    )
+    (use-package flycheck
+      :config
+      (global-flycheck-mode t)
+      )
 
-  (use-package flycheck-grammalecte
-    ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
+    (use-package flycheck-grammalecte
+      ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
     :after flycheck
     :config
 
-    ;; je sais pas pourquoi mais besoin de 
+    ;; je sais pas pourquoi mais besoin de
     (when termux-p
       (flycheck-mode))
 
@@ -90,7 +90,7 @@ Pas vraiment trier ici
      flycheck-grammalecte-report-nbsp nil
      ;; pas de faute avec pleins d'espaces et de tab
      flycheck-grammalecte-report-esp nil)
-    (flycheck-grammalecte-setup);;chargement de flychek-grammalecte
+    (flycheck-grammalecte-setup) ;;chargement de flychek-grammalecte
 
     ;;d'abord vérifier que ça existe. si existe pas, download
     (unless (fboundp 'grammalecte--version)
@@ -98,7 +98,9 @@ Pas vraiment trier ici
 
     ;; pour télécharger grammalect si jamais il n'y est pas déjà. Si il y est, ne fait rien
     (let ((local-version (grammalecte--version))
-          (upstream-version (grammalecte--upstream-version)))
+          (upstream-version
+           ;; (grammalecte--upstream-version) ;; prend beaucoup de temps, mais remettre ça
+           (grammalecte--version)))
       (when (stringp upstream-version)
         (if (stringp local-version)
             ;; It seems we have a local version of grammalecte.
@@ -115,24 +117,21 @@ Pas vraiment trier ici
     ;;à faire pour enlever l'erreur des tirés
     ;; pour enlever l'erreur des des begin_src etc
     (setq flycheck-grammalecte-filters
-          '( "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
-             "(?im)^[ \t]*#\\+begin[_:].+$"
-             "(?im)^[ \t]*#\\+end[_:].+$"
-             "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
-             "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
-             "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
-             "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
-             "(?ims)^\- $"
+          '("(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
+            "(?im)^[ \t]*#\\+begin[_:].+$"
+            "(?im)^[ \t]*#\\+end[_:].+$"
+            "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
+            "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
+            "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
+            "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
+            "(?ims)^\- $"
 
-             "-";; éviter l'erreur des tirets
-             "\"" ;; éviter les erreurs de "" guillement
-             )
-          )
-
+            "-"  ;; éviter l'erreur des tirets
+            "\"" ;; éviter les erreurs de "" guillement
+            ))
 
     (setq flycheck-grammalecte-filters-by-mode
-          '(
-            (org-mode "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
+          '((org-mode "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
                       "(?im)^[ \t]*#\\+begin[_:].+$"
                       "(?im)^[ \t]*#\\+end[_:].+$"
                       "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
@@ -141,20 +140,16 @@ Pas vraiment trier ici
                       "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
                       "(?ims)^\- $"
 
-                      "-";; éviter l'erreur des tirets
+                      "-"	 ;; éviter l'erreur des tirets
                       "\"" ;; éviter les erreurs de "" guillement
-                      ))
-          )
+                      )))
 
     (defun flycheck-grammalecte-correct-error-before-point ()
       "Corrige la première erreur avant le curseur"
       (interactive)
       (save-excursion
         (flycheck-previous-error)
-        (flycheck-grammalecte-correct-error-at-point (point)) 
-        )
-      )
-
+        (flycheck-grammalecte-correct-error-at-point (point))))
 
     ;; correction bug pas de correction entre deux blocs de codes org-mode, TODO ne marche tjr pas
     ;; (setq flycheck-grammalecte-filters-by-mode

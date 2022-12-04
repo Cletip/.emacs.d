@@ -91,6 +91,8 @@
 
 (global-auto-revert-mode t)
 
+(setq revert-without-query '(".pdf"))
+
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 (delete-selection-mode t)
@@ -182,38 +184,39 @@
 
 (use-package smartparens
   ;; :after lsp
-  :hook ((lsp-mode text-mode emacs-lisp-mode scheme-mode) . smartparens-mode)
-  :config
-  (sp-pair "\«" "\»")
-  ;;pour enlever un truc
-  ;; the second argument is the closing delimiter, so you need to skip it with nil
+:hook ((lsp-mode text-mode emacs-lisp-mode scheme-mode) . smartparens-mode)
+:config
+(sp-pair "\«" "\»")
+;;pour enlever un truc
+;; the second argument is the closing delimiter, so you need to skip it with nil
 
-  ;;    (sp-pair "'" nil :actions :rem)
+;;    (sp-pair "'" nil :actions :rem)
 
-  ;; (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
-  ;; (sp-local-pair 'xah-elisp-mode "'" nil :actions nil)
-  ;; (sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
-  ;; (sp-local-pair 'xah-elisp-mode "`" nil :actions nil)
+;; (sp-local-pair 'emacs-lisp-mode "'" nil :actions nil)
+;; (sp-local-pair 'xah-elisp-mode "'" nil :actions nil)
+;; (sp-local-pair 'emacs-lisp-mode "`" nil :actions nil)
+;; (sp-local-pair 'xah-elisp-mode "`" nil :actions nil)
+(sp-local-pair 'scheme-mode "'" nil :actions nil)
 
-  (defun cp/remove-local-pair-for-emacs-lisp-mode ()
-    "Obligé de créer cette fonction, car pour prendre les même hook que emacs-lisp-mode pour xah-lisp-mode, pas de fonction lambda"
-    (sp-local-pair major-mode "`" nil :actions nil)
-    (sp-local-pair major-mode "'" nil :actions nil))
+(defun cp/remove-local-pair-for-emacs-lisp-mode ()
+  "Obligé de créer cette fonction, car pour prendre les même hook que emacs-lisp-mode pour xah-lisp-mode, pas de fonction lambda"
+  (sp-local-pair major-mode "`" nil :actions nil)
+  (sp-local-pair major-mode "'" nil :actions nil))
 
-  (add-hook 'emacs-lisp-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
+(add-hook 'emacs-lisp-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
 
-  (add-hook 'org-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
+(add-hook 'org-mode-hook 'cp/remove-local-pair-for-emacs-lisp-mode)
 
-  ;; pour rajouter à un mode :
-  ;; pas supprimer avec xah car ne fait pas partie de xah-right-brackets
-  ;; changer org emphasis ?
+;; pour rajouter à un mode :
+;; pas supprimer avec xah car ne fait pas partie de xah-right-brackets
+;; changer org emphasis ?
 
-  ;; (sp-local-pair 'org-mode "*" "*") ;; adds * as a local pair in org mode
+;; (sp-local-pair 'org-mode "*" "*") ;; adds * as a local pair in org mode
 
-  ;; (sp-local-pair 'org-mode "=" "=") ;; adds = as a local pair in org mode
+;; (sp-local-pair 'org-mode "=" "=") ;; adds = as a local pair in org mode
 
-  ;; (sp-local-pair 'org-mode "\/" "\/")
-  )
+;; (sp-local-pair 'org-mode "\/" "\/")
+)
 
 (use-package sudo-edit)
 
@@ -676,6 +679,8 @@ reuse it's window, otherwise create new one."
 
 (winner-mode 1) ;;naviguer avec les fenêtres
 
+(setq bookmark-file-coding-system "utf-8-emacs")
+
 (use-package burly
   :straight (burly :type git :host github :repo "alphapapa/burly.el"
                    :fork (:host github
@@ -874,8 +879,9 @@ reuse it's window, otherwise create new one."
   (setq pdf-annot-activate-created-annotations t)
   ;; use normal isearch
   (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
-  ;;mode nuit de base
+  ;;mode nuit de base (active le thème actuel)
   (add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+;;(remove-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
   ;; pour que "pdf-annot-list-annotations" marche, il faut remove les .emacs.d/straight/repos/tablist/*.elc
   )
 

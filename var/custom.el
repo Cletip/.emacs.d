@@ -29,7 +29,12 @@
      (company-backends list
 		       (company-capf))))
  '(safe-local-variable-values
-   '((gac-automatically-add-new-files-p . t)
+   '((eval setq-local org-roam-db-location
+	   (expand-file-name "org-roam.db" org-roam-directory))
+     (eval setq-local org-roam-directory
+	   (expand-file-name
+	    (locate-dominating-file default-directory ".dir-locals.el")))
+     (gac-automatically-add-new-files-p . t)
      (org-download-image-dir concat org-directory "org/artistesImages/")
      (org-download-heading-lvl . 0)
      (company-backends list
