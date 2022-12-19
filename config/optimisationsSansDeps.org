@@ -239,6 +239,72 @@ I advise you to put in "application at startup" (under linux, I don't know under
 
 #+end_src
 
+** Meilleur navigateur
+
+Ce qui ralenti eww = images, donc la fonction "eww-toggle-images" est parfaite
+
+ • ‘TAB’ - Next link
+ • Shift+TAB - Previous link
+ • ‘b’ - Add bookmark
+ • ‘B’ - View bookmarks
+ • ‘d’ - Download link under point
+ • ‘l’ - Go back
+ • ‘r’ - Go forward
+ • ‘H’ - View history
+ • ‘g’ - reload the page
+ • ‘G’ - Enter a new URL or search
+ • ‘R’ - Attempt to improve readability
+ • ‘w’ - Copy the current URL
+ • M-<RET> - Open link in new tab (eww-open-in-new-buffer)
+ • ‘s’ - Get a list of eww tabs (eww-list-buffers)
+
+#+begin_src emacs-lisp 
+
+  ;; en mode readble, plus sympa à lire (provoque un bug, mais pg. corrigé avec une maj ?)
+  (add-hook 'eww-after-render-hook 'eww-readable)
+  ;; (remove-hook 'eww-after-render-hook 'eww-readable)
+
+  (when (require 'xah-fly-keys)
+    (defun cp/xah-insert-mode-when-command-eww ()
+      "Run xah-fly-insert-mode-activate after a search of eww. Don't works with a simple advice-add"
+      (when
+          ;; (and (> (length (eww-current-url)) (length eww-search-prefix)) ;; pas
+          ;;besoin de vérifier si c'est déjà plus grand !
+          ;; (string= eww-search-prefix (substring (eww-current-url) 0 (length eww-search-prefix))))
+  ;; juste si c'est la même c'est ok
+          (not (null (cl-search eww-search-prefix (eww-current-url))))
+        (xah-fly-insert-mode-activate)))
+    (add-hook 'eww-after-render-hook 'cp/xah-insert-mode-when-command-eww))
+
+  (setq
+   eww-search-prefix "https://html.duckduckgo.com/html/?q="
+   ;; eww-search-prefix "https://www.bing.com/search?q="
+   shr-inhibit-images t  ;;n'affiche pas les images (au début (eww-toggle-images))
+   eww-restore-desktop t ;; rafraîchit automatiquement
+   eww-desktop-remove-duplicates t
+   shr-use-colors nil
+   shr-bullet "• "
+   shr-folding-mode t
+   shr-indentation 2  ; Left-side margin
+   shr-width 70       ; Fold text to 70 columns
+   shr-use-colors nil ; No colours
+   url-privacy-level '(email agent cookies lastloc))
+
+  ;; change automatiquement le nom
+  (when (fboundp 'eww)
+    (defun xah-rename-eww-buffer ()
+      "Rename `eww-mode' buffer so sites open in new page.
+            URL `http://xahlee.info/emacs/emacs/emacs_eww_web_browser.html'
+            Version 2017-11-10"
+      (let (($title (plist-get eww-data :title)))
+        (when (eq major-mode 'eww-mode)
+          (if $title
+              (rename-buffer (concat "eww " $title) t)
+            (rename-buffer "eww" t)))))
+    (add-hook 'eww-after-render-hook 'xah-rename-eww-buffer))
+
+#+end_src
+
 * Interface Enhancement
 ** Editing
 *** Pour bouger les lignes/paragraphe comme dans org (avec CTRL)
@@ -443,6 +509,14 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 
 
+#+end_src
+
+*** Pour jump sur les liens (bind sur O en général) 
+
+#+begin_src emacs-lisp
+  (use-package ace-link
+    :config
+    (ace-link-setup-default))
 #+end_src
 
 *** Le bon vieux ctrlf, mais optimisé par emacs
@@ -753,30 +827,31 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 ** Aesthetics of Emacs
 
-*** TODO Police
+*** TODO Police et taille
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 
-    ;;police de base, mise dans le early-init.el pour démarrage plus rapide
-  
+  (set-face-attribute 'default nil :height 120)
+
+  ;;police de base, mise dans le early-init.el pour démarrage plus rapide
   (defun Policedebase ()
-      (interactive)
-      (set-face-attribute 'default nil
-                          :font "Fira Mono"
-                          :weight 'light
-                          :height 110
-                          )
-      )
-    (defun Policepourcoder ()
-      (interactive)
-      (set-face-attribute 'default nil
-                          :font "JetBrains Mono"
-                          :weight 'light
-                          ;; :height 150
-                          )
-      )
-    ;;police pour coder
-    ;; (add-hook 'lsp-mode-hook 'Policepourcoder)
+    (interactive)
+    (set-face-attribute 'default nil
+                        :font "Fira Mono"
+                        :weight 'light
+                        :height 120
+                        )
+    )
+  (defun Policepourcoder ()
+    (interactive)
+    (set-face-attribute 'default nil
+                        :font "JetBrains Mono"
+                        :weight 'light
+                        ;; :height 150
+                        )
+    )
+  ;;police pour coder
+  ;; (add-hook 'lsp-mode-hook 'Policepourcoder)
 
 #+end_src
 
@@ -1302,7 +1377,6 @@ winner-undo and winner-redo
 #+end_src
 
 *** Buffer temporaires dans une autre frame (dont scratch au démarrage)
-
 #+begin_src emacs-lisp
   ;; (when window-system (setq pop-up-frames t))
 #+end_src

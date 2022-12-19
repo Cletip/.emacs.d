@@ -51,3 +51,5 @@ var/request/
 /var/url/
 /var/prescient-save.el
 
+/var/eww/
+/url/

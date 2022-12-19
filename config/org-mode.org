@@ -4443,12 +4443,43 @@ Gérer par org-roam
   ;; pour améliorer les perf
   (setq org-roam-db-gc-threshold most-positive-fixnum)
 
-  ;; On prend pas les fichiers org dans org-attach
-  (setq org-roam-file-exclude-regexp ".data/")
-
 
 #+end_src
 
+***** Quels sont les fichiers qu'on ne prends pas
+
+****** Généralement
+:LOGBOOK:
+- State "TODO"       from              [2022-12-04 Sun 18:45]
+:END:
+
+#+begin_src emacs-lisp
+  ;; On prend pas les fichiers org dans org-attach
+  (setq org-roam-file-exclude-regexp ".data/")
+
+  ;; (setq org-roam-db-node-include-function
+  ;;         (lambda ()
+  ;;           (or
+  ;;            (not (member "salut" (or (org-get-tags)
+  ;;                                     (vulpea-buffer-tags-get)
+  ;;                                     ;; (vulpea-buffer-prop-get-list "filetags" "[ :]")
+  ;;                                     )))
+  ;;            ((member (vulpea-buffer-prop-get "title"))))))
+#+end_src
+
+****** Avec des fonctions
+
+
+#+begin_src emacs-lisp
+  (defun cp/org-roam-node-find-with-exclusion ()
+    "Contains all the note, excepte the note with a title in the cp/list-of-exclusion"
+    (interactive)
+    (org-roam-node-find nil nil (lambda (node)
+                                  (not (member (org-roam-node-title node) cp/list-of-exclusion))
+                                  )))
+
+  (setq cp/list-of-exclusion '("2022" "Santé"))
+#+end_src
 
 ***** TODO Quelles sont les liens que je veux ignorer (ou pas lol) ?
 :LOGBOOK:
@@ -4645,7 +4676,9 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
              (file-relative-name (org-roam-node-file node) org-roam-directory))))
         (error "")))
 
-    (setq org-roam-node-display-template "${type:15} ${hierarchy:130} ${tags:40} ${backlinkscount:2}")
+;; on enlève la hierachy, sinon demande mes notes gpg
+;;${hierarchy:130}
+    (setq org-roam-node-display-template "${type:15} ${title:50} ${tags:40} ${backlinkscount:2}")
 
     )
   
@@ -5858,7 +5891,7 @@ Pour faire ceci :
 
 [[https://github.com/rougier/pdf-drop-mode][ici]]
 
-** Présentation avec org-mode
+** Présentation/power point avec org-mode
 
 #+begin_src emacs-lisp
 
@@ -6103,16 +6136,88 @@ Pour faire ceci :
 
 ** Génerer des tables of content ?
 
+
 #+begin_src emacs-lisp
+
+  (use-package toc-org
+    :config
+    ;;enable in org-mode
+    (add-hook 'org-mode-hook 'toc-org-mode)
+    ;; enable in markdown, too
+    (add-hook 'markdown-mode-hook 'toc-org-mode))
+
+
+#+end_src
+
+ne marche pas : 
+#+begin_src emacs-lisp :tangle no
   (use-package org-make-toc
     :config
     ;;refresh la table of content
     (add-hook 'org-mode-hook #'org-make-toc-mode))
 #+end_src
 
+** Packages pour des "tests" sur the-System
 
-** Denote
+*** Denote
 
 #+begin_src emacs-lisp
-  (use-package denote)
+  (use-package denote
+    ;; indiquer le chemin pour termux
+    :straight (denote
+               :type git
+               :host github
+               :repo "protesilaos/denote"))
 #+end_src
+
+*** Deft
+
+Permet de chercher dans le titre et le notes en même temps !
+Consult-ripgrep est mieux je pense : plus rapide et plus intuitif. Mais deft peut-être efficace
+
+#+begin_src emacs-lisp
+    (use-package deft
+    :config
+    (setq deft-extensions '("txt" "tex" "org"))
+    (setq deft-directory "/home/utilisateur/braindump/org/pages/")
+
+
+    ;; changer le "titre" pour deft
+    (defun cm/deft-parse-title (file contents)
+      "Parse the given FILE and CONTENTS and determine the title.
+      If `deft-use-filename-as-title' is nil, the title is taken to
+      be the first non-empty line of the FILE.  Else the base name of the FILE is
+      used as title."
+      (let ((begin (string-match "^#\\+[tT][iI][tT][lL][eE]: .*$" contents)))
+        (if begin
+            (string-trim (substring contents begin (match-end 0)) "#\\+[tT][iI][tT][lL][eE]: *" "[\n\t ]+")
+          (deft-base-filename file))))
+
+    (advice-add 'deft-parse-title :override #'cm/deft-parse-title)
+
+    (setq deft-strip-summary-regexp
+          (concat "\\("
+                  "[\n\t]"		      ;; blank
+                  "\\|^#\\+[[:alpha:]_]+:.*$"   ;; org-mode metadata
+                  "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
+                  "\\)")))
+#+end_src
+
+** mon package
+
+
+
+#+begin_src emacs-lisp :tangle no
+  (add-to-list 'load-path "/home/utilisateur/mesdocuments/personnel/informatique/the-System/modules/exemple/")
+  (require 'exemple)
+
+  (use-package exemple
+
+    :straight (exemple
+               :type git
+               :host github
+               :repo "Cletip/exemple"))
+
+
+#+end_src
+

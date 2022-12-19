@@ -157,6 +157,49 @@
 
 (server-start)  ;; starts emacs as server (if you didn't already)
 
+;; en mode readble, plus sympa à lire (provoque un bug, mais pg. corrigé avec une maj ?)
+(add-hook 'eww-after-render-hook 'eww-readable)
+;; (remove-hook 'eww-after-render-hook 'eww-readable)
+
+(when (require 'xah-fly-keys)
+  (defun cp/xah-insert-mode-when-command-eww ()
+    "Run xah-fly-insert-mode-activate after a search of eww. Don't works with a simple advice-add"
+    (when
+        ;; (and (> (length (eww-current-url)) (length eww-search-prefix)) ;; pas
+        ;;besoin de vérifier si c'est déjà plus grand !
+        ;; (string= eww-search-prefix (substring (eww-current-url) 0 (length eww-search-prefix))))
+;; juste si c'est la même c'est ok
+        (not (null (cl-search eww-search-prefix (eww-current-url))))
+      (xah-fly-insert-mode-activate)))
+  (add-hook 'eww-after-render-hook 'cp/xah-insert-mode-when-command-eww))
+
+(setq
+ eww-search-prefix "https://html.duckduckgo.com/html/?q="
+ ;; eww-search-prefix "https://www.bing.com/search?q="
+ shr-inhibit-images t  ;;n'affiche pas les images (au début (eww-toggle-images))
+ eww-restore-desktop t ;; rafraîchit automatiquement
+ eww-desktop-remove-duplicates t
+ shr-use-colors nil
+ shr-bullet "• "
+ shr-folding-mode t
+ shr-indentation 2  ; Left-side margin
+ shr-width 70       ; Fold text to 70 columns
+ shr-use-colors nil ; No colours
+ url-privacy-level '(email agent cookies lastloc))
+
+;; change automatiquement le nom
+(when (fboundp 'eww)
+  (defun xah-rename-eww-buffer ()
+    "Rename `eww-mode' buffer so sites open in new page.
+          URL `http://xahlee.info/emacs/emacs/emacs_eww_web_browser.html'
+          Version 2017-11-10"
+    (let (($title (plist-get eww-data :title)))
+      (when (eq major-mode 'eww-mode)
+        (if $title
+            (rename-buffer (concat "eww " $title) t)
+          (rename-buffer "eww" t)))))
+  (add-hook 'eww-after-render-hook 'xah-rename-eww-buffer))
+
 (use-package move-text
      :defer 0.5
      :config
@@ -281,6 +324,10 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
 
   )
 
+(use-package ace-link
+  :config
+  (ace-link-setup-default))
+
 (use-package trashed)
 
 (use-package which-key
@@ -399,6 +446,28 @@ Version 2017-06-02"
     (dw/enter-focus-mode)))
 
 ;; (add-hook 'org-mode-hook #'dw/toggle-focus-modebis)
+
+(set-face-attribute 'default nil :height 120)
+
+;;police de base, mise dans le early-init.el pour démarrage plus rapide
+(defun Policedebase ()
+  (interactive)
+  (set-face-attribute 'default nil
+                      :font "Fira Mono"
+                      :weight 'light
+                      :height 120
+                      )
+  )
+(defun Policepourcoder ()
+  (interactive)
+  (set-face-attribute 'default nil
+                      :font "JetBrains Mono"
+                      :weight 'light
+                      ;; :height 150
+                      )
+  )
+;;police pour coder
+;; (add-hook 'lsp-mode-hook 'Policepourcoder)
 
 (use-package all-the-icons
   :init

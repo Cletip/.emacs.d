@@ -1,5 +1,7 @@
 ;;; .emacs --- My emacs config -*- lexical-binding: t; -*-
 
+(defvar my-init-el-start-time (current-time) "Time when init.el was started")
+
 ;; configuration of straight
 ;; Bootstrap `straight.el'
 (defvar bootstrap-version)
@@ -24,6 +26,8 @@
 (setq straight-use-package-by-default t)
 ;; Load the helper package for commands like `straight-x-clean-unused-repos'
 (require 'straight-x)
+
+;; (setq use-package-always-defer t)
 
 (use-package no-littering
   :config
@@ -56,3 +60,5 @@
 
 ;;on lance le reste
 (org-babel-load-file (expand-file-name "~/.emacs.d/config/config.org"))
+
+(message "→★ loading init.el in %.2fs" (float-time (time-subtract (current-time) my-init-el-start-time)))

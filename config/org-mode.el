@@ -1965,6 +1965,24 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 ;; On prend pas les fichiers org dans org-attach
 (setq org-roam-file-exclude-regexp ".data/")
 
+;; (setq org-roam-db-node-include-function
+;;         (lambda ()
+;;           (or
+;;            (not (member "salut" (or (org-get-tags)
+;;                                     (vulpea-buffer-tags-get)
+;;                                     ;; (vulpea-buffer-prop-get-list "filetags" "[ :]")
+;;                                     )))
+;;            ((member (vulpea-buffer-prop-get "title"))))))
+
+(defun cp/org-roam-node-find-with-exclusion ()
+  "Contains all the note, excepte the note with a title in the cp/list-of-exclusion"
+  (interactive)
+  (org-roam-node-find nil nil (lambda (node)
+                                (not (member (org-roam-node-title node) cp/list-of-exclusion))
+                                )))
+
+(setq cp/list-of-exclusion '("2022" "Santé"))
+
 (setq org-roam-db-extra-links-exclude-keys '((node-property . ("ROAM_REFS"))
                                              (keyword . ("transclude"))))
 
@@ -2080,23 +2098,21 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 (with-eval-after-load 'org-roam
 
-
-  ;; pour avoir la hiérarchie lorsque c'est une sous note 
+  ;; pour avoir la hiérarchie lorsque c'est une sous note
   (cl-defmethod org-roam-node-filetitle ((node org-roam-node))
-  "Return the file TITLE for the node."
-  (org-roam-get-keyword "TITLE" (org-roam-node-file node)))
-
+    "Return the file TITLE for the node."
+    (org-roam-get-keyword "TITLE" (org-roam-node-file node)))
 
   (cl-defmethod org-roam-node-hierarchy ((node org-roam-node))
-  "Return the hierarchy for the node."
-  (let ((title (org-roam-node-title node))
-  (olp (org-roam-node-olp node))
-  (level (org-roam-node-level node))
-  (filetitle (org-roam-node-filetitle node)))
-  (concat
-  (if (> level 0) (concat filetitle " -> "))
-  (if (> level 1) (concat (string-join olp " -> ") " -> "))
-  title))) ;; soit disant une erreur ici, mais tout va bien
+    "Return the hierarchy for the node."
+    (let ((title (org-roam-node-title node))
+          (olp (org-roam-node-olp node))
+          (level (org-roam-node-level node))
+          (filetitle (org-roam-node-filetitle node)))
+      (concat
+       (if (> level 0) (concat filetitle " -> "))
+       (if (> level 1) (concat (string-join olp " -> ") " -> "))
+       title))) ;; soit disant une erreur ici, mais tout va bien
 
   )
 
@@ -2105,21 +2121,23 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   ;; (setq org-roam-node-display-template "${directories:10} ${tags:10} ${title:100} ${backlinkscount:6}")
 
 (with-eval-after-load 'org-roam
-  ;; (setq org-roam-node-display-template "${directories:15} ${hierarchy:105} ${tags:40} ${backlinkscount:1}") ;;plus besion des fichiers
+    ;; (setq org-roam-node-display-template "${directories:15} ${hierarchy:105} ${tags:40} ${backlinkscount:1}") ;;plus besion des fichiers
 
 
-  (cl-defmethod org-roam-node-type ((node org-roam-node))
-    "Return the TYPE of NODE."
-    (condition-case nil
-        (file-name-nondirectory
-         (directory-file-name
-          (file-name-directory
-           (file-relative-name (org-roam-node-file node) org-roam-directory))))
-      (error "")))
+    (cl-defmethod org-roam-node-type ((node org-roam-node))
+      "Return the TYPE of NODE."
+      (condition-case nil
+          (file-name-nondirectory
+           (directory-file-name
+            (file-name-directory
+             (file-relative-name (org-roam-node-file node) org-roam-directory))))
+        (error "")))
 
-  (setq org-roam-node-display-template "${type:15} ${hierarchy:130} ${tags:40} ${backlinkscount:2}")
+;; on enlève la hierachy, sinon demande mes notes gpg
+;;${hierarchy:130}
+    (setq org-roam-node-display-template "${type:15} ${title:50} ${tags:40} ${backlinkscount:2}")
 
-  )
+    )
 
 )
 
@@ -3043,9 +3061,42 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
     (org-discuss-db-sync))
 
-(use-package org-make-toc
+(use-package toc-org
   :config
-  ;;refresh la table of content
-  (add-hook 'org-mode-hook #'org-make-toc-mode))
+  ;;enable in org-mode
+  (add-hook 'org-mode-hook 'toc-org-mode)
+  ;; enable in markdown, too
+  (add-hook 'markdown-mode-hook 'toc-org-mode))
 
-(use-package denote)
+(use-package denote
+  ;; indiquer le chemin pour termux
+  :straight (denote
+             :type git
+             :host github
+             :repo "protesilaos/denote"))
+
+(use-package deft
+:config
+(setq deft-extensions '("txt" "tex" "org"))
+(setq deft-directory "/home/utilisateur/braindump/org/pages/")
+
+
+;; changer le "titre" pour deft
+(defun cm/deft-parse-title (file contents)
+  "Parse the given FILE and CONTENTS and determine the title.
+  If `deft-use-filename-as-title' is nil, the title is taken to
+  be the first non-empty line of the FILE.  Else the base name of the FILE is
+  used as title."
+  (let ((begin (string-match "^#\\+[tT][iI][tT][lL][eE]: .*$" contents)))
+    (if begin
+        (string-trim (substring contents begin (match-end 0)) "#\\+[tT][iI][tT][lL][eE]: *" "[\n\t ]+")
+      (deft-base-filename file))))
+
+(advice-add 'deft-parse-title :override #'cm/deft-parse-title)
+
+(setq deft-strip-summary-regexp
+      (concat "\\("
+              "[\n\t]"		      ;; blank
+              "\\|^#\\+[[:alpha:]_]+:.*$"   ;; org-mode metadata
+              "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
+              "\\)")))

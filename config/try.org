@@ -1,7 +1,0 @@
-
-
-
-* Fin try
-#+begin_src emacs-lisp
-(message "fin try")
-#+end_src

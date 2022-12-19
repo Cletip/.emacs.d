@@ -121,7 +121,16 @@ This package implements hiding or abbreviation of the mode line displays (lighte
 
 #+end_src
 
-** Autre
+** Tests
+
+#+begin_src emacs-lisp
+
+  (org-babel-load-file (expand-file-name "test.org" config-directory))
+
+#+end_src
+
+
+
 * Message de fin
 
 #+begin_src emacs-lisp

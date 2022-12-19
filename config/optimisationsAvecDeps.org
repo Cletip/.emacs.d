@@ -195,3 +195,43 @@ dessous (si possible PRESQUE la même que pour ouvrir emacs-everywhere)
 (use-package keepass-mode)
 #+end_src
 
+* Chatgpt !
+
+
+Dépendances : 
+#+begin_src sh
+pip install epc
+pip install git+https://github.com/mmabrouk/chatgpt-wrapper
+playwright install firefox
+chatgpt install
+#+end_src
+
+
+#+begin_src emacs-lisp
+
+  (when (not termux-p)
+
+    (use-package deferred)
+    (use-package epc)
+
+    (use-package chatgpt
+      ;; :if (not termux-p)
+      :after epc deferred
+      :straight (:host github :repo "joshcho/ChatGPT.el" :files ("dist" "*.el"))
+      :init
+      (setq chatgpt-repo-path "~/.emacs.d/straight/repos/ChatGPT.el/")
+      ;; :bind ("C-c q" . chatgpt-query)
+      :config
+      (setq chatgpt-python-interpreter "python3")
+      (setq chatgpt-query-format-string-map
+            '(
+              ;; ChatGPT.el defaults
+              ("doc" . "Please write the documentation for the following function.\n\n%s")
+              ("bug" . "There is a bug in the following function, please help me fix it.\n\n%s")
+              ("understand" . "What does the following do?\n\n%s")
+              ("improve" . "Please improve that.\n\n%s")
+              ;; your new prompt
+              ("my-custom-type" . "My custom prompt.\n\n%s"))))
+    )
+
+#+end_src

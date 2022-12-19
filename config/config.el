@@ -34,4 +34,6 @@ In a nutshell, it's just a value of $HOME.")
 
 (org-babel-load-file (expand-file-name "streaming.org" config-directory))
 
+(org-babel-load-file (expand-file-name "test.org" config-directory))
+
 (message "Fin")

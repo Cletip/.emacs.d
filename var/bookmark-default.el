@@ -2,7 +2,37 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("the-System doc"
+(("layer-xah-fly-keys.el"
+ (filename . "~/mesdocuments/personnel/informatique/layer-xah-fly-keys/layer-xah-fly-keys.el")
+ (front-context-string . ";;; layer-xah-fl")
+ (rear-context-string)
+ (position . 1))
+("test-package-emacs.el"
+ (filename . "~/mesdocuments/personnel/informatique/test-package-emacs/test-package-emacs.el")
+ (front-context-string . ";;; test-package")
+ (rear-context-string)
+ (position . 1))
+("exemple pour thibault et tout"
+ (filename . "~/mesdocuments/personnel/informatique/the-System/modules/exemple/exemple.el")
+ (front-context-string . ";;; exemple.el -")
+ (rear-context-string)
+ (position . 1))
+("the-System.el"
+ (filename . "~/mesdocuments/personnel/informatique/the-System/the-System-core/lisp/the-System.el")
+ (front-context-string . ";;; the-System.e")
+ (rear-context-string)
+ (position . 1))
+("secondCerveau à déplacer dans la doc"
+ (filename . "~/braindump/org/.data/2022/06/16/93340664791/secondCerveau.org")
+ (front-context-string . "capture \n    ;; ")
+ (rear-context-string . "\n    ;; Dans le ")
+ (position . 25856))
+("thesystem À déplacer dans la doc"
+ (filename . "~/braindump/org/.data/2022/06/16/93340664791/thesystem.org")
+ (front-context-string . "\n\n\n** The differ")
+ (rear-context-string . "easily every day")
+ (position . 3450))
+("the-System doc"
  (filename . "~/mesdocuments/personnel/informatique/the-System/the-System-core/docs/the-System.org")
  (front-context-string . "#+title: the-Sys")
  (rear-context-string)
@@ -33,7 +63,7 @@
  (rear-context-string . "urce et demande\n")
  (position . 33323))
 ("straight"
- (filename . "~/.emacs.d/straight/")
+ (filename . "~/.emacs.d/straight/repos/")
  (front-context-string . "build-cache.el\n ")
  (rear-context-string . " juil.  2 22:52 ")
  (position . 345))
@@ -68,10 +98,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/inbox-localhost.org")
- (front-context-string . "* TODO equilibri")
- (rear-context-string . "ri 13:06]\n:END:\n")
- (position . 20263))
+ (filename . "~/braindump/org/pages/20221218135349-test_de_titre_avec_id_20220617105453042719_emacs_un_lien.org")
+ (front-context-string)
+ (rear-context-string . "Emacs]] un lien\n")
+ (position . 123))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

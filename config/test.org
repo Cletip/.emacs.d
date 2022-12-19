@@ -1,0 +1,26 @@
+
+* Test de mon package
+
+
+#+begin_src emacs-lisp :tangle no
+  (use-package test-package-emacs
+  :defer t
+    :straight (test-package-emacs
+               :type git
+               :host github
+               :repo "Cletip/test-package-emacs"))
+
+
+
+#+end_src
+
+;; charge que les autoloads !!!
+(straight-use-package '(test-package-emacs
+               :type git
+               :host github
+               :repo "Cletip/test-package-emacs"))
+
+* Fin try
+#+begin_src emacs-lisp
+(message "fin try")
+#+end_src

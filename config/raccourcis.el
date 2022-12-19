@@ -48,7 +48,6 @@
   (setq xah-fork-cp-xah-extend-selection-function-name 'er/expand-region)
   ;; (setq xah-fork-cp-xah-extend-selection-function-name 'xah-extend-selection)
 
-
   ;; To disable both Control and Meta shortcut keys, add the following lines to you init.el before (require 'xah-fly-keys):
 
   (setq xah-fly-use-control-key nil)
@@ -61,16 +60,15 @@
       (xah-fly-keys-set-layout "azerty")
     (xah-fly-keys-set-layout "beopy"))
 
-  ;; Les hook	     
+  ;; Les hook	
 
   ;; TODO un jour faire pull request à xah
-  ;; permet de mettre une touche qui fait open-line quand elle peut, sinon elle fait la touche entrée. À voir avec les commandes qui appele le 
+  ;; permet de mettre une touche qui fait open-line quand elle peut, sinon elle fait la touche entrée. À voir avec les commandes qui appele le
   (defun cp-xfk-addon-command (&rest args)
     "Modify keys for xah fly key command mode keys To be added to `xah-fly-command-mode-activate-hook'"
     (interactive)
-    ;; (message "test %S" (format-time-string "%Y-%m-%d %H:%M:%S:%3N"))
     (define-key xah-fly-command-map (kbd "i")
-      (if (or buffer-read-only 
+      (if (or buffer-read-only
               (string-equal major-mode "minibuffer-mode")
               ;; (string-equal major-mode "org-agenda-mode")
               ;; (string-equal major-mode "fundamental-mode")
@@ -80,8 +78,6 @@
 
   ;; (add-hook 'xah-fly-command-mode-activate-hook 'cp-xfk-addon-command)
   (add-to-list 'window-state-change-functions 'cp-xfk-addon-command)
-  (when termux-p
-    (add-to-list 'window-buffer-change-functions 'test))
 
   ;; (remove-hook 'xah-fly-command-mode-activate-hook 'cp-xfk-addon-command)
 
@@ -98,6 +94,8 @@
           ;; pour le hook, et donc activer la touche entrée ou pas
           dired-jump
           vertico-exit
+
+          ace-link-eww
           ;; More function names
           ))
 
@@ -118,7 +116,7 @@
           recentf-open-files
 
           ;; org-capture ;; désactivé car fait bugguer !
-
+          ;; eww ;; pour faire "ace-link-eww" direct après
           ;; More function names here
           ))
 
@@ -161,6 +159,63 @@
             "wls" "wolframscript -file"
             ;; "pov" "/usr/local/bin/povray +R2 +A0.1 +J1.2 +Am2 +Q9 +H480 +W640"
             )))
+
+
+
+  (xah-fly--define-keys
+   (define-prefix-command 'layer-xah-fly-keys-personal-key-map)
+   '(
+     ("RET" . cp/org-open-or-finish-capture) ;;cp
+     ;; ("<up>"  . xah-move-block-up)
+     ;; ("<down>"  . xah-move-block-down)
+     ("'" . save-buffers-kill-emacs)
+     ("," . emacs-restart)
+     ("." . org-agenda)
+
+     ;; ("0" . nil)
+     ;; ("1" . nil)
+     ;; ("2" . nil)
+     ;; ("3" . nil)
+     ;; ("4" . nil)
+     ;; ("5" . nil)
+     ;; ("6" . nil)
+     ;; ("7" . nil)
+     ;; ("8" . nil)
+     ("9" . flycheck-grammalecte-correct-error-before-point)
+
+     ("a" . engine-mode-prefixed-map)
+     ;; ("b" . nil)
+     ;; ("c" . nil)
+     ;; ("d" . org-capture-keymap)	 ;; TODO,
+     ;; ("d" . org-capture)
+     ("d" . helpful-at-point)
+     ;; ("e" . nil)
+     ("f" . org-next-link)
+
+     ("g" . consult-org-roam-search)
+     ("h" . cp/org-edit-special-src-dwim)
+     ;; ("i" . nil)
+     ("j" . org-next-link)
+     ;; ("k" . nil)
+     ;; ("l" . nil)
+     ("m" . vulpea-find)
+     ("n" . winner-undo)
+     ;; ("o" . nil)
+     ("p" . org-capture)
+     ("q" . org-previous-link)
+     ;; ("r" . nil)
+     ;; ("s" . nil)
+     ("t" . cp/consult-ripgrep-with-directory)
+     ;; ("u" . mode-specific-map)
+     ("v" . magit-status)
+     ("w" . ace-swap-window)
+     ;; ("x" . nil)
+     ;; ("y" . nil)
+     ("z" . tool-bar-mode)
+
+     ;;
+     ))
+
   )
 
 (define-key minibuffer-mode-map [remap previous-line] #'previous-line-or-history-element)
