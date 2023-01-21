@@ -29,7 +29,9 @@
      (company-backends list
 		       (company-capf))))
  '(safe-local-variable-values
-   '((eval setq-local org-roam-db-location
+   '((eval setq-local org-roam-directory
+	   (pwd))
+     (eval setq-local org-roam-db-location
 	   (expand-file-name "org-roam.db" org-roam-directory))
      (eval setq-local org-roam-directory
 	   (expand-file-name

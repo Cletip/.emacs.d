@@ -3,8 +3,9 @@
 
 
 #+begin_src emacs-lisp :tangle no
-  (use-package test-package-emacs
-  :defer t
+    (use-package test-package-emacs
+      ;; charger que les autoload avec defer t
+    :defer t
     :straight (test-package-emacs
                :type git
                :host github

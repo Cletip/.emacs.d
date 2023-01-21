@@ -36,7 +36,6 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
                                 ;; "test"
                                 ))
 
-
   ;; où sont mes fichiers
   (setq bibliography-library-paths (list
                                 (concat bibliography-directory "fichiers/")
@@ -45,9 +44,11 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 
 #+end_src
 
+
+
 ** La bibliothèque d'automatisations des choses (à placer tôt) 
 
-
+*** Moteur
 À mettre à un endroit (org-roam-db-sync 'force) pour termux automatiquement ? non
 
 #+begin_src emacs-lisp
@@ -68,13 +69,79 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
       (org-roam-db-sync 'force)
       )
     )
-  (require 'vulpea);;sinon ne charge pas tout je comprends pas pk
-
-  (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
-
+(require 'vulpea)
+(advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
 
 #+end_src
 
+*** Modification de vulpea insert
+
+#+begin_src emacs-lisp
+  (defun vulpea-insert (&optional filter-fn)
+    "Select a note and insert a link to it.
+
+  Allows capturing new notes. After link is inserted,
+  `vulpea-insert-handle-functions' are called with the inserted
+  note as the only argument regardless involvement of capture
+  process.
+
+  FILTER-FN is the function to apply on the candidates, which takes
+  as its argument a `vulpea-note'. Unless specified,
+  `vulpea-insert-default-filter' is used."
+    (interactive)
+    (unwind-protect
+        (atomic-change-group
+          (let* (region-text
+                 beg end
+                 (_ (when (region-active-p)
+                      (setq
+                       beg (set-marker
+                            (make-marker) (region-beginning))
+                       end (set-marker
+                            (make-marker) (region-end))
+                       region-text
+                       (org-link-display-format
+                        (buffer-substring-no-properties
+                         beg end)))))
+                 (note (vulpea-select
+                        "Note"
+                        :filter-fn
+                        (or filter-fn
+                            vulpea-insert-default-filter)
+                        :initial-prompt region-text))
+                 (description (or region-text
+                                  (if-let ((aliases (vulpea-note-aliases note))
+                                           (title (vulpea-note-title
+                                                   (vulpea-db-get-by-id
+                                                    (vulpea-note-id note))))
+                                           (all-aliases (push title aliases)))
+                                      (completing-read "Insert: " all-aliases)
+                                    (vulpea-note-title note)))))
+            (if (vulpea-note-id note)
+                (progn
+                  (when region-text
+                    (delete-region beg end)
+                    (set-marker beg nil)
+                    (set-marker end nil))
+                  (insert (org-link-make-string
+                           (concat "id:" (vulpea-note-id note))
+                           description))
+                  (run-hook-with-args
+                   'vulpea-insert-handle-functions
+                   note))
+              (org-roam-capture-
+               :node (org-roam-node-create
+                      :title (vulpea-note-title note))
+               :props
+               (append
+                (when (and beg end)
+                  (list :region (cons beg end)))
+                (list
+                 :insert-at (point-marker)
+                 :link-description description
+                 :finalize #'vulpea-insert--capture-finalize))))))
+      (deactivate-mark)))
+#+end_src
 
 ** Org-mode
 
@@ -224,7 +291,7 @@ Si je fait avec C-u, alors org-insert-heading !
   (setq org-list-allow-alphabetical t)
 #+end_src
 
-***** Laisser une ligne vide entre les titres org-mode
+***** Laisser une ligne vide entre les titres org-mode lors d'une création !
 
 #+begin_src emacs-lisp
   (setq org-blank-before-new-entry
@@ -795,7 +862,10 @@ Deux stockage d'id : utilisé dans la db de org-roam, utiliser par org.
 Quand on clique sur un lien, les deux marche.
 Il faut dire à org où sont les fichiers avec les ids
 
-***** Les id sont créés grâce à la date
+***** TODO Les id sont créés grâce à la date (est-ce encore utile ? je ne pense pas, car je ne peux pas faire de query avec ce nombre de chiffre. Ne pas le baisser au risque de ne plus les rendre uniques (export calendar). Ne change rien au final ? Le rôle de l'id est d'être unique. Donc, un jour si je voudrais fusionner, il faut vraiment qu'il soit unique(coup de malchance que les deux créer la note en même temps, mais ça peut arriver).) Remettre la méthode originale et voir si ça ne bug pas !
+:LOGBOOK:
+- State "TODO"       from              [2023-01-17 Tue 00:04]
+:END:
 
 #+begin_src emacs-lisp
 
@@ -3017,11 +3087,12 @@ Se base sur les ids pour la date ctime
 ****** Permet d'avoir les tags d'une note
 
 #+begin_src emacs-lisp
-(defun cp/vulpea-buffer-tags-get (note)
-    "Return filetags value for a note."
-    (save-window-excursion
-      (find-file (vulpea-db-get-file-by-id (vulpea-note-id note)))
-      (vulpea-buffer-prop-get-list "filetags" "[ :]")))
+  (defun cp/vulpea-buffer-tags-get (note)
+      "Return filetags value for a note."
+      (save-window-excursion
+        (find-file (vulpea-db-get-file-by-id (vulpea-note-id note)))
+        (vulpea-buffer-prop-get-list "filetags" "[ :]")))
+
 #+end_src
 
 ***** Variable définissant ma hérirachie
@@ -3729,7 +3800,9 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
 
 #+end_src
 
-**** TODO maj Insérer du texte dans un note en fonction d'une autre 
+**** Gestion de notes dynamique
+
+***** TODO maj Insérer du texte dans un note en fonction d'une autre 
 
 Dépendant des ids dans id-locations.el
 
@@ -3741,7 +3814,155 @@ Dépendant des ids dans id-locations.el
                                               ;; center-block
                                               keyword ;; pour pas exporter les truc avec #+ (comme les titres)
                                               )))
+
 #+end_src
+
+***** TODO macros directement dans le texte !
+:LOGBOOK:
+- State "TODO"       from              [2023-01-09 Mon 21:36]
+:END:
+
+[[https://notes.alexkehayias.com/emacs-inline-macro-in-the-buffer/][ce lien]] pour voir originale
+#+MACRO: appareil (eval (system-name))
+
+Votre appareil est :  {{{appareil}}}
+
+
+#+MACRO: lien (eval [[id:20220617105453042719][Emacs]])
+
+Votre appareil est :  {{{lien}}}]]
+
+
+#+begin_src emacs-lisp :tangle no
+  ;; Display macros inline in buffers
+  (add-to-list 'font-lock-extra-managed-props 'display)
+
+  (font-lock-add-keywords
+   'org-mode
+   '(("\\({{{[a-zA-Z#%)(_-+0-9]+}}}\\)" 0
+      `(face nil display
+             ,(format "%s"
+                      (let* ((input-str (match-string 0))
+                             (el (with-temp-buffer
+                                   (insert input-str)
+                                   (goto-char (point-min))
+                                   (org-element-context)))
+                             (text (org-macro-expand el org-macro-templates)))
+                        (if text
+                            text
+                          input-str)))))))
+
+  ;; todo pour des macros globals. Utile ?
+
+
+  (setq org-export-global-macros '(
+                                   ("macro" . "this is the first text snippet")
+                                   ("macro-2" . "this is the second text snippet")
+                                   ))
+
+  (add-to-list 'font-lock-extra-managed-props 'global-macro)
+  (font-lock-add-keywords
+   'org-mode
+   '(("\\({{{[a-zA-Z#%)(_-+0-9]+}}}\\)" 0
+      `(face nil global-macro
+             ,(format "%s"
+                      (let* ((input-str (match-string 0))
+                             (el (with-temp-buffer
+                                   (insert input-str)
+                                   (goto-char (point-min))
+                                   (org-element-context)))
+                             (text (org-macro-expand el org-export-global-macros)))
+                        (if text
+                            text
+                          input-str)))))))
+#+end_src
+
+
+***** TODO Macro global 
+:LOGBOOK:
+- State "TODO"       from              [2023-01-09 Mon 21:07]
+:END:
+
+org-macro-templates ?
+
+
+
+je veux faire des macro dans org-mode (= poser des "balises" comme "aujourd'hui" qui seront remplacé par la date d'aujourd'hui). Comment faire ?
+
+Parfait. Maintenant, je veux faire des macros globales, c'est à dire définir mes macros dans mon fichiers de configuration, et pouvoir les appeler depuis n'importe lequel de mes fichiers org. Comment faire ?
+
+#+begin_src emacs-lisp :tangle no
+  (setq salut "try")
+
+  (defun org-macro-initialize-templates (&optional default)
+    "Collect macro templates defined in current buffer.
+
+    DEFAULT is a list of globally available templates.
+
+    Templates are stored in buffer-local variable `org-macro-templates'.
+
+    In addition to buffer-defined macros, the function installs the
+    following ones: \"n\", \"author\", \"email\", \"keyword\",
+    \"time\", \"property\", and, if the buffer is associated to
+    a file, \"input-file\" and \"modification-time\"."
+    (require 'org-element)
+    (org-macro--counter-initialize)	;for "n" macro
+    (setq org-macro-templates
+          (nconc
+           ;; Install user-defined macros.  Local macros have higher
+           ;; precedence than global ones.
+           (org-macro--set-templates (append default (org-macro--collect-macros)))
+           ;; Install file-specific macros.
+           (let ((visited-file (buffer-file-name (buffer-base-buffer))))
+             (and visited-file
+                  (file-exists-p visited-file)
+                  (list
+                   `("input-file" . ,(file-name-nondirectory visited-file))
+                   `("modification-time" .
+                     ,(let ((modtime (file-attribute-modification-time
+                                      (file-attributes visited-file))))
+                        (lambda (arg1 &optional arg2 &rest _)
+                          (format-time-string
+                           arg1
+                           (or (and (org-string-nw-p arg2)
+                                    (org-macro--vc-modified-time visited-file))
+                               modtime))))))))
+           ;; Install generic macros.
+           '(("keyword" . (lambda (arg1 &rest _)
+                            (org-macro--find-keyword-value arg1 t)))
+             ("n" . (lambda (&optional arg1 arg2 &rest _)
+                      (org-macro--counter-increment arg1 arg2)))
+             ("property" . (lambda (arg1 &optional arg2 &rest _)
+                             (org-macro--get-property arg1 arg2)))
+             ("time" . (lambda (arg1 &rest _)
+                         (format-time-string arg1)))
+             ("salut" . (lambda (arg1 &rest _)
+                         (format-time-string arg1)))))))
+#+end_src
+
+
+***** Boutons personnalisables org-mode
+
+[[elisp:(call-interactively 'tool-bar-mode)][test de tool-bar-mode]]
+
+On peut même en rajouter, par exemple
+
+#+begin_src emacs-lisp
+
+  (org-link-set-parameters
+   "config" :follow (lambda (_) (find-file "~/.emacs.d/init.el")))
+
+#+end_src
+
+#+begin_example
+[[config:][vers la config]]
+#+end_example 
+
+
+***** TODO Notes dans le fichiers controles (à dispatcher sur chaque module ?)
+:LOGBOOK:
+- State "TODO"       from              [2023-01-09 Mon 21:03]
+:END:
 
 **** Gestion des fichiers et des dossiers en pièce jointe 
 
@@ -4243,6 +4464,12 @@ allow-emacs-pinentry
   ;; variable de la date
   (setq cp/vulpea-date "date")
 
+  (defun cp/string-with-link-to-string-with-description-of-link (a-string)
+    "Take a string with link(s) (org-mode), return the same string, but only with
+          the description of link(s)"
+    (replace-regexp-in-string "\\(\\[\\[.*\\]\\[\\)\\(.*\\)\\]\\]" "\\2" a-string)
+    )
+
   ;; ajout de la date dans les annotations
   (defun cp/vulpea-select-annotate (note)
     "Annotate a NOTE for completion."
@@ -4257,7 +4484,8 @@ allow-emacs-pinentry
                       (vulpea-note-tags note)
                       " "))
            (date-str (if (vulpea-meta-get note cp/vulpea-date)
-                         (vulpea-meta-get note cp/vulpea-date)
+                         ;; to have just the description in a link !
+                         (cp/string-with-link-to-string-with-description-of-link (vulpea-meta-get note cp/vulpea-date))
                        ;; (make-string 8 (string-to-char " "))
                        ""
                        ))
@@ -4368,8 +4596,6 @@ Gérer par org-roam
 #+begin_src emacs-lisp
 )
 #+end_src
-
-
 
 ** Org-roam, seulement si ya mon braindump (logique)
 
@@ -4489,9 +4715,10 @@ Gérer par org-roam
 Par exemple, si je veux que mes transclude soit considérer comme des backlinks, il faudra que je touche cette variable
 
 #+begin_src emacs-lisp
-  
+
   (setq org-roam-db-extra-links-exclude-keys '((node-property . ("ROAM_REFS"))
-                                               (keyword . ("transclude"))))
+                                               ;; (keyword . ("transclude"))
+                                               ))
 
   ;; org-roam-db-extra-links-elements
 #+end_src
@@ -4515,7 +4742,13 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 
   (setq org-roam-capture-templates
-        '(("d" "default" plain "%?"
+        '(
+          ("D" "default default !" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")
+           :unnarrowed t)
+
+          ("d" "default" plain "%?"
            :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+title: ${title}\n")
            :unnarrowed t)
@@ -4678,7 +4911,7 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 ;; on enlève la hierachy, sinon demande mes notes gpg
 ;;${hierarchy:130}
-    (setq org-roam-node-display-template "${type:15} ${title:50} ${tags:40} ${backlinkscount:2}")
+    (setq org-roam-node-display-template "${type:15} ${title:30} ${hierarchy:80} ${tags:40} ${backlinkscount:2}")
 
     )
   
@@ -4695,7 +4928,7 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 **** Fin de use-package org-roam
 #+begin_src emacs-lisp
-)
+  )
 #+end_src
 
 
@@ -4926,6 +5159,9 @@ Pas possible, car impossible de modifié une note-vulpea dans une liste. Rip. Fa
 
 Voir après pour un mini test de ces deux fonctions
 
+ceci pour remplacer ma fonction de vulpea permettant de naviguer ? garder lidee de la récursive ? https://ag91.github.io/blog/2021/03/12/find-org-roam-notes-via-their-relations/
+
+
 #+begin_src emacs-lisp
 
   (defun cp/vulpea-get-id-at-point()
@@ -5109,6 +5345,13 @@ Autre version, peut-être à choisir (mais break la sémantique de vulpea-find) 
 
 #+end_src
 
+****** TODO Fonction pour consult directement sur les notes (pas sûr que j'en ai beson)
+:LOGBOOK:
+- State "TODO"       from              [2022-12-21 Wed 10:53]
+:END:
+
+https://github.com/mclear-tools/consult-notes
+
 ****** Fonction pour savoir où je parle de X chose. Super 
 
 
@@ -5230,6 +5473,17 @@ https://github.com/chrisbarrett/nursery
 
 #+end_src
 
+****** TODO Fusions de noeuds
+:LOGBOOK:
+- State "TODO"       from              [2023-01-15 Sun 16:13]
+:END:
+
+[[https://m.wikidata.org/wiki/Help:Merge/fr][se baser la dessus]]
+
+il faudrait :
+1. en premier la mise en commun des données sur un seul élément
+2. l’élément de destination
+3. et enfin la redirection de la page désormais inutile vers la nouvelle page (et également sur toutes les autres pages)
 
 ***** Référence key
 
@@ -5349,14 +5603,14 @@ https://github.com/chrisbarrett/nursery
     )
 #+end_src
 
-***** Consult org-roam
+***** Consult org-roam (pour avoir la preview des noeuds)
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
   (use-package consult-org-roam
-     :config
-     ;; Activate the minor-mode
-     (consult-org-roam-mode 1)
-     (setq consult-org-roam-grep-func #'consult-ripgrep))
+    :config
+    ;; Activate the minor-mode
+    (consult-org-roam-mode 1)
+    (setq consult-org-roam-grep-func #'consult-ripgrep))
 #+end_src
 
 ***** Convertir les fichiers org en markdown hugo
@@ -5828,7 +6082,7 @@ orb-note-actions orb-edit-citation-note
 
 #+end_src
 
-*** Méthode pour ajouter des références aux bibfiles
+*** Méthodes pour ajouter des références aux bibfiles
 **** Via quelque chose qui permet de l'identifier
 
 #+begin_src emacs-lisp
@@ -5887,6 +6141,13 @@ Pour faire ceci :
     )
 
 #+end_src
+**** TODO Pour insérer un entrée bibtex avec une fonction
+:LOGBOOK:
+- State "TODO"       from              [2023-01-16 Mon 23:12]
+:END:
+
+[[https://github.com/rougier/persid][ceci]], doit aussi y en avoir d'autre. ne remplace pas zotra, car ceci est fait exprès pour les bouquins les textes etc,
+
 *** TODO Drag and drop des pdf
 
 [[https://github.com/rougier/pdf-drop-mode][ici]]
@@ -6203,20 +6464,74 @@ Consult-ripgrep est mieux je pense : plus rapide et plus intuitif. Mais deft p
                   "\\)")))
 #+end_src
 
-** mon package
+** org-edna, a intégrer avec le reste
+test
+
+#+begin_src emacs-lisp
+  (use-package org-edna
+    :config
+    ;; Always necessary
+    (org-edna-mode))
+#+end_src
 
 
+
+
+** ekg test
 
 #+begin_src emacs-lisp :tangle no
-  (add-to-list 'load-path "/home/utilisateur/mesdocuments/personnel/informatique/the-System/modules/exemple/")
-  (require 'exemple)
 
-  (use-package exemple
+  (use-package triples
+    :straight '(triples :type git :host github :repo "ahyatt/triples"  ))
+  (use-package ekg
+    :straight '(ekg :type git :host github :repo "ahyatt/ekg")
+    :config
+    (setq ekg-db-file (concat no-littering-var-directory "ekg.db"))
 
-    :straight (exemple
-               :type git
-               :host github
-               :repo "Cletip/exemple"))
+    (setq ekg-capture-mode-map
+          (let ((map (make-sparse-keymap)))
+            (define-key map "\C-c'" #'ekg-capture-finalize)
+            map))
+
+
+    )
+  ;;ekg-capture-auto-tag-funcs
+#+end_src
+
+#+RESULTS:
+: t
+
+(ekg-show-tags-any '("emacs" "2022-10-02" "vi" "buffer" "imenu"))
+
+** Polymode ? non casse tout mais idée bien
+
+#+begin_src emacs-lisp :tangle no
+  (use-package polymode)
+
+
+  (define-hostmode poly-emacs-lisp-hostmode
+    :mode 'xah-elisp-mode)
+
+  (define-polymode poly-emacs-lisp
+    :hostmode 'poly-emacs-lisp-hostmode
+    ;; :innermodes '(poly-markdown-yaml-metadata-innermode
+    ;;                   poly-markdown-fenced-code-innermode)
+    )
+
+  (use-package poly-org
+    :config
+    (setq polymode-mode-name-aliases '((asymptote . asy-mode)
+                                       (bash . sh-mode)
+                                       (cpp . c++-mode)
+                                       (ditaa . artist-mode)
+                                       ;; (el . xah-elisp-mode)
+                                       ;; (elisp . xah-elisp-mode)
+                                       (emacs-lisp . xah-elisp-mode)
+                                       (ocaml . tuareg)
+                                       (screen . shell-script-mode)
+                                       (shell . sh-mode)
+                                       (sqlite . sql-mode))))
+
 
 
 #+end_src

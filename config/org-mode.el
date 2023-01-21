@@ -13,7 +13,6 @@
                               ;; "test"
                               ))
 
-
 ;; où sont mes fichiers
 (setq bibliography-library-paths (list
                               (concat bibliography-directory "fichiers/")
@@ -21,25 +20,89 @@
                               ))
 
 (use-package vulpea
-  :if braindump-exists
-  :straight (vulpea
-             :type git
-             :host github
-             :repo "d12frosted/vulpea")
-  ;; hook into org-roam-db-autosync-mode you wish to enable
-  ;; persistence of meta values (see respective section in README to
-  ;; find out what meta means)
-  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
-  :config
-  (defun org-roam-vulpea-bdd ()
-    (interactive)
-    "Mets à jour la bdd pour l'utilisation de velpua"
-    (org-roam-db-sync 'force)
+    :if braindump-exists
+    :straight (vulpea
+               :type git
+               :host github
+               :repo "d12frosted/vulpea")
+    ;; hook into org-roam-db-autosync-mode you wish to enable
+    ;; persistence of meta values (see respective section in README to
+    ;; find out what meta means)
+    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+    :config
+    (defun org-roam-vulpea-bdd ()
+      (interactive)
+      "Mets à jour la bdd pour l'utilisation de velpua"
+      (org-roam-db-sync 'force)
+      )
     )
-  )
-(require 'vulpea);;sinon ne charge pas tout je comprends pas pk
-
+(require 'vulpea)
 (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
+
+(defun vulpea-insert (&optional filter-fn)
+  "Select a note and insert a link to it.
+
+Allows capturing new notes. After link is inserted,
+`vulpea-insert-handle-functions' are called with the inserted
+note as the only argument regardless involvement of capture
+process.
+
+FILTER-FN is the function to apply on the candidates, which takes
+as its argument a `vulpea-note'. Unless specified,
+`vulpea-insert-default-filter' is used."
+  (interactive)
+  (unwind-protect
+      (atomic-change-group
+        (let* (region-text
+               beg end
+               (_ (when (region-active-p)
+                    (setq
+                     beg (set-marker
+                          (make-marker) (region-beginning))
+                     end (set-marker
+                          (make-marker) (region-end))
+                     region-text
+                     (org-link-display-format
+                      (buffer-substring-no-properties
+                       beg end)))))
+               (note (vulpea-select
+                      "Note"
+                      :filter-fn
+                      (or filter-fn
+                          vulpea-insert-default-filter)
+                      :initial-prompt region-text))
+               (description (or region-text
+                                (if-let ((aliases (vulpea-note-aliases note))
+                                         (title (vulpea-note-title
+                                                 (vulpea-db-get-by-id
+                                                  (vulpea-note-id note))))
+                                         (all-aliases (push title aliases)))
+                                    (completing-read "Insert: " all-aliases)
+                                  (vulpea-note-title note)))))
+          (if (vulpea-note-id note)
+              (progn
+                (when region-text
+                  (delete-region beg end)
+                  (set-marker beg nil)
+                  (set-marker end nil))
+                (insert (org-link-make-string
+                         (concat "id:" (vulpea-note-id note))
+                         description))
+                (run-hook-with-args
+                 'vulpea-insert-handle-functions
+                 note))
+            (org-roam-capture-
+             :node (org-roam-node-create
+                    :title (vulpea-note-title note))
+             :props
+             (append
+              (when (and beg end)
+                (list :region (cons beg end)))
+              (list
+               :insert-at (point-marker)
+               :link-description description
+               :finalize #'vulpea-insert--capture-finalize))))))
+    (deactivate-mark)))
 
 (defun my/org-checkbox-todo ()
         "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
@@ -1656,6 +1719,9 @@ Refer to `org-agenda-prefix-format' for more information."
                                             keyword ;; pour pas exporter les truc avec #+ (comme les titres)
                                             )))
 
+(org-link-set-parameters
+ "config" :follow (lambda (_) (find-file "~/.emacs.d/init.el")))
+
 (setq org-attach-store-link-p 'file)
 ;; pour que le lien soit relatif au dossier data, modifier cette fonction
 ;; org attach attach
@@ -1873,6 +1939,12 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 ;; variable de la date
 (setq cp/vulpea-date "date")
 
+(defun cp/string-with-link-to-string-with-description-of-link (a-string)
+  "Take a string with link(s) (org-mode), return the same string, but only with
+        the description of link(s)"
+  (replace-regexp-in-string "\\(\\[\\[.*\\]\\[\\)\\(.*\\)\\]\\]" "\\2" a-string)
+  )
+
 ;; ajout de la date dans les annotations
 (defun cp/vulpea-select-annotate (note)
   "Annotate a NOTE for completion."
@@ -1887,7 +1959,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
                     (vulpea-note-tags note)
                     " "))
          (date-str (if (vulpea-meta-get note cp/vulpea-date)
-                       (vulpea-meta-get note cp/vulpea-date)
+                       ;; to have just the description in a link !
+                       (cp/string-with-link-to-string-with-description-of-link (vulpea-meta-get note cp/vulpea-date))
                      ;; (make-string 8 (string-to-char " "))
                      ""
                      ))
@@ -1984,7 +2057,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 (setq cp/list-of-exclusion '("2022" "Santé"))
 
 (setq org-roam-db-extra-links-exclude-keys '((node-property . ("ROAM_REFS"))
-                                             (keyword . ("transclude"))))
+                                             ;; (keyword . ("transclude"))
+                                             ))
 
 ;; org-roam-db-extra-links-elements
 
@@ -2002,7 +2076,13 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 
 (setq org-roam-capture-templates
-      '(("d" "default" plain "%?"
+      '(
+        ("D" "default default !" plain "%?"
+         :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                            "#+title: ${title}\n")
+         :unnarrowed t)
+
+        ("d" "default" plain "%?"
          :target (file+head "pages/%<%Y%m%d%H%M%S>-${slug}.org"
                             "#+title: ${title}\n")
          :unnarrowed t)
@@ -2135,7 +2215,7 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 ;; on enlève la hierachy, sinon demande mes notes gpg
 ;;${hierarchy:130}
-    (setq org-roam-node-display-template "${type:15} ${title:50} ${tags:40} ${backlinkscount:2}")
+    (setq org-roam-node-display-template "${type:15} ${title:30} ${hierarchy:80} ${tags:40} ${backlinkscount:2}")
 
     )
 
@@ -2469,10 +2549,10 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     (browse-url ref-url)))
 
 (use-package consult-org-roam
-   :config
-   ;; Activate the minor-mode
-   (consult-org-roam-mode 1)
-   (setq consult-org-roam-grep-func #'consult-ripgrep))
+  :config
+  ;; Activate the minor-mode
+  (consult-org-roam-mode 1)
+  (setq consult-org-roam-grep-func #'consult-ripgrep))
 
 (use-package ox-hugo
   :after org org-roam
@@ -3100,3 +3180,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
               "\\|^#\\+[[:alpha:]_]+:.*$"   ;; org-mode metadata
               "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
               "\\)")))
+
+(use-package org-edna
+  :config
+  ;; Always necessary
+  (org-edna-mode))

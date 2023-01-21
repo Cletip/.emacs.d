@@ -11,7 +11,8 @@
  (magit-merge nil)
  (magit-pull nil
 	     ("--rebase"))
- (magit-push nil)
+ (magit-push nil
+	     ("--force"))
  (magit-remote
   ("-f"))
  (magit-reset nil)

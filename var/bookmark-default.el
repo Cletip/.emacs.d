@@ -2,8 +2,18 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("layer-xah-fly-keys.el"
- (filename . "~/mesdocuments/personnel/informatique/layer-xah-fly-keys/layer-xah-fly-keys.el")
+(("xah-fly-keys original"
+ (filename . "~/.dotfiles/.emacs.d/straight/repos/xah-fly-keys/xah-fly-keys.el")
+ (front-context-string . ";;; xah-fly-keys")
+ (rear-context-string)
+ (position . 1))
+(".emacs.dbase"
+ (filename . "~/.emacs.dbase/")
+ (front-context-string . "  /home/utilisat")
+ (rear-context-string)
+ (position . 1))
+("layer-xah-fly-keys.el"
+ (filename . "~/mesdocuments/personnel/informatique/xah-fly-keys-layer/")
  (front-context-string . ";;; layer-xah-fl")
  (rear-context-string)
  (position . 1))
@@ -87,7 +97,7 @@
  (front-context-string . "#+filetags: :pro")
  (rear-context-string)
  (position . 1))
-("xah-fly-keys.el"
+("xah-fly-keys ancien fork !"
  (filename . "~/.dotfiles/.emacs.d/straight/repos/xah-fly-keys/xah-fly-keys.el")
  (front-context-string . "cp\n\n(xah-fly-key")
  (rear-context-string . "     )))\n\n\n\n;;\f ")
@@ -98,10 +108,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20221218135349-test_de_titre_avec_id_20220617105453042719_emacs_un_lien.org")
- (front-context-string)
- (rear-context-string . "Emacs]] un lien\n")
- (position . 123))
+ (filename . "~/mesdocuments/personnel/informatique/the-System/the-System-core/docs/theoretical_and_pratical_documentation/20230120215747-complete_system_to_add_or_search_information.org")
+ (front-context-string . "\nThe user should")
+ (rear-context-string . "745504253\n:END:\n")
+ (position . 52))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

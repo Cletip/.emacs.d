@@ -18,13 +18,15 @@
     ("bjr" "bonjour")
     ("cad" "bonjour")
     ("pb" "problème")
-    ("c" "c'est")
+    ("c'" "c'est")
     ("rdv" "rendez-vous")
     ("pdt" "pendant")
     ("nb" "nombre")
     ("tjr" "toujours")
     ("ds" "dans")
     ("qd" "quand")
+    ("All" "Allegorithmic")
+    ("xfk" "xah-fly-keys") 
 
 
     ;; net abbrev

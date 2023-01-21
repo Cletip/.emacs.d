@@ -57,20 +57,21 @@
     (save-some-buffers t))
   )
 
-(defun cp/xah-fly-save-buffer-if-file-not-gpg ()
-  "Save current buffer if it is a file."
-  (interactive)
-  (when (and (buffer-file-name) (not (string-equal (file-name-extension buffer-file-name) "gpg")))
-    (save-buffer)))
+;; mis dans xfk-layer
+;; (defun cp/xah-fly-save-buffer-if-file-not-gpg ()
+;; "Save current buffer if it is a file."
+;; (interactive)
+;; (when (and (buffer-file-name) (not (string-equal (file-name-extension buffer-file-name) "gpg")))
+;; (save-buffer)))
 
 ;; (add-to-list 'window-state-change-functions 'xah-save-all-unsaved)
 ;; sauvegarde automatique avec command mode
-(add-hook 'xah-fly-command-mode-activate-hook 'cp/xah-fly-save-buffer-if-file-not-gpg)
+;; (add-hook 'xah-fly-command-mode-activate-hook 'cp/xah-fly-save-buffer-if-file-not-gpg)
 
-(setq make-backup-files t	; backup of a file the first time it is saved.
-      backup-by-copying t	; don't clobber symlinks
-      version-control t		; version numbers for backup files
-      delete-old-versions t	; delete excess backup files silently
+(setq make-backup-files t	  ; backup of a file the first time it is saved.
+      backup-by-copying t	  ; don't clobber symlinks
+      version-control t		  ; version numbers for backup files
+      delete-old-versions t	  ; delete excess backup files silently
       delete-by-moving-to-trash t ; Put the deleted files in the trash
       kept-old-versions 6 ; oldest versions to keep when a new numbered backup is made (default: 2)
       kept-new-versions 9 ; newest versions to keep when a new numbered backup is made (default: 2)
@@ -161,14 +162,15 @@
 (add-hook 'eww-after-render-hook 'eww-readable)
 ;; (remove-hook 'eww-after-render-hook 'eww-readable)
 
-(when (require 'xah-fly-keys)
+
+(with-eval-after-load 'xah-fly-keys
   (defun cp/xah-insert-mode-when-command-eww ()
     "Run xah-fly-insert-mode-activate after a search of eww. Don't works with a simple advice-add"
     (when
         ;; (and (> (length (eww-current-url)) (length eww-search-prefix)) ;; pas
         ;;besoin de vérifier si c'est déjà plus grand !
         ;; (string= eww-search-prefix (substring (eww-current-url) 0 (length eww-search-prefix))))
-;; juste si c'est la même c'est ok
+        ;; juste si c'est la même c'est ok
         (not (null (cl-search eww-search-prefix (eww-current-url))))
       (xah-fly-insert-mode-activate)))
   (add-hook 'eww-after-render-hook 'cp/xah-insert-mode-when-command-eww))
@@ -339,7 +341,8 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
   (setq which-key-idle-delay 0.01)
   ;; affichage sur le côté, mais si marche pas en bas
   (which-key-setup-side-window-right-bottom)
-  )
+  (setq which-key-frame-max-height 100)
+  (setq which-key-min-display-lines 1000))
 
 ;;retour à la ligne concrètrement 
 ;; (add-hook 'text-mode-hook 'turn-on-auto-fill)
@@ -447,7 +450,7 @@ Version 2017-06-02"
 
 ;; (add-hook 'org-mode-hook #'dw/toggle-focus-modebis)
 
-(set-face-attribute 'default nil :height 120)
+(set-face-attribute 'default nil :height 130)
 
 ;;police de base, mise dans le early-init.el pour démarrage plus rapide
 (defun Policedebase ()
@@ -638,97 +641,115 @@ Version 2017-06-02"
 
   )
 
-(use-package embark
-     :bind (("C-t" . embark-act))
-     )
+(use-package embark)
 
+
+stop
+   
+   :load-path "straight/build/embark"
+     :bind (("C-t" . embark-act))
+     :config
+     (setq embark-quit-after-action '((kill-buffer . t)
+                                      ;; (t . nil)
+                                      ))
+
+     ;; pour afficher avec which-key
+     (defun embark-which-key-indicator ()
+       "An embark indicator that displays keymaps using which-key.
+                                      The which-key help message will show the type and value of the
+                                      current target followed by an ellipsis if there are further
+                                      targets."
+       (lambda (&optional keymap targets prefix)
+         (if (null keymap)
+             (which-key--hide-popup-ignore-command)
+           (which-key--show-keymap
+            (if (eq (plist-get (car targets) :type) 'embark-become)
+                "Become"
+              (format "Act on %s '%s'%s"
+                      (plist-get (car targets) :type)
+                      (embark--truncate-target (plist-get (car targets) :target))
+                      (if (cdr targets) "…" "")))
+            (if prefix
+                (pcase (lookup-key keymap prefix 'accept-default)
+                  ((and (pred keymapp) km) km)
+                  (_ (key-binding prefix 'accept-default)))
+              keymap)
+            nil nil t (lambda (binding)
+                        (not (string-suffix-p "-argument" (cdr binding))))))))
+
+     (setq embark-indicators
+           '(embark-which-key-indicator
+             embark-highlight-indicator
+             embark-isearch-highlight-indicator))
+
+     (defun embark-hide-which-key-indicator (fn &rest args)
+       "Hide the which-key indicator immediately when using the completing-read prompter."
+       (which-key--hide-popup-ignore-command)
+       (let ((embark-indicators
+              (remq #'embark-which-key-indicator embark-indicators)))
+         (apply fn args)))
+
+     (advice-add #'embark-completing-read-prompter :around #'embark-hide-which-key-indicator))
+
+   (with-eval-after-load 'consult
+     (with-eval-after-load 'embark
+       (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
    (use-package embark-consult
-     :after (embark consult)
-     :demand t ; only necessary if you have the hook below
+     ;; :after consult embark
      ;; if you want to have consult previews as you move around an
      ;; auto-updating embark collect buffer
      :hook
-     (embark-collect-mode . consult-preview-at-point-mode)
-     )
+     (embark-collect-mode . consult-preview-at-point-mode))
+
+   ;; (with-eval-after-load 'org
+   ;; (with-eval-after-load 'embark
+   ;;     (require 'embark-org)))
+   (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
+   (use-package embark-org
+     ;; :load-path "straight/build/embark/"
+     :straight nil)
 
 
-;; pour afficher avec which-key
-   (defun embark-which-key-indicator ()
-  "An embark indicator that displays keymaps using which-key.
-The which-key help message will show the type and value of the
-current target followed by an ellipsis if there are further
-targets."
-  (lambda (&optional keymap targets prefix)
-    (if (null keymap)
-        (which-key--hide-popup-ignore-command)
-      (which-key--show-keymap
-       (if (eq (plist-get (car targets) :type) 'embark-become)
-           "Become"
-         (format "Act on %s '%s'%s"
-                 (plist-get (car targets) :type)
-                 (embark--truncate-target (plist-get (car targets) :target))
-                 (if (cdr targets) "…" "")))
-       (if prefix
-           (pcase (lookup-key keymap prefix 'accept-default)
-             ((and (pred keymapp) km) km)
-             (_ (key-binding prefix 'accept-default)))
-         keymap)
-       nil nil t (lambda (binding)
-                   (not (string-suffix-p "-argument" (cdr binding))))))))
-
-(setq embark-indicators
-  '(embark-which-key-indicator
-    embark-highlight-indicator
-    embark-isearch-highlight-indicator))
-
-(defun embark-hide-which-key-indicator (fn &rest args)
-  "Hide the which-key indicator immediately when using the completing-read prompter."
-  (which-key--hide-popup-ignore-command)
-  (let ((embark-indicators
-         (remq #'embark-which-key-indicator embark-indicators)))
-      (apply fn args)))
-
-(advice-add #'embark-completing-read-prompter
-            :around #'embark-hide-which-key-indicator)
 
 (use-package helpful  
   :config
 
-  ;; If you want to replace the default Emacs help keybindings, you can do so:
+  (with-eval-after-load 'xah-fly-keys
+    ;; If you want to replace the default Emacs help keybindings, you can do so:
 
-  ;; Note that the built-in `describe-function' includes both functions
-  ;; and macros. `helpful-function' is functions only, so we provide
-  ;; `helpful-callable' as a drop-in replacement.
-  ;; (global-set-key (kbd "C-h f") #'helpful-callable)
-  (define-key xah-fly-key-map [remap describe-function] #'helpful-callable)
+    ;; Note that the built-in `describe-function' includes both functions
+    ;; and macros. `helpful-function' is functions only, so we provide
+    ;; `helpful-callable' as a drop-in replacement.
+    ;; (global-set-key (kbd "C-h f") #'helpful-callable)
+    (define-key xah-fly-key-map [remap describe-function] #'helpful-callable)
 
-  ;; (global-set-key (kbd "C-h v") #'helpful-variable)
-  (define-key xah-fly-key-map [remap describe-variable] #'helpful-variable)
+    ;; (global-set-key (kbd "C-h v") #'helpful-variable)
+    (define-key xah-fly-key-map [remap describe-variable] #'helpful-variable)
 
 
-  ;; (global-set-key (kbd "C-h k") #'helpful-key)
-  (define-key xah-fly-key-map [remap describe-key] #'helpful-key)
+    ;; (global-set-key (kbd "C-h k") #'helpful-key)
+    (define-key xah-fly-key-map [remap describe-key] #'helpful-key)
 
-  ;; I also recommend the following keybindings to get the most out of helpful:
+    ;; I also recommend the following keybindings to get the most out of helpful:
 
-  ;; Lookup the current symbol at point. C-c C-d is a common keybinding
-  ;; for this in lisp modes.
-  (global-set-key (kbd "C-c C-d") #'helpful-at-point)
+    ;; Lookup the current symbol at point. C-c C-d is a common keybinding
+    ;; for this in lisp modes.
+    (global-set-key (kbd "C-c C-d") #'helpful-at-point)
 
-  ;; Look up *F*unctions (excludes macros).
-  ;;
-  ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
-  ;; already links to the manual, if a function is referenced there.
-  ;; (global-set-key (kbd "C-h F") #'helpful-function)
+    ;; Look up *F*unctions (excludes macros).
+    ;;
+    ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
+    ;; already links to the manual, if a function is referenced there.
+    ;; (global-set-key (kbd "C-h F") #'helpful-function)
 
-  ;; Look up *C*ommands.
-  ;;
-  ;; By default, C-h C is bound to describe `describe-coding-system'. I
-  ;; don't find this very useful, but it's frequently useful to only
-  ;; look at interactive functions.
-  (define-key xah-fly-key-map [remap describe-coding-system] #'helpful-command)
-  ;; (global-set-key (kbd "C-h C") #'helpful-command)
-
+    ;; Look up *C*ommands.
+    ;;
+    ;; By default, C-h C is bound to describe `describe-coding-system'. I
+    ;; don't find this very useful, but it's frequently useful to only
+    ;; look at interactive functions.
+    (define-key xah-fly-key-map [remap describe-coding-system] #'helpful-command)
+    ;; (global-set-key (kbd "C-h C") #'helpful-command)
+    )
 
 
 
@@ -738,8 +759,8 @@ targets."
   (defun +helpful-switch-to-buffer (buffer-or-name)
     "Switch to helpful BUFFER-OR-NAME.
 
-The logic is simple, if we are currently in the helpful buffer,
-reuse it's window, otherwise create new one."
+  The logic is simple, if we are currently in the helpful buffer,
+  reuse it's window, otherwise create new one."
     (if (eq major-mode 'helpful-mode)
         (switch-to-buffer buffer-or-name)
       (pop-to-buffer buffer-or-name)))
@@ -762,20 +783,37 @@ reuse it's window, otherwise create new one."
   ;; j'ai gardé et mis directement sur LayerXahFlyKey
   )
 
+;; (when window-system (setq pop-up-frames t))
+
+(defvar display-pixel-width (display-pixel-width) "Width of DISPLAY’s screen in pixels.")
+(defvar display-pixel-height (display-pixel-height) "Height of DISPLAY’s screen in pixels.")
+
+(defvar size-frame-width nil "Where place the frame in x")
+(setq size-frame-width (truncate (/ display-pixel-width 2.25))) ;; only this need to be configure
+(defvar size-frame-height display-pixel-height "Where place the frame in x")
+(defvar size-frame-shift (/ (- (/ display-pixel-width 2) size-frame-width) 2) "Size of the shift to center the windows")
+(defvar place-frame-x (+ (/ display-pixel-width 2) size-frame-shift) "Where place the frame in x")
+(defvar place-frame-y display-pixel-height "Where place the frame in x")
+
+(setq frame-resize-pixelwise t) ;; sinon je ne peux pas dépasser 1050 en hauteur
+
+(defun cp/frame-place-default ()
+  "Place the frame to the default place"
+  (set-frame-size (selected-frame) size-frame-width display-pixel-height t)
+  (set-frame-position (selected-frame) place-frame-x place-frame-y))
+
+(when window-system
+  (cp/frame-place-default))
+
 (defun cp/position-of-new-windows ()
   (if (and window-system (get 'cp/position-of-new-windows 'state))
       (progn
-        (set-frame-position (selected-frame) 50 0)
-        (set-frame-size (selected-frame) 91 63)
-        (put 'cp/position-of-new-windows 'state nil)
-        )
+        (cp/frame-place-default)
+        (put 'cp/position-of-new-windows 'state nil))
     (progn
-      (set-frame-position (selected-frame) 1050 0)
-      (set-frame-size (selected-frame) 91 63)
-      (put 'cp/position-of-new-windows 'state t)
-      )
-    )
-  )
+      (set-frame-size (selected-frame) size-frame-width display-pixel-height t)
+      (set-frame-position (selected-frame) size-frame-shift place-frame-y) ;; on décale juste la fenêtre en partant de 0
+      (put 'cp/position-of-new-windows 'state t))))
 
 (add-hook 'after-make-frame-functions
           (lambda (frame)
@@ -783,15 +821,11 @@ reuse it's window, otherwise create new one."
             (when (display-graphic-p frame)
               (cp/position-of-new-windows))))
 
-(cp/position-of-new-windows)
-
-(when window-system
-  (set-frame-position (selected-frame) 1050 0)
-  (set-frame-size (selected-frame) 91 63))
-
 ;; (make-frame)
 
-;; (when window-system (setq pop-up-frames t))
+(use-package ace-window
+  :config
+(setq aw-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ))  )
 
 ;;pour supprimer directement le buffer si un fichier est supprimé (ou directory)
 (defun my--dired-kill-before-delete (file &rest rest)
@@ -899,6 +933,7 @@ reuse it's window, otherwise create new one."
     )
 
 (use-package magit)
+;; gérer les pull request
 
 (setq cp/magit-commit-directory-list '(
                                        braindump-directory
@@ -1111,3 +1146,7 @@ reuse it's window, otherwise create new one."
   :after elfeed
   :config 
   (elfeed-goodies/setup))
+
+(use-package hyperbole
+  :config
+  (hyperbole-mode 1))

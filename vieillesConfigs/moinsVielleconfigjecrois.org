@@ -3178,32 +3178,32 @@ For example, to use dashes rather than underscores in your slugs
 #+begin_src emacs-lisp
   
   (straight-use-package '(eaf :type git
-			      :host github
-			      :repo "manateelazycat/emacs-application-framework"
-			      :files ("*.el" "*.py" "core" "app")))
-  
+                              :host github
+                              :repo "manateelazycat/emacs-application-framework"
+                              :files ("*.el" "*.py" "core" "app")))
+
   ;;pour run la commande (eaf-install-and...) seulement une fois (finir d'installer eaf)
   ;; (unless (package-installed-p 'jedi)
   ;; (eaf-install-and-update)
   ;; )
   ;;
-  
-  
-  
-  
-  
+
+
+
+
+
   ;;pour tout le reste  
   (require 'eaf)
-  
-  
+
+
   ;;décocher les eaf nécessaire
-  
-  
-  
+
+
+
   (require 'eaf-browser)
-  
+
   ;; Pour télécharger les fichiers du web, à mettre aussi sur l'ordinateur
-  
+
   ;; (use-package aria2
   ;;     ;; :after (xah-fly-keys)
   ;;     :straight '(aria2 :host github
@@ -3213,28 +3213,28 @@ For example, to use dashes rather than underscores in your slugs
   ;; 			)
   ;;     :init  (require 'monpack) 
   ;; )
-  
+
   ;; (require aria2)
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
   ;; (require 'eaf-pdf-viewer)
-  
+
   ;; (add-to-list 'load-path "/home/msi/.emacs.d/straight/build/eaf/app/image-viewer")
   (require 'eaf-image-viewer)
-  
-  
+
+
   (require 'eaf-terminal)
   (require 'eaf-markdown-previewer)  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
 #+end_src
 
 
