@@ -1945,6 +1945,10 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   (replace-regexp-in-string "\\(\\[\\[.*\\]\\[\\)\\(.*\\)\\]\\]" "\\2" a-string)
   )
 
+;; (defun cp/string-with-link-to-string-with-destination-of-link (link)
+  ;; (when (string-match "id:\\([0-9]+\\)" link)
+    ;; (match-string 1 link)))
+
 ;; ajout de la date dans les annotations
 (defun cp/vulpea-select-annotate (note)
   "Annotate a NOTE for completion."
@@ -2339,6 +2343,28 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     (delete-other-windows)
     )
 
+;; version autre mec
+(defun cp/navigate-note (arg &optional note choices)
+  (interactive "P")
+  (let* ((completions (org-roam-node-read--completions))
+         (next-note (if (and (null note) (org-roam-node-at-point))
+                        (org-roam-node-title (org-roam-node-at-point))
+                      (completing-read "File: " (or choices completions))))
+         (candidates
+          (--> next-note
+               (assoc it completions)
+               cdr
+               org-roam-backlinks-get
+               (--map
+                (org-roam-node-title
+                 (org-roam-backlink-source-node it))
+                it))))
+    (if (string= note next-note)
+        (org-roam-node-open (org-roam-node-from-title-or-alias note))
+      (my/navigate-note nil next-note (or candidates (list next-note))))))
+
+;;
+
 (defun cp/vulpea-get-id-at-point()
   "renvoie l'id du noeud au point actuel"
   (let ((id (org-id-get)))
@@ -2346,14 +2372,12 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
     (save-excursion
       (while (and (ignore-errors (outline-up-heading 1 t)) (not id))
         (when (org-id-get)
-          (setq id (org-id-get)))
-        )
+          (setq id (org-id-get))))
       ;; sinon on prend l'id du buffer
       (unless id
         (save-excursion
           (goto-char (point-min))
-          (setq id (org-id-get)))
-        ))
+          (setq id (org-id-get)))))
     id
     ))
 
@@ -2578,6 +2602,197 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         org-roam-ui-open-on-start nil)
   )
 
+(org-link-set-parameters "id-rel"
+			 :follow #'org-id-rel-open
+			 :export #'org-id-rel-export-function)
+
+(defun org-id-rel-open (id-rel)
+  "Follow the ID-REL link.
+		  ID-REL is the string representation of the link, with the format:
+		  [[id-rel:destination::relation][description]]."
+  (let* ((parts (split-string id-rel "::"))
+	 (destination (car parts))
+	 (relation (cadr parts)))
+    ;; (message "Following link to destination: %s, with relation: %s" destination relation)
+    (org-roam-id-open destination nil)))
+
+;; fonction temp je pense. Ne résout pas si les liens sont mort (si mais pas de la manière classique)
+(defun org-id-rel-export-function (id-rel desc format)
+  "Export the ID-REL link.
+		    ID-REL is the string representation of the link, with the format:
+		    [[id-rel:destination::relation][description]]."
+  (let* ((parts (split-string id-rel "::"))
+	 (destination (car parts))
+	 (relation (cadr parts)))
+    (pcase format
+      ('html (format "<a href='%s'>%s</a>"
+		     (concat (file-name-sans-extension (or
+							(vulpea-db-get-file-by-id destination)
+							(error "Cannot find note with ID \"%s\"" destination);; on balance l'erreur
+							)) ".html")
+		     desc))
+      ('latex (format "\\href{%s}{%s}" destination desc))
+      (_ (format "%s [%s]" desc destination)))))
+
+(vulpea-db-define-table
+ ;; name
+ 'link-with-relation
+ ;; version
+ 1
+ ;; schema
+ '([
+    ;; (note-id :unique :primary-key) ;; c'est source.
+    (pos :not-null)
+    (source :not-null)
+    (dest :not-null)
+    (type :not-null)
+    (properties :not-null)]
+   ;; useful to automatically cleanup your table whenever a note/node/file is removed
+   (:foreign-key
+    [source]
+    :references nodes
+    [id]
+    :on-delete :cascade))
+ ;; index
+ ;; '((custom-node-id-index [note-id]))
+ )
+
+(setq separator-of-parse-id-link-with-relation "::")
+
+(defun parse-path-link-with-relation (path-of-link)
+  "DOCSTRING"
+  (interactive)
+  (split-string path-of-link "::"))
+
+(defun link-parsed-path-link-with-relation (parsed-link)
+  (car parsed-link))
+(defun relation-parse-path-link-with-relation (parsed-link)
+  (cdr parsed-link)
+  )
+
+(defun org-roam-id-find (id &optional markerp)
+  "Return the location of the entry with the id ID using the Org-roam db.
+The return value is a cons cell (file-name . position), or nil
+if there is no entry with that ID.
+With optional argument MARKERP, return the position as a new marker."
+  (cond
+   ((symbolp id) (setq id (symbol-name id)))
+   ((numberp id) (setq id (number-to-string id))))
+  (let ((node (org-roam-populate (org-roam-node-create :id id))))
+    (when-let ((file (org-roam-node-file node)))
+      (if markerp
+	  (unwind-protect
+	      (let ((buffer (or (find-buffer-visiting file)
+				(find-file-noselect file))))
+		(with-current-buffer buffer
+		  (move-marker (make-marker) (org-roam-node-point node) buffer))))
+	(cons (org-roam-node-file node)
+	      (org-roam-node-point node))))))
+
+(defun org-roam-id-open (id _)
+"Go to the entry with id ID.
+Like `org-id-open', but additionally uses the Org-roam database."
+(org-mark-ring-push)
+
+(setq id-list (split-string id separator))
+(setq id (car id-list))
+
+(let ((m (or (org-roam-id-find id 'marker)
+	     (org-id-find id 'marker)))
+      cmd)
+  (unless m
+    (error "Cannot find entry with ID \"%s\"" id))
+  ;; Use a buffer-switching command in analogy to finding files
+  (setq cmd
+	(or
+	 (cdr
+	  (assq
+	   (cdr (assq 'file org-link-frame-setup))
+	   '((find-file . switch-to-buffer)
+	     (find-file-other-window . switch-to-buffer-other-window)
+	     (find-file-other-frame . switch-to-buffer-other-frame))))
+	 'switch-to-buffer-other-window))
+  (if (not (equal (current-buffer) (marker-buffer m)))
+      (funcall cmd (marker-buffer m)))
+  (goto-char m)
+  (move-marker m nil)
+  (org-show-context)))
+
+(org-link-set-parameters "id" :follow #'org-roam-id-open)
+
+(defun org-roam-db-insert-link (link)
+  "Insert link data for LINK at current point into the Org-roam cache."
+  (save-excursion
+    (goto-char (org-element-property :begin link))
+    (let ((type (org-element-property :type link))
+	  (path (org-element-property :path link))
+	  (source (org-roam-id-at-point))
+	  (properties (list :outline (ignore-errors
+				       ;; This can error if link is not under any headline
+				       (org-get-outline-path 'with-self 'use-cache)))))
+      ;; For Org-ref links, we need to split the path into the cite keys
+      (when (and source path)
+	(if (and (boundp 'org-ref-cite-types)
+		 (or (assoc type org-ref-cite-types)
+		     (member type org-ref-cite-types)))
+	    (org-roam-db-query
+	     [:insert :into citations
+		      :values $v1]
+	     (mapcar (lambda (k) (vector source k (point) properties))
+		     (org-roam-org-ref-path-to-keys path)))
+	  (org-roam-db-query
+	   [:insert :into links
+		    :values $v1]
+	   (vector (point) source path type properties)))))))
+
+(cl-defun org-roam-backlinks-section (node &key (unique nil) (show-backlink-p nil))
+  "The backlinks section for NODE.
+
+When UNIQUE is nil, show all positions where references are found.
+When UNIQUE is t, limit to unique sources.
+
+When SHOW-BACKLINK-P is not null, only show backlinks for which
+this predicate is not nil."
+  (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get node :unique unique))))
+    (magit-insert-section (org-roam-backlinks)
+      (magit-insert-heading "Backlinks:")
+      (dolist (backlink backlinks)
+	(when (or (null show-backlink-p)
+		  (and (not (null show-backlink-p))
+		       (funcall show-backlink-p backlink)))
+	  (org-roam-node-insert-section
+	   :source-node (org-roam-backlink-source-node backlink)
+	   :point (org-roam-backlink-point backlink)
+	   :properties (org-roam-backlink-properties backlink))))
+      (insert ?\n))))
+
+(cl-defun org-roam-backlinks-get (node &key unique)
+  "Return the backlinks for NODE.
+
+   When UNIQUE is nil, show all positions where references are found.
+   When UNIQUE is t, limit to unique sources."
+  (let* ((sql (if unique
+		  [:select :distinct [source dest pos properties]
+			   :from links
+			   :where (= dest $s1)
+			   ;; :and (= type "id")
+			   :group :by source
+			   :having (funcall min pos)]
+		[:select [source dest pos properties]
+			 :from links
+			 :where (= dest $s1)
+			 ;; :and (= type "id")
+			 ]))
+	 (backlinks (org-roam-db-query sql (org-roam-node-id node))))
+    (cl-loop for backlink in backlinks
+	     collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
+		       (org-roam-populate
+			(org-roam-backlink-create
+			 :source-node (org-roam-node-create :id source-id)
+			 :target-node (org-roam-node-create :id dest-id)
+			 :point pos
+			 :properties properties))))))
+
 (setq bibtex-dialect 'biblatex)
 
 (setq bibtex-completion-bibliography bibliography-file-list)
@@ -2611,8 +2826,8 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
           (note ,(all-the-icons-material "speaker_notes" :face 'all-the-icons-blue :v-adjust -0.3) . " ")
           (link ,(all-the-icons-octicon "link" :face 'all-the-icons-orange :v-adjust 0.01) . " ")))
 
-  ;; automatiquement refresh lorque l'on modifie la bibliographie
-  (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
+  ;; automatiquement refresh lorque l'on modifie la bibliographie, plus besoin
+  ;; (citar-filenotify-setup '(LaTeX-mode-hook org-mode-hook))
 
   ;;ancien et test    
   ;; (require 'filenotify)

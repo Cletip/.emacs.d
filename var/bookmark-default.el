@@ -108,10 +108,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/mesdocuments/personnel/informatique/the-System/the-System-core/docs/theoretical_and_pratical_documentation/20230120215747-complete_system_to_add_or_search_information.org")
- (front-context-string . "\nThe user should")
- (rear-context-string . "745504253\n:END:\n")
- (position . 52))
+ (filename . "~/braindump/org/journals/2023-02-06.org")
+ (front-context-string . "* 00:12 Journal ")
+ (rear-context-string . "tle: 2023-02-06\n")
+ (position . 72))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

@@ -14,7 +14,6 @@
 
   (menu-bar-mode 0)
   (tooltip-mode 0)
-
 #+end_src
 
 ** Gestion du buffer scratch
@@ -324,7 +323,9 @@ Utiliser les fonctions de xah ?
 *** Faire des extension de la région sélectionnée.
 
 #+begin_src emacs-lisp
-  (use-package expand-region)
+  (use-package expand-region
+    :config
+    (setq expand-region-show-usage-message nil))
 #+end_src
 
 *** Better kill ring
@@ -1141,7 +1142,7 @@ Show document of function in =M-x=, or file attributes in C-x C-f
 info sur le côté du mini buffer
 
 #+begin_src emacs-lisp
-  
+
   (use-package marginalia
     :after vertico
     :custom
@@ -1149,7 +1150,7 @@ info sur le côté du mini buffer
     :init
     (marginalia-mode)
     )
-  
+
 #+end_src
 
 *** Orderless
@@ -1185,9 +1186,9 @@ OVERCHEAT et je m'en sert tout le temps
 
 **** Moteur
  #+begin_src emacs-lisp
-   (use-package embark
-   :load-path "straight/build/embark"
-     :bind (("C-t" . embark-act))
+      (use-package embark
+     :load-path "straight/build/embark"
+     :bind (("C-t" . embark-become)) ;; pourquoi marche pas ?
      :config
      (setq embark-quit-after-action '((kill-buffer . t)
                                       ;; (t . nil)
@@ -1196,9 +1197,9 @@ OVERCHEAT et je m'en sert tout le temps
      ;; pour afficher avec which-key
      (defun embark-which-key-indicator ()
        "An embark indicator that displays keymaps using which-key.
-                                      The which-key help message will show the type and value of the
-                                      current target followed by an ellipsis if there are further
-                                      targets."
+                                               The which-key help message will show the type and value of the
+                                               current target followed by an ellipsis if there are further
+                                               targets."
        (lambda (&optional keymap targets prefix)
          (if (null keymap)
              (which-key--hide-popup-ignore-command)
@@ -1231,25 +1232,41 @@ OVERCHEAT et je m'en sert tout le temps
 
      (advice-add #'embark-completing-read-prompter :around #'embark-hide-which-key-indicator))
 
-   (with-eval-after-load 'consult
-     (with-eval-after-load 'embark
-       (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
-   (use-package embark-consult
-     ;; :after consult embark
-     ;; if you want to have consult previews as you move around an
-     ;; auto-updating embark collect buffer
-     :hook
-     (embark-collect-mode . consult-preview-at-point-mode))
+      (with-eval-after-load 'consult
+        (with-eval-after-load 'embark
+          (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
+      (use-package embark-consult
+        ;; :after consult embark
+        ;; if you want to have consult previews as you move around an
+        ;; auto-updating embark collect buffer
+        :hook
+        (embark-collect-mode . consult-preview-at-point-mode))
 
-   ;; (with-eval-after-load 'org
-   ;; (with-eval-after-load 'embark
-   ;;     (require 'embark-org)))
-   (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
-   (use-package embark-org
-     ;; :load-path "straight/build/embark/"
-     :straight nil)
+      ;; (with-eval-after-load 'org
+      ;; (with-eval-after-load 'embark
+      ;;     (require 'embark-org)))
+      (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
+      (use-package embark-org
+        ;; :load-path "straight/build/embark/"
+        :straight nil)
 
+   ;; ne sert à R ?
+      (load-file (concat straight-base-dir "straight/repos/embark/avy-embark-collect.el"))
+      (use-package avy-embark-collect
+        ;; :load-path "straight/build/embark/"
+        :straight nil)
 
+   ;; actionner action embark dés l'arrivé avec . 
+      (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
+
+      (defun avy-action-embark (pt)
+        (unwind-protect
+            (save-excursion
+              (goto-char pt)
+              (embark-act))
+          (select-window
+           (cdr (ring-ref avy-ring 0))))
+        t)
 
 #+end_src
 

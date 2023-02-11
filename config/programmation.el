@@ -75,6 +75,15 @@
 
 ;; (use-package lsp-javascript-typescript)
 
+;; (use-package )
+
+(add-hook 'sql-mode-hook 'lsp)
+(setq lsp-sqls-workspace-config-path nil)
+(setq lsp-sqls-connections
+      '(((driver . "mysql") (dataSourceName . "yyoncho:local@tcp(localhost:3306)/foo"))
+        ((driver . "mssql") (dataSourceName . "Server=localhost;Database=sammy;User Id=yyoncho;Password=hunter2;"))
+        ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5432 user=yyoncho password=local dbname=sammy sslmode=disable"))))
+
 (use-package company
   :after lsp-mode  ;;si ya lsp-mode
   :hook (lsp-mode . company-mode)  ;; au lieu de lsp, mettre c-mode, python mode etc

@@ -58,6 +58,14 @@
 (when (file-exists-p custom-file)
   (load custom-file nil 'nomessage))
 
+;; gnus-home-directory, faut le charger avant le reste à cause de org-babel-load-file
+;; Sinon faire un jour un 
+;; (add-to-list 'load-path "chemin/jusqu'à/ma/configgnus.el").
+;; puis faire comme cela :
+;; https://github.com/d12frosted/environment/blob/master/emacs/lisp/config-path.el
+;; et enfin faire un (require 'nom-de-l'extension)
+(setq gnus-home-directory (no-littering-expand-var-file-name "gnus/"))
+
 ;;on lance le reste
 (org-babel-load-file (expand-file-name "~/.emacs.d/config/config.org"))
 

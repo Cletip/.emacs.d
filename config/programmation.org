@@ -141,7 +141,20 @@ Il faut aussi installer flutter sur asdf
 (add-hook 'dart-mode-hook 'lsp)
 #+end_src
 
+****** SQL
 
+https://dev.to/viglioni/emacs-as-sql-client-with-lsp-143l
+
+#+begin_src emacs-lisp
+  ;; (use-package )
+
+  (add-hook 'sql-mode-hook 'lsp)
+  (setq lsp-sqls-workspace-config-path nil)
+  (setq lsp-sqls-connections
+        '(((driver . "mysql") (dataSourceName . "yyoncho:local@tcp(localhost:3306)/foo"))
+          ((driver . "mssql") (dataSourceName . "Server=localhost;Database=sammy;User Id=yyoncho;Password=hunter2;"))
+          ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5432 user=yyoncho password=local dbname=sammy sslmode=disable"))))
+#+end_src
 
 **** Completion et proposition
 ***** Voir les propositions avec company

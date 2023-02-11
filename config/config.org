@@ -9,6 +9,7 @@
 *** Où est le home ?
 
 #+begin_src emacs-lisp
+
   (defconst path-home-dir (file-name-as-directory (getenv "HOME"))
     "Path to user home directory.
 
@@ -115,7 +116,7 @@ This package implements hiding or abbreviation of the mode line displays (lighte
 
 ** Mail
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 
   (org-babel-load-file (expand-file-name "mail.org" config-directory))
 

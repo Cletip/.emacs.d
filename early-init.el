@@ -44,10 +44,10 @@ Deactivate this advice with:
       (let ((deactivate-mark nil)
             (inhibit-read-only t))
         (with-current-buffer "*Messages*"
-          (goto-char (point-max))
+	  (save-excursion (goto-char (point-max))
           (if (not (bolp))
               (newline))
-          (insert (format-time-string "[%F %T.%3N] "))))))
+          (insert (format-time-string "[%F %T.%3N] ")))))))
 (advice-add 'message :before 'cp/ad-timestamp-message)
 
 (setq-default inhibit-redisplay t

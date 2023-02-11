@@ -54,3 +54,4 @@ var/request/
 /var/eww/
 /url/
 /var/ekg.db
+/var/nsm-settings.el

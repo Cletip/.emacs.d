@@ -5,7 +5,7 @@
 
 
 ** xah-fly-keys
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
   (use-package xah-fly-keys
     :straight (xah-fly-keys
                :type git
@@ -32,7 +32,7 @@
 #+end_src
 
 ** xah-fly-keys-layer
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 
   (use-package xah-fly-keys-layer
     :after xah-fly-keys
@@ -197,7 +197,8 @@
     ;; change variable before require the extension
     (setq xah-fly-keys-layer-misc-enter-open-line t
           xah-fly-keys-layer-misc-autosave t
-          ;; xah-fly-keys-layer-embark t
+          xah-fly-keys-layer-embark t
+          embark-cycle-key (xah-fly--convert-kbd-str "i")
           )
     (require 'xah-fly-keys-layer-misc)
 

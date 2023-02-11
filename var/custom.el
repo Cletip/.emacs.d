@@ -40,7 +40,8 @@
      (org-download-image-dir concat org-directory "org/artistesImages/")
      (org-download-heading-lvl . 0)
      (company-backends list
-		       (company-capf)))))
+		       (company-capf))))
+ '(smtpmail-smtp-service 587))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
