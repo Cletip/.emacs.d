@@ -21,6 +21,13 @@
                :host github
                :repo "Cletip/test-package-emacs"))
 
+* Test de consult-buffer à la place de switch-to-buffer dinguerie !
+
+#+begin_src emacs-lisp
+  (setq consult-narrow-key (kbd "C-+"))  ;; pour "C-+", je sais pas pourquoi c'est ce nombre.
+  (define-key xah-fly-key-map [remap switch-to-buffer] #'consult-buffer)
+#+end_src
+
 * Fin try
 #+begin_src emacs-lisp
 (message "fin try")

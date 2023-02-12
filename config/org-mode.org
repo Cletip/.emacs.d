@@ -437,6 +437,8 @@ Si je fait avec C-u, alors org-insert-heading !
 
 ****** Pour voir directement les liens, faire disparaître l'emphasis
 
+TODO org-toggle-link-display
+
 #+begin_src emacs-lisp 
 
   (setq org-hide-emphasis-markers t)
@@ -4159,10 +4161,19 @@ Patch de la fonction pour pouvoir attach des dossiers
               )
           ))))
 
-***** Pour prendre des notes sur des fichiers
+***** TODO Pour prendre des notes sur des fichiers
+:LOGBOOK:
+- State "TODO"       from              [2023-02-12 Sun 11:04]
+:END:
 
 #+begin_src emacs-lisp
   ;; (use-package org-noter) ;; outdated ?
+
+(use-package org-noter
+    :straight (org-noter
+               :type git
+               :host github
+               :repo "petermao/org-noter"))
 
 
   ;; marche pas
@@ -5680,7 +5691,7 @@ Se trouve à cette adresse http://127.0.0.1:35901/
 #+end_src
 
 
-***** TODO Fonction modifié pour des liens autre que "id"
+***** TODO Fonction modifié pour des liens autre que "id" : les liens avec relations
 :LOGBOOK:
 - State "TODO"       from              [2023-02-11 Sat 01:42]
 :END:
@@ -5709,11 +5720,239 @@ Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en
 
 ****** Nouveau
 
-******* Creation of the type of link
+******* Dans org-mode pour ajouter un type de tel sorte que cela soit détectecter comme un "type id"
+
+
+******** La regex pour check si li type peut-être un id
+
+#+begin_src emacs-lisp
+  (setq regex-of-an-id "[0-9]\\{19\\}")
+#+end_src
+
+******** Fonction pour parser le lien, il ne faut plus que cela soit "fuzzy", qui est le cas par défaut quand il trouve pas
+
+#+begin_src emacs-lisp
+  (defun org-element-link-parser ()
+    "Parse link at point, if any.
+
+  When at a link, return a list whose car is `link' and cdr a plist
+  with `:type', `:path', `:format', `:raw-link', `:application',
+  `:search-option', `:begin', `:end', `:contents-begin',
+  `:contents-end' and `:post-blank' as keywords.  Otherwise, return
+  nil.
+
+  Assume point is at the beginning of the link."
+    (catch 'no-object
+      (let ((begin (point))
+            end contents-begin contents-end link-end post-blank path type format
+            raw-link search-option application)
+        (cond
+         ;; Type 1: Text targeted from a radio target.
+         ((and org-target-link-regexp
+               (save-excursion (or (bolp) (backward-char))
+                               (looking-at org-target-link-regexp)))
+          (setq type "radio")
+          (setq format 'plain)
+          (setq link-end (match-end 1))
+          (setq path (match-string-no-properties 1))
+          (setq contents-begin (match-beginning 1))
+          (setq contents-end (match-end 1)))
+         ;; Type 2: Standard link, i.e. [[https://orgmode.org][homepage]]
+         ((looking-at org-link-bracket-re)
+          (setq format 'bracket)
+          (setq contents-begin (match-beginning 2))
+          (setq contents-end (match-end 2))
+          (setq link-end (match-end 0))
+          ;; RAW-LINK is the original link.  Decode any encoding.
+          ;; Expand any abbreviation in it.
+          ;;
+          ;; Also treat any newline character and associated
+          ;; indentation as a single space character.  This is not
+          ;; compatible with RFC 3986, which requires to ignore
+          ;; them altogether.  However, doing so would require
+          ;; users to encode spaces on the fly when writing links
+          ;; (e.g., insert [[shell:ls%20*.org]] instead of
+          ;; [[shell:ls *.org]], which defeats Org's focus on
+          ;; simplicity.
+          (setq raw-link (org-link-expand-abbrev
+                          (org-link-unescape
+                           (replace-regexp-in-string
+                            "[ \t]*\n[ \t]*" " "
+                            (match-string-no-properties 1)))))
+          ;; Determine TYPE of link and set PATH accordingly.  According
+          ;; to RFC 3986, remove whitespaces from URI in external links.
+          ;; In internal ones, treat indentation as a single space.
+          (cond
+           ;; File type.
+           ((or (file-name-absolute-p raw-link)
+                (string-match "\\`\\.\\.?/" raw-link))
+            (setq type "file")
+            (setq path raw-link))
+           ;; Explicit type (http, irc, bbdb...).
+           ((string-match org-link-types-re raw-link)
+            (setq type (match-string 1 raw-link))
+            (setq path (substring raw-link (match-end 0))))
+           ;; Code-ref type: PATH is the name of the reference.
+           ((and (string-match-p "\\`(" raw-link)
+                 (string-match-p ")\\'" raw-link))
+            (setq type "coderef")
+            (setq path (substring raw-link 1 -1)))
+           ;; Custom-id type: PATH is the name of the custom id.
+           ((= (string-to-char raw-link) ?#)
+            (setq type "custom-id")
+            (setq path (substring raw-link 1)))
+
+           ;; id-rel
+           ((string-match regex-of-an-id raw-link)
+            (let ((type-path (split-string raw-link ":")))
+              (setq type (car type-path))
+              (setq path (cadr type-path))))
+
+           ;; Fuzzy type: Internal link either matches a target, an
+           ;; headline name or nothing.  PATH is the target or
+           ;; headline's name.
+           (t
+            (setq type "fuzzy")
+            (setq path raw-link))))
+         ;; Type 3: Plain link, e.g., https://orgmode.org
+         ((looking-at org-link-plain-re)
+          (setq format 'plain)
+          (setq raw-link (match-string-no-properties 0))
+          (setq type (match-string-no-properties 1))
+          (setq link-end (match-end 0))
+          (setq path (match-string-no-properties 2)))
+         ;; Type 4: Angular link, e.g., <https://orgmode.org>.  Unlike to
+         ;; bracket links, follow RFC 3986 and remove any extra
+         ;; whitespace in URI.
+         ((looking-at org-link-angle-re)
+          (setq format 'angle)
+          (setq type (match-string-no-properties 1))
+          (setq link-end (match-end 0))
+          (setq raw-link
+                (buffer-substring-no-properties
+                 (match-beginning 1) (match-end 2)))
+          (setq path (replace-regexp-in-string
+                      "[ \t]*\n[ \t]*" "" (match-string-no-properties 2))))
+         (t (throw 'no-object nil)))
+        ;; In any case, deduce end point after trailing white space from
+        ;; LINK-END variable.
+        (save-excursion
+          (setq post-blank
+                (progn (goto-char link-end) (skip-chars-forward " \t")))
+          (setq end (point)))
+        ;; Special "file"-type link processing.  Extract opening
+        ;; application and search option, if any.  Also normalize URI.
+        (when (string-match "\\`file\\(?:\\+\\(.+\\)\\)?\\'" type)
+          (setq application (match-string 1 type))
+          (setq type "file")
+          (when (string-match "::\\(.*\\)\\'" path)
+            (setq search-option (match-string 1 path))
+            (setq path (replace-match "" nil nil path)))
+          (setq path (replace-regexp-in-string "\\`///*\\(.:\\)?/" "\\1/" path)))
+        ;; Translate link, if `org-link-translation-function' is set.
+        (let ((trans (and (functionp org-link-translation-function)
+                          (funcall org-link-translation-function type path))))
+          (when trans
+            (setq type (car trans))
+            (setq path (cdr trans))))
+        (list 'link
+              (list :type type
+                    :path path
+                    :format format
+                    :raw-link (or raw-link path)
+                    :application application
+                    :search-option search-option
+                    :begin begin
+                    :end end
+                    :contents-begin contents-begin
+                    :contents-end contents-end
+                    :post-blank post-blank)))))
+#+end_src
+
+******** Fonction pour open avec le lien
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2023-02-11 Sat 17:12]
+- State "TODO"       from              [2023-02-11 Sat 17:12]
+- State "TODO"       from              [2023-02-11 Sat 16:04]
+:END:
+
+#+begin_src emacs-lisp
+  
+
+  (defun org-link-open (link &optional arg)
+    "Open a link object LINK.
+
+  ARG is an optional prefix argument.  Some link types may handle
+  it.  For example, it determines what application to run when
+  opening a \"file\" link.
+
+  Functions responsible for opening the link are either hard-coded
+  for internal and \"file\" links, or stored as a parameter in
+  `org-link-parameters', which see."
+    (let ((type (org-element-property :type link))
+          (path (org-element-property :path link)))
+      (message "%s %s" type path)
+      (pcase type
+        ;; Opening a "file" link requires special treatment since we
+        ;; first need to integrate search option, if any.
+        ("file"
+         (let* ((option (org-element-property :search-option link))
+                (path (if option (concat path "::" option) path)))
+           (org-link-open-as-file path
+                                  (pcase (org-element-property :application link)
+                                    ((guard arg) arg)
+                                    ("emacs" 'emacs)
+                                    ("sys" 'system)))))
+        ;; Internal links.
+        ((or "coderef" "custom-id" "fuzzy" "radio")
+         (unless (run-hook-with-args-until-success 'org-open-link-functions path)
+           (if (not arg) (org-mark-ring-push)
+             (switch-to-buffer-other-window (org-link--buffer-for-internals)))
+           (let ((destination
+                  (org-with-wide-buffer
+                   (if (equal type "radio")
+                       (org-link--search-radio-target path)
+                     (org-link-search
+                      (pcase type
+                        ("custom-id" (concat "#" path))
+                        ("coderef" (format "(%s)" path))
+                        (_ path))
+                      ;; Prevent fuzzy links from matching themselves.
+                      (and (equal type "fuzzy")
+                           (+ 2 (org-element-property :begin link)))))
+                   (point))))
+             (unless (and (<= (point-min) destination)
+                          (>= (point-max) destination))
+               (widen))
+             (goto-char destination))))
+        ;; check if the type is an id for id-rel
+        ((pred ((lambda (type) (string-match regex-of-an-id type))))
+         ;; demander lien de la relation ou de la destination
+         (if (yes-or-no-p "Open the relation ?")
+             (org-id-open type nil)
+           (org-id-open path nil)))
+        (_
+         ;; Look for a dedicated "follow" function in custom links.
+         (let ((f (org-link-get-parameter type :follow)))
+           (when (functionp f)
+             ;; Function defined in `:follow' parameter may use a single
+             ;; argument, as it was mandatory before Org 9.4.  This is
+             ;; deprecated, but support it for now.
+             (condition-case nil
+                 (funcall (org-link-get-parameter type :follow) path arg)
+               (wrong-number-of-arguments
+                (funcall (org-link-get-parameter type :follow) path)))))))))
+#+end_src
+
+#+RESULTS:
+: org-link-open
+
+
+******* CANCEL Creation of the type of link
 
 To avoid confusion and ensure that your relation information is properly stored and accessible, it's recommended to use the double colon format [[id-rel:destination::relation]].
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
   (org-link-set-parameters "id-rel"
 			   :follow #'org-id-rel-open
@@ -5737,35 +5976,210 @@ Pour l'export, il va falloir "voir chaque cas". Par exemple, en html, il suffit 
 
 Pour ces fonction, faire des advice-add avec des :filter-args ?
 
-******** Html
+******** TODO Html
+:LOGBOOK:
+- State "TODO"       from              [2023-02-11 Sat 17:31]
+:END:
+
+Je sais déjà où faire la moddif sur cette fonction pour que cela marche bien : rechercher  ";; TODO"
 
 #+begin_src emacs-lisp
 
-  ;; fonction temp je pense. Ne résout pas si les liens sont mort (si mais pas de la manière classique)
-  (defun org-id-rel-export-function (id-rel desc format)
-    "Export the ID-REL link.
-		      ID-REL is the string representation of the link, with the format:
-		      [[id-rel:destination::relation][description]]."
-    (let* ((parts (split-string id-rel "::"))
-	   (destination (car parts))
-	   (relation (cadr parts)))
-      (pcase format
-	('html (format "<a href='%s'>%s</a>"
-		       (concat (file-name-sans-extension (or
-							  (vulpea-db-get-file-by-id destination)
-							  (error "Cannot find note with ID \"%s\"" destination);; on balance l'erreur
-							  )) ".html")
-		       desc))
-	('latex (format "\\href{%s}{%s}" destination desc))
-	(_ (format "%s [%s]" desc destination)))))
+  (defun org-html-link (link desc info)
+    "Transcode a LINK object from Org to HTML.
+  DESC is the description part of the link, or the empty string.
+  INFO is a plist holding contextual information.  See
+  `org-export-data'."
+    (let* ((html-ext (plist-get info :html-extension))
+           (dot (when (> (length html-ext) 0) "."))
+           (link-org-files-as-html-maybe
+            (lambda (raw-path info)
+              ;; Treat links to `file.org' as links to `file.html', if
+              ;; needed.  See `org-html-link-org-files-as-html'.
+              (cond
+               ((and (plist-get info :html-link-org-files-as-html)
+                     (string= ".org"
+                              (downcase (file-name-extension raw-path "."))))
+                (concat (file-name-sans-extension raw-path) dot html-ext))
+               (t raw-path))))
+           (type (org-element-property :type link))
+           (raw-path (org-element-property :path link))
+           ;; Ensure DESC really exists, or set it to nil.
+           (desc (org-string-nw-p desc))
+           (path
+            (cond
+             ((member type '("http" "https" "ftp" "mailto" "news"))
+              (url-encode-url (concat type ":" raw-path)))
+             ((string= "file" type)
+              ;; During publishing, turn absolute file names belonging
+              ;; to base directory into relative file names.  Otherwise,
+              ;; append "file" protocol to absolute file name.
+              (setq raw-path
+                    (org-export-file-uri
+                     (org-publish-file-relative-name raw-path info)))
+              ;; Possibly append `:html-link-home' to relative file
+              ;; name.
+              (let ((home (and (plist-get info :html-link-home)
+                               (org-trim (plist-get info :html-link-home)))))
+                (when (and home
+                           (plist-get info :html-link-use-abs-url)
+                           (file-name-absolute-p raw-path))
+                  (setq raw-path (concat (file-name-as-directory home) raw-path))))
+              ;; Maybe turn ".org" into ".html".
+              (setq raw-path (funcall link-org-files-as-html-maybe raw-path info))
+              ;; Add search option, if any.  A search option can be
+              ;; relative to a custom-id, a headline title, a name or
+              ;; a target.
+              (let ((option (org-element-property :search-option link)))
+                (if (not option) raw-path
+                  (let ((path (org-element-property :path link)))
+                    (concat raw-path
+                            "#"
+                            (org-publish-resolve-external-link option path t))))))
+             ;; TODO
+             ;; ((condition  ici pour détecter un id-rel) le truc à renvoyer ici est le texte)
+             (t raw-path)))
+           (attributes-plist
+            (org-combine-plists
+             ;; Extract attributes from parent's paragraph.  HACK: Only
+             ;; do this for the first link in parent (inner image link
+             ;; for inline images).  This is needed as long as
+             ;; attributes cannot be set on a per link basis.
+             (let* ((parent (org-export-get-parent-element link))
+                    (link (let ((container (org-export-get-parent link)))
+                            (if (and (eq 'link (org-element-type container))
+                                     (org-html-inline-image-p link info))
+                                container
+                              link))))
+               (and (eq link (org-element-map parent 'link #'identity info t))
+                    (org-export-read-attribute :attr_html parent)))
+             ;; Also add attributes from link itself.  Currently, those
+             ;; need to be added programmatically before `org-html-link'
+             ;; is invoked, for example, by backends building upon HTML
+             ;; export.
+             (org-export-read-attribute :attr_html link)))
+           (attributes
+            (let ((attr (org-html--make-attribute-string attributes-plist)))
+              (if (org-string-nw-p attr) (concat " " attr) ""))))
+      (cond
+       ;; Link type is handled by a special function.
+       ((org-export-custom-protocol-maybe link desc 'html info))
+       ;; Image file.
+       ((and (plist-get info :html-inline-images)
+             (org-export-inline-image-p
+              link (plist-get info :html-inline-image-rules)))
+        (org-html--format-image path attributes-plist info))
+       ;; Radio target: Transcode target's contents and use them as
+       ;; link's description.
+       ((string= type "radio")
+        (let ((destination (org-export-resolve-radio-link link info)))
+          (if (not destination) desc
+            (format "<a href=\"#%s\"%s>%s</a>"
+                    (org-export-get-reference destination info)
+                    attributes
+                    desc))))
+       ;; Links pointing to a headline: Find destination and build
+       ;; appropriate referencing command.
+       ((member type '("custom-id" "fuzzy" "id"))
+        (let ((destination (if (string= type "fuzzy")
+                               (org-export-resolve-fuzzy-link link info)
+                             (org-export-resolve-id-link link info))))
+          (pcase (org-element-type destination)
+            ;; ID link points to an external file.
+            (`plain-text
+             (let ((fragment (concat "ID-" path))
+                   ;; Treat links to ".org" files as ".html", if needed.
+                   (path (funcall link-org-files-as-html-maybe
+                                  destination info)))
+               (format "<a href=\"%s#%s\"%s>%s</a>"
+                       path fragment attributes (or desc destination))))
+            ;; Fuzzy link points nowhere.
+            (`nil
+             (format "<i>%s</i>"
+                     (or desc
+                         (org-export-data
+                          (org-element-property :raw-link link) info))))
+            ;; Link points to a headline.
+            (`headline
+             (let ((href (org-html--reference destination info))
+                   ;; What description to use?
+                   (desc
+                    ;; Case 1: Headline is numbered and LINK has no
+                    ;; description.  Display section number.
+                    (if (and (org-export-numbered-headline-p destination info)
+                             (not desc))
+                        (mapconcat #'number-to-string
+                                   (org-export-get-headline-number
+                                    destination info) ".")
+                      ;; Case 2: Either the headline is un-numbered or
+                      ;; LINK has a custom description.  Display LINK's
+                      ;; description or headline's title.
+                      (or desc
+                          (org-export-data
+                           (org-element-property :title destination) info)))))
+               (format "<a href=\"#%s\"%s>%s</a>" href attributes desc)))
+            ;; Fuzzy link points to a target or an element.
+            (_
+             (if (and destination
+                      (memq (plist-get info :with-latex) '(mathjax t))
+                      (eq 'latex-environment (org-element-type destination))
+                      (eq 'math (org-latex--environment-type destination)))
+                 ;; Caption and labels are introduced within LaTeX
+                 ;; environment.  Use "ref" or "eqref" macro, depending on user
+                 ;; preference to refer to those in the document.
+                 (format (plist-get info :html-equation-reference-format)
+                         (org-html--reference destination info))
+               (let* ((ref (org-html--reference destination info))
+                      (org-html-standalone-image-predicate
+                       #'org-html--has-caption-p)
+                      (counter-predicate
+                       (if (eq 'latex-environment (org-element-type destination))
+                           #'org-html--math-environment-p
+                         #'org-html--has-caption-p))
+                      (number
+                       (cond
+                        (desc nil)
+                        ((org-html-standalone-image-p destination info)
+                         (org-export-get-ordinal
+                          (org-element-map destination 'link #'identity info t)
+                          info 'link 'org-html-standalone-image-p))
+                        (t (org-export-get-ordinal
+                            destination info nil counter-predicate))))
+                      (desc
+                       (cond (desc)
+                             ((not number) "No description for this link")
+                             ((numberp number) (number-to-string number))
+                             (t (mapconcat #'number-to-string number ".")))))
+                 (format "<a href=\"#%s\"%s>%s</a>" ref attributes desc)))))))
+       ;; Coderef: replace link with the reference name or the
+       ;; equivalent line number.
+       ((string= type "coderef")
+        (let ((fragment (concat "coderef-" (org-html-encode-plain-text path))))
+          (format "<a href=\"#%s\" %s%s>%s</a>"
+                  fragment
+                  (format "class=\"coderef\" onmouseover=\"CodeHighlightOn(this, \
+  '%s');\" onmouseout=\"CodeHighlightOff(this, '%s');\""
+                          fragment fragment)
+                  attributes
+                  (format (org-export-get-coderef-format path desc)
+                          (org-export-resolve-coderef path info)))))
+       ;; External link with a description part.
+       ((and path desc)
+        (format "<a href=\"%s\"%s>%s</a>"
+                (org-html-encode-plain-text path)
+                attributes
+                desc))
+       ;; External link without a description part.
+       (path
+        (let ((path (org-html-encode-plain-text path)))
+          (format "<a href=\"%s\"%s>%s</a>" path attributes path)))
+       ;; No path, only description.  Try to do something useful.
+       (t
+        (format "<i>%s</i>" desc)))))
+
 #+end_src
 
-******* TODO La db pour stocker tout cela (temporaire avec vulpea, je vais pas aller rajouter une colonne dans celle d'org-roam... quoique)
-:LOGBOOK:
-- State "TODO"       from              [2023-02-11 Sat 02:39]
-:END:
-
-******* TODO Le reste 
+******* TODO La db pour stocker tout cela (temporaire avec vulpea, je vais pas aller rajouter une colonne dans celle d'org-roam... quoique). Au final, inutile car je fais les choses du type id1:id2, donc pas besoin de rajouter quelque chose au niveau de la dblocks
 :LOGBOOK:
 - State "TODO"       from              [2023-02-11 Sat 02:39]
 :END:
@@ -5776,7 +6190,7 @@ Pour ces fonction, faire des advice-add avec des :filter-args ?
 
 
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
   (vulpea-db-define-table
    ;; name
@@ -5805,7 +6219,7 @@ Pour ces fonction, faire des advice-add avec des :filter-args ?
 
 ******* parser link
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
   (setq separator-of-parse-id-link-with-relation "::")
 
@@ -5824,64 +6238,64 @@ Pour ces fonction, faire des advice-add avec des :filter-args ?
 
 ******* pour trouver les id
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
 
 
-    (defun org-roam-id-find (id &optional markerp)
-      "Return the location of the entry with the id ID using the Org-roam db.
-    The return value is a cons cell (file-name . position), or nil
-    if there is no entry with that ID.
-    With optional argument MARKERP, return the position as a new marker."
-      (cond
-       ((symbolp id) (setq id (symbol-name id)))
-       ((numberp id) (setq id (number-to-string id))))
-      (let ((node (org-roam-populate (org-roam-node-create :id id))))
-	(when-let ((file (org-roam-node-file node)))
-	  (if markerp
-	      (unwind-protect
-		  (let ((buffer (or (find-buffer-visiting file)
-				    (find-file-noselect file))))
-		    (with-current-buffer buffer
-		      (move-marker (make-marker) (org-roam-node-point node) buffer))))
-	    (cons (org-roam-node-file node)
-		  (org-roam-node-point node))))))
+  (defun org-roam-id-find (id &optional markerp)
+    "Return the location of the entry with the id ID using the Org-roam db.
+      The return value is a cons cell (file-name . position), or nil
+      if there is no entry with that ID.
+      With optional argument MARKERP, return the position as a new marker."
+    (cond
+     ((symbolp id) (setq id (symbol-name id)))
+     ((numberp id) (setq id (number-to-string id))))
+    (let ((node (org-roam-populate (org-roam-node-create :id id))))
+      (when-let ((file (org-roam-node-file node)))
+        (if markerp
+            (unwind-protect
+                (let ((buffer (or (find-buffer-visiting file)
+                                  (find-file-noselect file))))
+                  (with-current-buffer buffer
+                    (move-marker (make-marker) (org-roam-node-point node) buffer))))
+          (cons (org-roam-node-file node)
+                (org-roam-node-point node))))))
 
-    (defun org-roam-id-open (id _)
+  (defun org-roam-id-open (id _)
     "Go to the entry with id ID.
-    Like `org-id-open', but additionally uses the Org-roam database."
+      Like `org-id-open', but additionally uses the Org-roam database."
     (org-mark-ring-push)
-
+    (message "ici")
     (setq id-list (split-string id separator))
     (setq id (car id-list))
 
     (let ((m (or (org-roam-id-find id 'marker)
-		 (org-id-find id 'marker)))
-	  cmd)
+                 (org-id-find id 'marker)))
+          cmd)
       (unless m
-	(error "Cannot find entry with ID \"%s\"" id))
+        (error "Cannot find entry with ID \"%s\"" id))
       ;; Use a buffer-switching command in analogy to finding files
       (setq cmd
-	    (or
-	     (cdr
-	      (assq
-	       (cdr (assq 'file org-link-frame-setup))
-	       '((find-file . switch-to-buffer)
-		 (find-file-other-window . switch-to-buffer-other-window)
-		 (find-file-other-frame . switch-to-buffer-other-frame))))
-	     'switch-to-buffer-other-window))
+            (or
+             (cdr
+              (assq
+               (cdr (assq 'file org-link-frame-setup))
+               '((find-file . switch-to-buffer)
+                 (find-file-other-window . switch-to-buffer-other-window)
+                 (find-file-other-frame . switch-to-buffer-other-frame))))
+             'switch-to-buffer-other-window))
       (if (not (equal (current-buffer) (marker-buffer m)))
-	  (funcall cmd (marker-buffer m)))
+          (funcall cmd (marker-buffer m)))
       (goto-char m)
       (move-marker m nil)
       (org-show-context)))
 
-    (org-link-set-parameters "id" :follow #'org-roam-id-open)
+  (org-link-set-parameters "id" :follow #'org-roam-id-open)
 #+end_src
 
 ******* Insérer le bon liens dans la db d'org-roam
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (defun org-roam-db-insert-link (link)
     "Insert link data for LINK at current point into the Org-roam cache."
     (save-excursion
@@ -5924,7 +6338,7 @@ Utile ?
 
 Devoir parcourir pour chaque relation et écrire 
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (cl-defun org-roam-backlinks-section (node &key (unique nil) (show-backlink-p nil))
     "The backlinks section for NODE.
 
@@ -5949,7 +6363,7 @@ Devoir parcourir pour chaque relation et écrire
 
 ******* Récupération backlinks autre que seulement "id"
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (cl-defun org-roam-backlinks-get (node &key unique)
     "Return the backlinks for NODE.
 

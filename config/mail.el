@@ -19,6 +19,7 @@
   :straight (:type built-in)
 
 :config
+(setq gnus-verbose 10);; activer le débugage
 
 (bind-key "<delete>" 'gnus-summary-delete-articlegnus-summary-delete-article gnus-summary-mode-map)
 

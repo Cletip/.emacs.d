@@ -727,6 +727,15 @@ Version 2017-06-02"
 
 
 
+(defvar action-counts (make-hash-table))
+
+(cl-defun increment-action-count (&key action &allow-other-keys)
+  (cl-incf (gethash action action-counts 0)))
+
+(with-eval-after-load 'embark
+  (push 'increment-action-count (alist-get :always embark-pre-action-hooks))
+  )
+
 (use-package helpful  
   :config
 

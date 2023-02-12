@@ -429,14 +429,26 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
   (use-package consult
     :config
+
+    ;; ordre dans la commande consult-buffer
+    (setq consult-buffer-sources
+          '(consult--source-hidden-buffer
+            consult--source-modified-buffer
+            consult--source-buffer
+            consult--source-bookmark
+            consult--source-recent-file
+            consult--source-file-register
+            consult--source-project-buffer
+            consult--source-project-recent-file))
+
     (setq completion-in-region-function #'consult-completion-in-region)
 
     ;; Définition de mes fonctions
     (defun cp/consult-line-or-with-word ()
       "Call `consult-line' on current word or text selection.
-                  “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-                  URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
-                  Version 2015-04-09"
+                    “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+                    URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+                    Version 2015-04-09"
       (interactive)
       (let ($p1 $p2)
         (if (use-region-p)
@@ -453,9 +465,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
     (defun cp/consult-ripgrep-with-directory (&optional dir)
       (interactive)
-      (consult-ripgrep (or dir (read-directory-name "Directory:")))
-      )
-    )
+      (consult-ripgrep (or dir (read-directory-name "Directory:")))))
 
 #+end_src
 
@@ -1186,13 +1196,28 @@ OVERCHEAT et je m'en sert tout le temps
 
 **** Moteur
  #+begin_src emacs-lisp
-      (use-package embark
+   (use-package embark
      :load-path "straight/build/embark"
      :bind (("C-t" . embark-become)) ;; pourquoi marche pas ?
      :config
      (setq embark-quit-after-action '((kill-buffer . t)
-                                      ;; (t . nil)
+                                      (embark-insert . t)
+                                      (embark-insert-in-outer-minibuffer . t)
                                       ))
+
+     ;; nouvelle commande pour insérer dans le minibuffer
+     (defun embark-insert-in-outer-minibuffer (string)
+       (if-let ((miniwin (active-minibuffer-window)))
+           (with-current-buffer (window-buffer miniwin)
+             (insert string))
+         (message "Not in the minibuffer")))
+
+     ;; (setf (alist-get 'embark-insert
+     ;; embark-quit-after-action)
+     ;; t)
+
+     ;; (diredp-recent-dirs nil)
+     (keymap-set embark-general-map "O" #'embark-insert-in-outer-minibuffer)
 
      ;; pour afficher avec which-key
      (defun embark-which-key-indicator ()
@@ -1232,41 +1257,41 @@ OVERCHEAT et je m'en sert tout le temps
 
      (advice-add #'embark-completing-read-prompter :around #'embark-hide-which-key-indicator))
 
-      (with-eval-after-load 'consult
-        (with-eval-after-load 'embark
-          (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
-      (use-package embark-consult
-        ;; :after consult embark
-        ;; if you want to have consult previews as you move around an
-        ;; auto-updating embark collect buffer
-        :hook
-        (embark-collect-mode . consult-preview-at-point-mode))
+   (with-eval-after-load 'consult
+     (with-eval-after-load 'embark
+       (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
+   (use-package embark-consult
+     ;; :after consult embark
+     ;; if you want to have consult previews as you move around an
+     ;; auto-updating embark collect buffer
+     :hook
+     (embark-collect-mode . consult-preview-at-point-mode))
 
-      ;; (with-eval-after-load 'org
-      ;; (with-eval-after-load 'embark
-      ;;     (require 'embark-org)))
-      (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
-      (use-package embark-org
-        ;; :load-path "straight/build/embark/"
-        :straight nil)
+   ;; (with-eval-after-load 'org
+   ;; (with-eval-after-load 'embark
+   ;;     (require 'embark-org)))
+   (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
+   (use-package embark-org
+     ;; :load-path "straight/build/embark/"
+     :straight nil)
 
    ;; ne sert à R ?
-      (load-file (concat straight-base-dir "straight/repos/embark/avy-embark-collect.el"))
-      (use-package avy-embark-collect
-        ;; :load-path "straight/build/embark/"
-        :straight nil)
+   (load-file (concat straight-base-dir "straight/repos/embark/avy-embark-collect.el"))
+   (use-package avy-embark-collect
+     ;; :load-path "straight/build/embark/"
+     :straight nil)
 
    ;; actionner action embark dés l'arrivé avec . 
-      (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
+   (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
 
-      (defun avy-action-embark (pt)
-        (unwind-protect
-            (save-excursion
-              (goto-char pt)
-              (embark-act))
-          (select-window
-           (cdr (ring-ref avy-ring 0))))
-        t)
+   (defun avy-action-embark (pt)
+     (unwind-protect
+         (save-excursion
+           (goto-char pt)
+           (embark-act))
+       (select-window
+        (cdr (ring-ref avy-ring 0))))
+     t)
 
 #+end_src
 
@@ -1275,16 +1300,29 @@ OVERCHEAT et je m'en sert tout le temps
 #+begin_src emacs-lisp
 #+end_src
 
+**** Pour insérer directement les paths dans le minibuffer (plus utilisé, j'utilise la fonction dans ma config : embark-insert-in-outer-minibuffer)
+
+#+begin_src emacs-lisp
+  (use-package consult-dir
+    :ensure t
+    :bind (("C-x C-d" . consult-dir)
+           :map minibuffer-local-completion-map
+           ("C-x C-d" . consult-dir)
+           ("C-x C-j" . consult-dir-jump-file)))
+#+end_src
 
 **** Compter le nombre de commandes pour embark
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
   (defvar action-counts (make-hash-table))
 
   (cl-defun increment-action-count (&key action &allow-other-keys)
     (cl-incf (gethash action action-counts 0)))
 
-  (push 'increment-action-count (alist-get :always embark-pre-action-hooks))
+  (with-eval-after-load 'embark
+    (push 'increment-action-count (alist-get :always embark-pre-action-hooks))
+    )
+
 #+end_src
 
 
@@ -1505,7 +1543,7 @@ Dépendances : all-the-icons et projectile
   (setq aw-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ))  )
 #+end_src
 
-* File Manager
+* File Manager (dired)
 *** Optimisation de base
 
 #+begin_src emacs-lisp
@@ -1615,7 +1653,6 @@ Dépendances : all-the-icons et projectile
 
 
 #+end_src
-
 *** Fonction pour rename file et buffer
 
 #+begin_src emacs-lisp
@@ -1636,6 +1673,12 @@ Dépendances : all-the-icons et projectile
 
   ;; (rename-file-and-buffer (concat "../liens/" (file-name-nondirectory buffer-file-name)))
 
+#+end_src
+
+*** Dired+
+
+#+begin_src emacs-lisp
+  (use-package dired+)
 #+end_src
 
 * Emacs restart

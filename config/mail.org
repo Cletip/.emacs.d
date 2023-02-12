@@ -71,6 +71,7 @@ Ne pas oublier la ligne dans le init.el
 *** Configuration général
 #+begin_src emacs-lisp
   :config
+  (setq gnus-verbose 10);; activer le débugage
 #+end_src
 
 **** Raccourcis modifié
@@ -216,7 +217,6 @@ Ne pas oublier la ligne dans le init.el
 
 gnus-newsrc-alist
 gnus-topic-alist
-
   (gnus-group-make-group "Le monde" '(nnrss "" (nnrss-address "https://www.lemonde.fr/rss/une.xml")))
 
   (gnus-group-make-group "Le monde" '(nnrss ""))
@@ -233,6 +233,18 @@ gnus-topic-alist
 
 
 #+end_src
+
+(add-to-list 'gnus-secondary-select-methods '(nnrss "le-monde-une"
+(nnrss-url "https://www.lemonde.fr/rss/une.xml")))
+
+(add-to-list 'gnus-secondary-select-methods '(nntp "le-monde-une"
+              (nntp-address "www.lemonde.fr")
+              (nntp-port-number 80)
+              (nntp-streaming-mode t)
+              (nntp-authentication-scheme 'anonymous)
+              (nntp-subscribe-newsgroup "rss/une.xml")))
+
+
 
 
 Test :
