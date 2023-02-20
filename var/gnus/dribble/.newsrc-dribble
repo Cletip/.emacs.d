@@ -1,0 +1,3 @@
+
+
+(gnus-group-set-info '("nnimap+First Gmail : clement020302@gmail:[Gmail]/Important" 3 nil nil "nnimap:First Gmail : clement020302@gmail" nil))

@@ -615,6 +615,44 @@ Tout se trouve dans .dotfiles/.fonts
 
 #+end_src
 
+***** TODO Couleur des liens dans org-mode en fonction du type de lien
+:LOGBOOK:
+- State "TODO"       from              [2023-02-14 Tue 11:10]
+:END:
+
+#+begin_src emacs-lisp :tangle no
+  (defface org-link-id
+    '((t :foreground "#50fa7b"
+         :weight bold
+         :underline t))
+    "Face for Org-Mode links starting with id:."
+    :group 'org-faces)
+
+  (org-link-set-parameters
+   "id"
+   :face 'org-link-id)
+
+  (defface org-link-file
+    '((t :foreground "#ff5555"
+         :weight bold
+         :underline t))
+    "Face for Org-Mode links starting with file:."
+    :group 'org-faces)
+
+  (org-link-set-parameters
+   "file"
+   :face 'org-link-file)
+#+end_src
+
+***** Pour que les tables soient affiché correctement
+
+#+begin_src emacs-lisp
+  (use-package org-phscroll :straight (org-phscroll :type git :host github :repo "misohena/phscroll"))
+  (setq org-startup-truncated nil)
+  (with-eval-after-load "org"
+    (require 'org-phscroll))
+#+end_src
+
 **** Pour coder dans org (org-babel)
 ***** Les langages chargé par org-babel
 
@@ -851,7 +889,6 @@ Rien besoin de faire, si ça change y mettre ici
 
 #+end_src
 
-
 *** Choses dans le second cerveau
 
 #+begin_src emacs-lisp
@@ -871,8 +908,9 @@ Il faut dire à org où sont les fichiers avec les ids
 
 #+begin_src emacs-lisp
 
-  (setq org-id-method 'ts)
-  (setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
+  ;; (setq org-id-method 'ts)
+  (setq org-id-method 'uuid)
+  ;; (setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
 
 #+end_src
 
@@ -3970,6 +4008,24 @@ On peut même en rajouter, par exemple
 
 **** Gestion des fichiers et des dossiers en pièce jointe 
 
+***** TODO La valeur du tag
+:LOGBOOK:
+- State "TODO"       from              [2023-02-15 Wed 15:01]
+:END:
+
+#+begin_src emacs-lisp :tangle no
+  (setq org-attach-auto-tag "ATTACH")
+#+end_src
+
+***** Chemin de org attach
+
+#+begin_src emacs-lisp
+    ;; (setq org-attach-id-dir (expand-file-name ".data/" vulpea-directory))
+
+  (setq org-attach-id-dir (expand-file-name ".data/" org-roam-directory))
+
+#+end_src
+
 ***** Quand on rajoute un fichier en attachment, on store le link pour l'insertion
 
 #+begin_src emacs-lisp
@@ -3978,9 +4034,9 @@ On peut même en rajouter, par exemple
   ;; org attach attach
 #+end_src
 
+***** Nom des dossier pour attachment
 
 
-***** On créer les dossier par années/mois/jour/lerest par rapport à la date de la création du noeud pour les rangements
 
 #+begin_src emacs-lisp
 
@@ -4002,7 +4058,8 @@ On peut même en rajouter, par exemple
 
 #+end_src
 
-ancien : 
+***** CANCELED On créer les dossier par années/mois/jour/lerest par rapport à la date de la création du noeud pour les rangements (ancien) 
+
 #+begin_src emacs-lisp :tangle no
 (defun org-attach-id-ts-folder-format (id)
     "Translate an ID based on a timestamp to a folder-path.
@@ -4018,10 +4075,6 @@ ancien :
     )
 #+end_src
 
-
-
-
-
 ***** Dired attachment
 
 2 windows : une avec fichiers dired, l'autre avec le curseur sur le subtree ou attacher les fichiers
@@ -4034,17 +4087,6 @@ marquer les fichiers sur dired, appeler la fonction org-attach-dired-to-subtree,
             (define-key dired-mode-map
               (kbd "C-c C-x a")
               #'org-attach-dired-to-subtree)))
-#+end_src
-
-              
-
-***** Chemin de org attach
-
-#+begin_src emacs-lisp
-    ;; (setq org-attach-id-dir (expand-file-name ".data/" vulpea-directory))
-
-  (setq org-attach-id-dir (expand-file-name ".data/" org-roam-directory))
-
 #+end_src
 
 ***** Pour pouvoir attacher des dossiers
@@ -4219,6 +4261,28 @@ Patch de la fonction pour pouvoir attach des dossiers
 
 #+end_src
           
+***** Pour rechercher mes fichiers
+
+Normalement, chaque fichier/dossier est relié à une note/heading avec un id. Comme cela, je peux bouger les heading / les fichiers sans problème.
+
+****** TODO Avec les notes (filtrer les notes avec tags "attached")
+:LOGBOOK:
+- State "TODO"       from              [2023-02-15 Wed 14:48]
+:END:
+
+****** Sans les notes, les fichiers pur
+:LOGBOOK:
+- State "TODO"       from              [2023-02-15 Wed 14:48]
+:END:
+
+#+begin_src emacs-lisp
+  (defun cp/consult-find-attachFile ()
+    "Cherche dans les fichiers présent dans or-attach-id-dir"
+    (interactive)
+    (consult-find org-attach-id-dir))
+#+end_src
+
+
 **** Gestion des archives
 
 ***** Base
@@ -4622,7 +4686,6 @@ Gérer par org-roam
     :if braindump-exists
 
 #+end_src
-
 
 *** Org-roam pur
 
@@ -5523,6 +5586,17 @@ il faudrait :
 2. l’élément de destination
 3. et enfin la redirection de la page désormais inutile vers la nouvelle page (et également sur toutes les autres pages)
 
+
+
+
+****** TODO Savoir si une note est populaire en fonction de son nombre de visite
+:LOGBOOK:
+- State "TODO"       from              [2023-02-19 Sun 21:49]
+:END:
+
+pour savoir le nombre de fois où c'est cité, suffit de savoir le nombre de backlinks
+. mais pour savoir si une note est vraiment populaire, il faut savoir combien de fois je la visite. il faut donc que je store cela à un endroit (propriété org-mode). comment savoir quand je visite un node ? avec son "atime" dans la base de données ! ou autrement ? avec un "find-file-hook" !
+
 ***** Référence key
 
 ****** On n'ajoute pas une citation déjà mise ailleurs
@@ -5598,7 +5672,6 @@ il faudrait :
 
 #+end_src
 
-
 ***** Ouvrir une url en roam
 
 #+begin_src emacs-lisp
@@ -5646,10 +5719,51 @@ il faudrait :
 #+begin_src emacs-lisp
   (use-package consult-org-roam
     :config
-    ;; Activate the minor-mode
-    (consult-org-roam-mode 1)
-    (setq consult-org-roam-grep-func #'consult-ripgrep))
+    ;; changement de cette fonction juste pour ajouter la liste pas à la fin
+    (defun consult-org-roam-buffer-setup ()
+      "Setup consult-org-roam-buffer functionality.
+      Setup consult-org-roam-buffer functionality by adding
+      org-roam-buffer-source to consult-buffer-sources and customizing
+      consult--source-buffer."
+      ;; Remove org-roam-buffer-source to avoid duplicate
+      (consult-org-roam-buffer-teardown)
+      (consult-org-roam-buffer--customize-source-buffer t)
+      (if consult-org-roam-buffer-after-buffers
+          (let* ((idx (cl-position 'consult--source-buffer
+                                   consult-buffer-sources :test 'equal))
+                 (tail (nthcdr idx consult-buffer-sources)))
+            (setcdr
+             (nthcdr (1- idx) consult-buffer-sources)
+             (append (list 'org-roam-buffer-source) tail)))
+        ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append
+        (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
+  ;; Activate the minor-mode
+  (consult-org-roam-mode 1)
+  (setq consult-org-roam-grep-func #'consult-ripgrep))
 #+end_src
+
+***** Autre preview des noeuds, pas utilisé
+
+#+begin_src emacs-lisp :tangle no
+  (use-package consult-notes
+    :straight (:type git :host github :repo "mclear-tools/consult-notes")
+    :commands (consult-notes
+               consult-notes-search-in-all-notes
+               ;; if using org-roam 
+               consult-notes-org-roam-find-node
+               consult-notes-org-roam-find-node-relation)
+    :config
+    ;; (setq consult-notes-file-dir-sources '(("Name"  ?key  "path/to/dir"))) ;; Set notes dir(s), see below
+    ;; Set org-roam integration, denote integration, or org-heading integration e.g.:
+    ;; (setq consult-notes-org-headings-files '("~/path/to/file1.org"
+    ;; "~/path/to/file2.org"))
+    ;; (consult-notes-org-headings-mode)
+    ;; (when (locate-library "denote")
+    ;; (consult-notes-denote-mode))
+    (consult-notes-org-roam-mode)
+    )
+#+end_src
+
 
 ***** Convertir les fichiers org en markdown hugo
 
@@ -5690,7 +5804,6 @@ Se trouve à cette adresse http://127.0.0.1:35901/
 
 #+end_src
 
-
 ***** TODO Fonction modifié pour des liens autre que "id" : les liens avec relations
 :LOGBOOK:
 - State "TODO"       from              [2023-02-11 Sat 01:42]
@@ -5722,11 +5835,14 @@ Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en
 
 ******* Dans org-mode pour ajouter un type de tel sorte que cela soit détectecter comme un "type id"
 
-
 ******** La regex pour check si li type peut-être un id
 
 #+begin_src emacs-lisp
+  ;; uuid avec le timestamp
   (setq regex-of-an-id "[0-9]\\{19\\}")
+
+  ;; uuid classique
+  ;; (concat "\\(" "[a-zA-Z0-9]\\{8\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{12\\}" "\\)")
 #+end_src
 
 ******** Fonction pour parser le lien, il ne faut plus que cela soit "fuzzy", qui est le cas par défaut quand il trouve pas
@@ -5946,7 +6062,6 @@ Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en
 
 #+RESULTS:
 : org-link-open
-
 
 ******* CANCEL Creation of the type of link
 
@@ -7205,18 +7320,18 @@ Consult-ripgrep est mieux je pense : plus rapide et plus intuitif. Mais deft p
                   "\\)")))
 #+end_src
 
-** org-edna, a intégrer avec le reste
-test
+** TODO org-edna, a intégrer avec le reste
+:LOGBOOK:
+- State "TODO"       from              [2023-02-14 Tue 18:05]
+:END:
 
-#+begin_src emacs-lisp
+
+#+begin_src emacs-lisp :tangle no
   (use-package org-edna
     :config
     ;; Always necessary
     (org-edna-mode))
 #+end_src
-
-
-
 
 ** ekg test
 
@@ -7277,3 +7392,102 @@ test
 
 #+end_src
 
+
+
+** TODO Recettes
+:LOGBOOK:
+- State "TODO"       from              [2023-02-14 Tue 20:20]
+:END:
+
+Principe des recettes : une note aura la recette X, puis un transclude sur une autre note "ingrédient de la recette X", et un liens vers la préparation de la recette Y. Pour modifier le nombre de personne, utiliser les fonction de org-transclusion-live-sync-start et org-transclusion-live-sync-exit, avec org-chef-edit--do-replace sur la région qui permet de multiplié par un coef. Changer la fonction et les fonctions dans org-chef-edit.el pour cela (notamment comment on récupère le nombre de personne de base + *ne pas prendre en compte les ids*), et automatiser ceci.
+
+donc :
+title: ingrédients de machin
+
+- pas obligatoire une liste
+# - 2 [type:ingrédient][patate]
+- etc
+
+types de liens pour pouvoir faire être databasable !
+
+
+#+begin_src emacs-lisp
+  (use-package org-chef
+
+    :config
+
+
+    (setq org-chef-prefer-json-ld t) ;; pour que le téléchargement des recettes marche (normalement)
+
+    (defun org-chef-edit--do-replace (multiplier)
+      "Replaces all numbers (in a variety of formats) in the region,
+    multiplying them all by MULTIPLIER"
+      ;; (interactive "*nChange servings to: ")
+      ;; (setq multiplier (/ (float desired) (float servings)))
+      (save-excursion
+        (while (re-search-forward
+                "\\([0-9]+\\)?\\([¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\\)\\|\\([0-9]+\\)/\\([0-9]+\\)\\|\\([0-9]+\\)" (mark) t)
+          (cond
+           ;; Unicode vulgar/mixed fractions
+           ((match-string 2)
+            (let* ((char (elt (match-string 2) 0))
+                   (frac (get-char-code-property char 'numeric-value))
+                   (int (if (match-string 1) (string-to-number (match-string 1)) 0))
+                   (original (+ int frac)))
+              (replace-match (format "%.3g" (* multiplier original)))))
+           ;; ASCII fractions
+           ((match-string 3)
+            (let ((original (/ (float (string-to-number (match-string 3)))
+                               (float (string-to-number (match-string 4))))))
+              (replace-match (format "%.3g" (* multiplier original)))))
+           ;; simple decimals
+           ((match-string 5)
+            (replace-match
+             (format "%.3g" (* multiplier (string-to-number
+                                           (match-string 5))))))))))
+
+    )
+
+
+#+end_src
+
+
+
+** Test de rcd
+
+*** Dependency
+
+sudo apt install libpq-dev
+
+#+begin_src emacs-lisp :tangle no
+  (use-package pq :straight (pq :type git :host github :repo "anse1/emacs-libpq"))
+#+end_src
+
+
+*** Rdc pure
+
+#+begin_src emacs-lisp :tangle no
+  (add-to-list 'load-path "/home/utilisateur/Téléchargements/rcd-notes")
+  (require 'rcd-cf)
+#+end_src
+
+
+** Khoj
+
+1. Install
+pip install khoj-assistant
+(peut-être cela aussi : python3 -m pip install pip setuptools --upgrade)
+2. Start App
+khoj
+
+
+
+
+
+#+begin_src emacs-lisp
+  ;; Install Khoj Package using Straight.el
+  (use-package khoj
+    :after org
+    :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+    :bind ("C-c s" . 'khoj))
+#+end_src

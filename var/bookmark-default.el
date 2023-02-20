@@ -108,10 +108,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/journals/2023-02-06.org")
- (front-context-string . "* 00:12 Journal ")
- (rear-context-string . "tle: 2023-02-06\n")
- (position . 72))
+ (filename . "~/braindump/org/pages/20230217103602-page_de_test_pour_khoj.org")
+ (front-context-string . "\n* Premier titre")
+ (rear-context-string . " test pour khoj\n")
+ (position . 100))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

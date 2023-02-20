@@ -55,3 +55,4 @@ var/request/
 /url/
 /var/ekg.db
 /var/nsm-settings.el
+/var/project-list.el

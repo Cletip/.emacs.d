@@ -269,14 +269,26 @@
 
 (use-package consult
   :config
+
+  ;; ordre dans la commande consult-buffer
+  (setq consult-buffer-sources
+        '(consult--source-hidden-buffer
+          consult--source-modified-buffer
+          consult--source-buffer
+          consult--source-bookmark
+          consult--source-recent-file
+          consult--source-file-register
+          consult--source-project-buffer
+          consult--source-project-recent-file))
+
   (setq completion-in-region-function #'consult-completion-in-region)
 
   ;; Définition de mes fonctions
   (defun cp/consult-line-or-with-word ()
     "Call `consult-line' on current word or text selection.
-                “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-                URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
-                Version 2015-04-09"
+                  “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+                  URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+                  Version 2015-04-09"
     (interactive)
     (let ($p1 $p2)
       (if (use-region-p)
@@ -293,9 +305,7 @@
 
   (defun cp/consult-ripgrep-with-directory (&optional dir)
     (interactive)
-    (consult-ripgrep (or dir (read-directory-name "Directory:")))
-    )
-  )
+    (consult-ripgrep (or dir (read-directory-name "Directory:")))))
 
 (use-package avy
   ;;\ pour l'espace
@@ -644,88 +654,122 @@ Version 2017-06-02"
   )
 
 (use-package embark
-  :load-path "straight/build/embark"
-  :bind (("C-t" . embark-become)) ;; pourquoi marche pas ?
+:load-path "straight/build/embark"
+:bind (("C-t" . embark-become)) ;; pourquoi marche pas ?
+:config
+
+(setq embark-quit-after-action '((kill-buffer . t)
+                                 (embark-insert . t)
+                                 (embark-insert-in-outer-minibuffer . t)))
+
+;; nouvelle commande pour insérer dans le minibuffer
+(defun embark-insert-in-outer-minibuffer (string)
+  (if-let ((miniwin (active-minibuffer-window)))
+      (with-current-buffer (window-buffer miniwin)
+        (insert string))
+    (message "Not in the minibuffer")))
+
+;; (setf (alist-get 'embark-insert
+;; embark-quit-after-action)
+;; t)
+
+;; (diredp-recent-dirs nil)
+(keymap-set embark-general-map "O" #'embark-insert-in-outer-minibuffer)
+
+;; pour afficher avec which-key
+(defun embark-which-key-indicator ()
+  "An embark indicator that displays keymaps using which-key.
+                                             The which-key help message will show the type and value of the
+                                             current target followed by an ellipsis if there are further
+                                             targets."
+  (lambda (&optional keymap targets prefix)
+    (if (null keymap)
+        (which-key--hide-popup-ignore-command)
+      (which-key--show-keymap
+       (if (eq (plist-get (car targets) :type) 'embark-become)
+           "Become"
+         (format "Act on %s '%s'%s"
+                 (plist-get (car targets) :type)
+                 (embark--truncate-target (plist-get (car targets) :target))
+                 (if (cdr targets) "…" "")))
+       (if prefix
+           (pcase (lookup-key keymap prefix 'accept-default)
+             ((and (pred keymapp) km) km)
+             (_ (key-binding prefix 'accept-default)))
+         keymap)
+       nil nil t (lambda (binding)
+                   (not (string-suffix-p "-argument" (cdr binding))))))))
+
+(setq embark-indicators
+      '(embark-which-key-indicator
+        embark-highlight-indicator
+        embark-isearch-highlight-indicator))
+
+(defun embark-hide-which-key-indicator (fn &rest args)
+  "Hide the which-key indicator immediately when using the completing-read prompter."
+  (which-key--hide-popup-ignore-command)
+  (let ((embark-indicators
+         (remq #'embark-which-key-indicator embark-indicators)))
+    (apply fn args)))
+
+(advice-add #'embark-completing-read-prompter :around #'embark-hide-which-key-indicator))
+
+ (with-eval-after-load 'consult
+   (with-eval-after-load 'embark
+     (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
+ (use-package embark-consult
+   ;; :after consult embark
+   ;; if you want to have consult previews as you move around an
+   ;; auto-updating embark collect buffer
+   :hook
+   (embark-collect-mode . consult-preview-at-point-mode))
+
+ ;; (with-eval-after-load 'org
+ ;; (with-eval-after-load 'embark
+ ;;     (require 'embark-org)))
+ (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
+ (use-package embark-org
+   ;; :load-path "straight/build/embark/"
+   :straight nil)
+
+ ;; ne sert à R ?
+ (load-file (concat straight-base-dir "straight/repos/embark/avy-embark-collect.el"))
+ (use-package avy-embark-collect
+   ;; :load-path "straight/build/embark/"
+   :straight nil)
+
+ ;; actionner action embark dés l'arrivé avec . 
+ (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
+
+ (defun avy-action-embark (pt)
+   (unwind-protect
+       (save-excursion
+         (goto-char pt)
+         (embark-act))
+     (select-window
+      (cdr (ring-ref avy-ring 0))))
+   t)
+
+
+
+;; (define-key embark-become-match-map (kbd (xah-fly--convert-kbd-str "h")) 'xah-fly-keys-layer-isearch-forward-function) ;; différent, plus petit dans les résultats ?
+(define-key embark-consult-search-map (kbd (xah-fly--convert-kbd-str "h")) 'xah-fly-keys-layer-isearch-forward-function)
+
+(define-key embark-become-file+buffer-map (kbd (xah-fly--convert-kbd-str "h"))
+  'xah-fly-keys-layer-recentf-open-files-function)
+
+
+(define-key embark-become-help-map (kbd (xah-fly--convert-kbd-str "h"))
+  'xah-fly-keys-layer-describe-variable-function)
+
+(use-package consult-dir
+  :bind (("C-x C-d" . consult-dir)
+         :map minibuffer-local-completion-map
+         ("C-x C-d" . consult-dir)
+         ("C-x C-j" . consult-dir-jump-file))
   :config
-  (setq embark-quit-after-action '((kill-buffer . t)
-                                   ;; (t . nil)
-                                   ))
-
-  ;; pour afficher avec which-key
-  (defun embark-which-key-indicator ()
-    "An embark indicator that displays keymaps using which-key.
-                                            The which-key help message will show the type and value of the
-                                            current target followed by an ellipsis if there are further
-                                            targets."
-    (lambda (&optional keymap targets prefix)
-      (if (null keymap)
-          (which-key--hide-popup-ignore-command)
-        (which-key--show-keymap
-         (if (eq (plist-get (car targets) :type) 'embark-become)
-             "Become"
-           (format "Act on %s '%s'%s"
-                   (plist-get (car targets) :type)
-                   (embark--truncate-target (plist-get (car targets) :target))
-                   (if (cdr targets) "…" "")))
-         (if prefix
-             (pcase (lookup-key keymap prefix 'accept-default)
-               ((and (pred keymapp) km) km)
-               (_ (key-binding prefix 'accept-default)))
-           keymap)
-         nil nil t (lambda (binding)
-                     (not (string-suffix-p "-argument" (cdr binding))))))))
-
-  (setq embark-indicators
-        '(embark-which-key-indicator
-          embark-highlight-indicator
-          embark-isearch-highlight-indicator))
-
-  (defun embark-hide-which-key-indicator (fn &rest args)
-    "Hide the which-key indicator immediately when using the completing-read prompter."
-    (which-key--hide-popup-ignore-command)
-    (let ((embark-indicators
-           (remq #'embark-which-key-indicator embark-indicators)))
-      (apply fn args)))
-
-  (advice-add #'embark-completing-read-prompter :around #'embark-hide-which-key-indicator))
-
-   (with-eval-after-load 'consult
-     (with-eval-after-load 'embark
-       (require 'embark-consult)))      ;; besoin de le load avec require. Pk ?
-   (use-package embark-consult
-     ;; :after consult embark
-     ;; if you want to have consult previews as you move around an
-     ;; auto-updating embark collect buffer
-     :hook
-     (embark-collect-mode . consult-preview-at-point-mode))
-
-   ;; (with-eval-after-load 'org
-   ;; (with-eval-after-load 'embark
-   ;;     (require 'embark-org)))
-   (load-file (concat straight-base-dir "straight/build/embark/embark-org.el"))
-   (use-package embark-org
-     ;; :load-path "straight/build/embark/"
-     :straight nil)
-
-;; ne sert à R ?
-   (load-file (concat straight-base-dir "straight/repos/embark/avy-embark-collect.el"))
-   (use-package avy-embark-collect
-     ;; :load-path "straight/build/embark/"
-     :straight nil)
-
-;; actionner action embark dés l'arrivé avec . 
-   (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark)
-
-   (defun avy-action-embark (pt)
-     (unwind-protect
-         (save-excursion
-           (goto-char pt)
-           (embark-act))
-       (select-window
-        (cdr (ring-ref avy-ring 0))))
-     t)
-
-
+  ;; ne pas mettre un "/" quand on insère
+  (setq consult-dir-shadow-filenames nil))
 
 (defvar action-counts (make-hash-table))
 
@@ -735,6 +779,8 @@ Version 2017-06-02"
 (with-eval-after-load 'embark
   (push 'increment-action-count (alist-get :always embark-pre-action-hooks))
   )
+
+(define-key embark-symbol-map (kbd "=") 'set-variable)
 
 (use-package helpful  
   :config
@@ -952,6 +998,8 @@ Version 2017-06-02"
           (set-buffer-modified-p nil))))))
 
 ;; (rename-file-and-buffer (concat "../liens/" (file-name-nondirectory buffer-file-name)))
+
+(use-package dired+)
 
 (use-package restart-emacs
     :config (defalias 'emacs-restart #'restart-emacs)

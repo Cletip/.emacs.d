@@ -427,7 +427,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 #+begin_src emacs-lisp
 
-  (use-package consult
+    (use-package consult
     :config
 
     ;; ordre dans la commande consult-buffer
@@ -446,9 +446,9 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
     ;; Définition de mes fonctions
     (defun cp/consult-line-or-with-word ()
       "Call `consult-line' on current word or text selection.
-                    “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
-                    URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
-                    Version 2015-04-09"
+                      “word” here is A to Z, a to z, and hyphen 「-」 and underline 「_」, independent of syntax table.
+                      URL `http://xahlee.info/emacs/emacs/modernization_isearch.html'
+                      Version 2015-04-09"
       (interactive)
       (let ($p1 $p2)
         (if (use-region-p)
@@ -462,7 +462,8 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
         (when (< $p1 (point))
           (goto-char $p1))
         (consult-line (buffer-substring-no-properties $p1 $p2))))
-
+  
+    ;; au final cela pas ouf, car je suis obligé de passer par le mini-buffer. En plus, activé grâce à universal argument + consult-ripgrep
     (defun cp/consult-ripgrep-with-directory (&optional dir)
       (interactive)
       (consult-ripgrep (or dir (read-directory-name "Directory:")))))
@@ -532,7 +533,34 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
     (ace-link-setup-default))
 #+end_src
 
-*** Le bon vieux ctrlf, mais optimisé par emacs
+*** Pour jump à un endroit après X fois la commande
+
+:scope 'page pour tous !
+
+#+begin_src emacs-lisp
+  (use-package holymotion
+    :straight (holymotion :type git
+                          :host github
+                          :repo "Overdr0ne/holymotion"
+                          :branch "main")
+    :config
+    ;; define some custom motions, I'm using smartparens here
+    (holymotion-make-motion
+     holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
+    (holymotion-make-motion
+     holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
+
+    (defun holymotion-next-line-only-with-prefix ()
+      "DOCSTRING here"
+      (interactive)
+      (if current-prefix-arg
+          (holymotion-next-line)
+        (next-line))))
+#+end_src
+
+
+
+***** Le bon vieux ctrlf, mais optimisé par emacs
 
 #+begin_src emacs-lisp :tangle no
   (use-package ctrlf
@@ -542,18 +570,18 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 #+end_src
 
-*** Visiter les fichiers corbeille Emacs
+***** Visiter les fichiers corbeille Emacs
 
 #+begin_src emacs-lisp
 (use-package trashed)
 #+end_src
 
 
-** Visualize
+**** Visualize
     
 Packages in this section are usable for editing.
 
-*** Affichage des touches
+***** Affichage des touches
 
 #+begin_src emacs-lisp
 
@@ -572,10 +600,10 @@ Packages in this section are usable for editing.
 
 #+end_src
 
-*** Texte
+***** Texte
 
-*** Ligne
-**** Les lignes reviennent à la ligne (lol) + les paragraphes se mettent correctement
+***** Ligne
+****** Les lignes reviennent à la ligne (lol) + les paragraphes se mettent correctement
 
 #+begin_src emacs-lisp 
 
@@ -601,7 +629,7 @@ Packages in this section are usable for editing.
 
 #+end_src
 
-**** Tailles des interlignes
+****** Tailles des interlignes
 
 merci encore à xah, [[http://ergoemacs.org/emacs/emacs_toggle_line_spacing.html][site de la fonction]]
   
@@ -619,7 +647,7 @@ merci encore à xah, [[http://ergoemacs.org/emacs/emacs_toggle_line_spacing.html
 
 #+end_src
 
-**** Afficher le numéro des lignes relativement + quand on les affiches
+****** Afficher le numéro des lignes relativement + quand on les affiches
 CLOSED: [2022-04-10 Sun 23:00]
 
 #+begin_src emacs-lisp
@@ -634,8 +662,8 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Curseur
-**** Trainée de lumière pour pas perdre le curseur, désactiver consomme toute la ram
+***** Curseur
+****** Trainée de lumière pour pas perdre le curseur, désactiver consomme toute la ram
 
 #+begin_src emacs-lisp :tangle no
 
@@ -653,7 +681,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 
  
-**** Trainée de lumière sur la ligne à certains moment
+****** Trainée de lumière sur la ligne à certains moment
 
 #+begin_src emacs-lisp :tangle no
 
@@ -734,12 +762,12 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-**** Surlignage ligne du curseur
+****** Surlignage ligne du curseur
 #+begin_src emacs-lisp
  (global-hl-line-mode t)
  (set-face-background hl-line-face "#311")
 #+end_src
-*** La barre en bas
+***** La barre en bas
 
 
 #+begin_src emacs-lisp
@@ -769,15 +797,15 @@ CLOSED: [2022-04-10 Sun 23:00]
     )
 
 #+end_src
-*** Buffer cursor indicator
-**** nyan cat
+***** Buffer cursor indicator
+****** nyan cat
 #+begin_src emacs-lisp
   (use-package nyan-mode
     :config
     (nyan-mode)
     )
 #+end_src
-**** Pokemon
+****** Pokemon
   
 #+begin_src emacs-lisp :tangle no
   (use-package poke-line
@@ -787,7 +815,7 @@ CLOSED: [2022-04-10 Sun 23:00]
     ;; (setq-default poke-line-pokemon "gengar")
     )
 #+end_src
-**** Barre côté
+****** Barre côté
 
 #+begin_src emacs-lisp :tangle no
   (use-package yascroll
@@ -798,7 +826,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 #+end_src
 
 
-*** Se mettre en mode "focus"
+***** Se mettre en mode "focus"
 
 #+begin_src emacs-lisp
 
@@ -839,9 +867,9 @@ CLOSED: [2022-04-10 Sun 23:00]
   ;; (add-hook 'org-mode-hook #'dw/toggle-focus-modebis)
 #+end_src
 
-** Aesthetics of Emacs
+**** Aesthetics of Emacs
 
-*** TODO Police et taille
+***** TODO Police et taille
 
 #+begin_src emacs-lisp
 
@@ -869,7 +897,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Les jolies icônes
+***** Les jolies icônes
 
 #+begin_src emacs-lisp
 
@@ -888,7 +916,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Thèmes 
+***** Thèmes 
 
 #+begin_src emacs-lisp
 
@@ -925,7 +953,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Mise en valeur du buffer actif (diminue la luminosité)
+***** Mise en valeur du buffer actif (diminue la luminosité)
 #+begin_src emacs-lisp
 
   (use-package dimmer
@@ -941,7 +969,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 
 #+end_src
 
-*** Smiley !
+***** Smiley !
 
 #+begin_src emacs-lisp  :tangle no
   (use-package emojify
@@ -949,7 +977,7 @@ CLOSED: [2022-04-10 Sun 23:00]
     )
 #+end_src
 
-*** TODO Très joli icône ! voir ce qui le désactive (je pense j'utiliserai pas)
+***** TODO Très joli icône ! voir ce qui le désactive (je pense j'utiliserai pas)
 #+begin_src emacs-lisp :tangle no
   (use-package svg-lib
     :config
@@ -1029,7 +1057,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 #+end_src
 
 
-*** Emacs transparent
+***** Emacs transparent
 
 #+begin_src emacs-lisp
 
@@ -1079,7 +1107,7 @@ CLOSED: [2022-04-10 Sun 23:00]
 #+end_src
 
 
-*** Cacher la mode-line
+***** Cacher la mode-line
 
 
 #+begin_src emacs-lisp
@@ -1087,17 +1115,17 @@ CLOSED: [2022-04-10 Sun 23:00]
 #+end_src
 
 
-** Minibuffer
+**** Minibuffer
 [[https://github.com/minad/vertico][Vertico]] and friends provides a minimalistic vertical completion UI, which is based on the default completion system.
-*** Other
-**** Pour faire des commandes dans le mini-buffer
+***** Other
+****** Pour faire des commandes dans le mini-buffer
 
 #+begin_src emacs-lisp 
 
   (setq enable-recursive-minibuffers t)
 
 #+end_src
-*** Vertico
+***** Vertico
 
 Vertico provides a minimalistic vertical completion UI, which is based on the default completion system
 
@@ -1146,7 +1174,7 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
 #+end_src
 
 
-*** Marginalia
+***** Marginalia
 
 Show document of function in =M-x=, or file attributes in C-x C-f
 info sur le côté du mini buffer
@@ -1163,7 +1191,7 @@ info sur le côté du mini buffer
 
 #+end_src
 
-*** Orderless
+***** Orderless
 
 Use space-separated search terms in any order when completing with Icomplete or the default interface.
 Exemple : M-x consult-line, taper "use ordeless", et vous tomberez sur use-package orderless
@@ -1192,18 +1220,18 @@ OVERCHEAT et je m'en sert tout le temps
 
 #+end_src
 
-*** Embark, pour faire des actions vraiment puissantes partout et sur tout
+***** Embark, pour faire des actions vraiment puissantes partout et sur tout
 
-**** Moteur
+****** Moteur
  #+begin_src emacs-lisp
    (use-package embark
      :load-path "straight/build/embark"
      :bind (("C-t" . embark-become)) ;; pourquoi marche pas ?
      :config
+
      (setq embark-quit-after-action '((kill-buffer . t)
                                       (embark-insert . t)
-                                      (embark-insert-in-outer-minibuffer . t)
-                                      ))
+                                      (embark-insert-in-outer-minibuffer . t)))
 
      ;; nouvelle commande pour insérer dans le minibuffer
      (defun embark-insert-in-outer-minibuffer (string)
@@ -1217,14 +1245,14 @@ OVERCHEAT et je m'en sert tout le temps
      ;; t)
 
      ;; (diredp-recent-dirs nil)
-     (keymap-set embark-general-map "O" #'embark-insert-in-outer-minibuffer)
+     (define-key embark-general-map "O" #'embark-insert-in-outer-minibuffer)
 
      ;; pour afficher avec which-key
      (defun embark-which-key-indicator ()
        "An embark indicator that displays keymaps using which-key.
-                                               The which-key help message will show the type and value of the
-                                               current target followed by an ellipsis if there are further
-                                               targets."
+                                                The which-key help message will show the type and value of the
+                                                current target followed by an ellipsis if there are further
+                                                targets."
        (lambda (&optional keymap targets prefix)
          (if (null keymap)
              (which-key--hide-popup-ignore-command)
@@ -1295,23 +1323,41 @@ OVERCHEAT et je m'en sert tout le temps
 
 #+end_src
 
-**** Redéfinition de ma fonction pour les lettres toujours au même endroit avec xah ?
+****** Redéfinition de ma fonction pour les lettres toujours au même endroit avec xah ?
 
 #+begin_src emacs-lisp
 #+end_src
 
-**** Pour insérer directement les paths dans le minibuffer (plus utilisé, j'utilise la fonction dans ma config : embark-insert-in-outer-minibuffer)
+****** Embark become (pour changer si je me trompe de commande)
+
+
+#+begin_src emacs-lisp
+
+  ;; (define-key embark-become-match-map (kbd (xah-fly--convert-kbd-str "h")) 'xah-fly-keys-layer-isearch-forward-function) ;; différent, plus petit dans les résultats ?
+  (define-key embark-consult-search-map (kbd (xah-fly--convert-kbd-str "h")) 'xah-fly-keys-layer-isearch-forward-function)
+
+  (define-key embark-become-file+buffer-map (kbd (xah-fly--convert-kbd-str "h"))
+    'xah-fly-keys-layer-recentf-open-files-function)
+
+
+  (define-key embark-become-help-map (kbd (xah-fly--convert-kbd-str "h"))
+    'xah-fly-keys-layer-describe-variable-function)
+#+end_src
+
+****** Pour insérer directement les paths dans le minibuffer (plus utilisé, j'utilise la fonction dans ma config : embark-insert-in-outer-minibuffer)
 
 #+begin_src emacs-lisp
   (use-package consult-dir
-    :ensure t
     :bind (("C-x C-d" . consult-dir)
            :map minibuffer-local-completion-map
            ("C-x C-d" . consult-dir)
-           ("C-x C-j" . consult-dir-jump-file)))
+           ("C-x C-j" . consult-dir-jump-file))
+    :config
+    ;; ne pas mettre un "/" quand on insère
+    (setq consult-dir-shadow-filenames nil))
 #+end_src
 
-**** Compter le nombre de commandes pour embark
+****** Compter le nombre de commandes pour embark
 
 #+begin_src emacs-lisp
   (defvar action-counts (make-hash-table))
@@ -1325,8 +1371,13 @@ OVERCHEAT et je m'en sert tout le temps
 
 #+end_src
 
+****** Pour modifier/ajouter une touche à un keymap d'embark
 
-** Meilleur aide
+#+begin_src emacs-lisp
+  (define-key embark-symbol-map (kbd "=") 'set-variable)
+#+end_src
+
+**** Meilleur aide
 
 #+begin_src emacs-lisp
 
@@ -1389,8 +1440,8 @@ OVERCHEAT et je m'en sert tout le temps
 
 
 #+end_src
-** Window & Frame Management
-*** Pour faire retour à la configuration de fenêtre précédente
+**** Window & Frame Management
+***** Pour faire retour à la configuration de fenêtre précédente
 
 “Undo”(and “redo”) changes in the window configuration with the key commands.
 winner-undo and winner-redo
@@ -1400,14 +1451,13 @@ winner-undo and winner-redo
   (winner-mode 1) ;;naviguer avec les fenêtres
 
 #+end_src
-*** Gestion des bookmarks classique
-
-**** Encodage du fichier des raccourcis
+***** Gestion des bookmarks classique
+****** Encodage du fichier des bookmarks
 
 #+begin_src emacs-lisp
   (setq bookmark-file-coding-system "utf-8-emacs")
 #+end_src
-*** Bookmark mais pour les fenêtre + frame
+***** Bookmark mais pour les fenêtre + frame
 
 #+begin_src emacs-lisp
   (use-package burly
@@ -1422,14 +1472,14 @@ winner-undo and winner-redo
     ;; j'ai gardé et mis directement sur LayerXahFlyKey
     )
 #+end_src
-*** Buffer temporaires dans une autre frame (dont scratch au démarrage)
+***** Buffer temporaires dans une autre frame (dont scratch au démarrage)
 #+begin_src emacs-lisp
   ;; (when window-system (setq pop-up-frames t))
 #+end_src
 
-*** Gestion de la double fenêtre au démarrage
+***** Gestion de la double fenêtre au démarrage
 
-**** Variable des fenêtres
+****** Variable des fenêtres
 
 Configurer juste "size-frame-width"
 
@@ -1449,7 +1499,7 @@ Configurer juste "size-frame-width"
 
 #+end_src
 
-**** Pour lancer la fenêtre sur le côté au démarrage
+****** Pour lancer la fenêtre sur le côté au démarrage
 
 #+begin_src emacs-lisp
 
@@ -1463,7 +1513,7 @@ Configurer juste "size-frame-width"
 
 #+end_src
 
-**** Pour que chaque nouvelle fenêtre soit une fois à droite une fois à gauche
+****** Pour que chaque nouvelle fenêtre soit une fois à droite une fois à gauche
 
 #+begin_src emacs-lisp
 
@@ -1485,7 +1535,7 @@ Configurer juste "size-frame-width"
 
 #+end_src
 
-**** Pour lancer deux fenêtre au démarrage, mais ne fait plus fonctionner org-icalendar-combine-agenda-files-background
+****** Pour lancer deux fenêtre au démarrage, mais ne fait plus fonctionner org-icalendar-combine-agenda-files-background
 
 #+begin_src emacs-lisp
 
@@ -1493,7 +1543,7 @@ Configurer juste "size-frame-width"
 
 #+end_src
 
-** Démarrer avec les fichiers récents, titre etc
+**** Démarrer avec les fichiers récents, titre etc
 
 Dépendances : all-the-icons et projectile
 
@@ -1535,7 +1585,7 @@ Dépendances : all-the-icons et projectile
 #+end_src
 
 
-*** Ace windows (à supprimer ?)
+***** Ace windows (à supprimer ?)
 
 #+begin_src emacs-lisp
     (use-package ace-window
@@ -1543,6 +1593,70 @@ Dépendances : all-the-icons et projectile
   (setq aw-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ))  )
 #+end_src
 
+**** Completion
+
+***** TODO Corfu
+:LOGBOOK:
+- State "TODO"       from              [2023-02-13 Mon 20:54]
+:END:
+
+#+begin_src emacs-lisp :tangle no
+
+  ;; (require 'cl)
+  ;; (require 'cl-macs)
+
+  ;; besoin de cette fonction qui n'est pas chargé
+  (defmacro cl-with-gensyms (names &rest body)
+    "Bind each of NAMES to an uninterned symbol and evaluate BODY."
+    (declare (debug (sexp body)) (indent 1))
+    `(let ,(cl-loop for name in names collect
+                    `(,name (gensym (symbol-name ',name))))
+       ,@body))
+
+  (use-package corfu
+    ;; TAB-and-Go customizations
+    :custom
+    (corfu-cycle t)           ;; Enable cycling for `corfu-next/previous'
+    (corfu-preselect 'prompt) ;; Always preselect the prompt
+
+    ;; Use TAB for cycling, default is `corfu-complete'.
+    :bind
+    (:map corfu-map
+          ("TAB" . corfu-next)
+          ([tab] . corfu-next)
+          ("S-TAB" . corfu-previous)
+          ([backtab] . corfu-previous))
+
+    :init
+    (global-corfu-mode)
+    :config
+    ;; Enable auto completion and configure quitting
+    (setq corfu-auto t
+          corfu-quit-no-match 'separator) ;; or t
+    )
+
+
+  ;; A few more useful configurations...
+  (use-package emacs
+    :init
+    ;; TAB cycle if there are only few candidates
+    (setq completion-cycle-threshold 3)
+
+    ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
+    ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
+    ;; (setq read-extended-command-predicate
+    ;;       #'command-completion-default-include-p)
+
+    ;; Enable indentation+completion using the TAB key.
+    ;; `completion-at-point' is often bound to M-TAB.
+    (setq tab-always-indent 'complete))
+
+#+end_src
+
+***** TODO Company (déplacer ici)
+:LOGBOOK:
+- State "TODO"       from              [2023-02-13 Mon 20:54]
+:END:
 * File Manager (dired)
 *** Optimisation de base
 

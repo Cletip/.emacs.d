@@ -305,6 +305,11 @@ as its argument a `vulpea-note'. Unless specified,
 (add-hook 'org-mode-hook 'org-indent-mode)
 (diminish org-indent-mode)
 
+(use-package org-phscroll :straight (org-phscroll :type git :host github :repo "misohena/phscroll"))
+(setq org-startup-truncated nil)
+(with-eval-after-load "org"
+  (require 'org-phscroll))
+
 (org-babel-do-load-languages
  'org-babel-load-languages
  '(
@@ -450,8 +455,9 @@ Add this function to `org-mode-hook'."
 
 (when braindump-exists
 
-(setq org-id-method 'ts)
-(setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
+;; (setq org-id-method 'ts)
+(setq org-id-method 'uuid)
+;; (setq org-id-ts-format "%Y%m%d%H%M%S%6N") ;; le 6N est présent pour être sûr que se soit unique
 
 (setq org-id-locations-file-relative t)
 
@@ -1722,6 +1728,10 @@ Refer to `org-agenda-prefix-format' for more information."
 (org-link-set-parameters
  "config" :follow (lambda (_) (find-file "~/.emacs.d/init.el")))
 
+;; (setq org-attach-id-dir (expand-file-name ".data/" vulpea-directory))
+
+(setq org-attach-id-dir (expand-file-name ".data/" org-roam-directory))
+
 (setq org-attach-store-link-p 'file)
 ;; pour que le lien soit relatif au dossier data, modifier cette fonction
 ;; org attach attach
@@ -1745,10 +1755,6 @@ Refer to `org-agenda-prefix-format' for more information."
             (define-key dired-mode-map
               (kbd "C-c C-x a")
               #'org-attach-dired-to-subtree)))
-
-;; (setq org-attach-id-dir (expand-file-name ".data/" vulpea-directory))
-
-(setq org-attach-id-dir (expand-file-name ".data/" org-roam-directory))
 
 ;; (advice-remove 'org-attach-attach 'my-new-org-attach-attach)
 
@@ -1848,6 +1854,11 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   ;;    org-noter-notes-search-path (list org_notes)
   ;;    )
   ;;   )
+
+(defun cp/consult-find-attachFile ()
+  "Cherche dans les fichiers présent dans or-attach-id-dir"
+  (interactive)
+  (consult-find org-attach-id-dir))
 
 (use-package org-archive
   :straight nil
@@ -2580,9 +2591,27 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 
 (use-package consult-org-roam
   :config
-  ;; Activate the minor-mode
-  (consult-org-roam-mode 1)
-  (setq consult-org-roam-grep-func #'consult-ripgrep))
+  ;; changement de cette fonction juste pour ajouter la liste pas à la fin
+  (defun consult-org-roam-buffer-setup ()
+    "Setup consult-org-roam-buffer functionality.
+    Setup consult-org-roam-buffer functionality by adding
+    org-roam-buffer-source to consult-buffer-sources and customizing
+    consult--source-buffer."
+    ;; Remove org-roam-buffer-source to avoid duplicate
+    (consult-org-roam-buffer-teardown)
+    (consult-org-roam-buffer--customize-source-buffer t)
+    (if consult-org-roam-buffer-after-buffers
+        (let* ((idx (cl-position 'consult--source-buffer
+                                 consult-buffer-sources :test 'equal))
+               (tail (nthcdr idx consult-buffer-sources)))
+          (setcdr
+           (nthcdr (1- idx) consult-buffer-sources)
+           (append (list 'org-roam-buffer-source) tail)))
+      ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append
+      (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
+;; Activate the minor-mode
+(consult-org-roam-mode 1)
+(setq consult-org-roam-grep-func #'consult-ripgrep))
 
 (use-package ox-hugo
   :after org org-roam
@@ -3605,7 +3634,44 @@ INFO is a plist holding contextual information.  See
               "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
               "\\)")))
 
-(use-package org-edna
+(use-package org-chef
+
   :config
-  ;; Always necessary
-  (org-edna-mode))
+
+
+  (setq org-chef-prefer-json-ld t) ;; pour que le téléchargement des recettes marche (normalement)
+
+  (defun org-chef-edit--do-replace (multiplier)
+    "Replaces all numbers (in a variety of formats) in the region,
+  multiplying them all by MULTIPLIER"
+    ;; (interactive "*nChange servings to: ")
+    ;; (setq multiplier (/ (float desired) (float servings)))
+    (save-excursion
+      (while (re-search-forward
+              "\\([0-9]+\\)?\\([¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\\)\\|\\([0-9]+\\)/\\([0-9]+\\)\\|\\([0-9]+\\)" (mark) t)
+        (cond
+         ;; Unicode vulgar/mixed fractions
+         ((match-string 2)
+          (let* ((char (elt (match-string 2) 0))
+                 (frac (get-char-code-property char 'numeric-value))
+                 (int (if (match-string 1) (string-to-number (match-string 1)) 0))
+                 (original (+ int frac)))
+            (replace-match (format "%.3g" (* multiplier original)))))
+         ;; ASCII fractions
+         ((match-string 3)
+          (let ((original (/ (float (string-to-number (match-string 3)))
+                             (float (string-to-number (match-string 4))))))
+            (replace-match (format "%.3g" (* multiplier original)))))
+         ;; simple decimals
+         ((match-string 5)
+          (replace-match
+           (format "%.3g" (* multiplier (string-to-number
+                                         (match-string 5))))))))))
+
+  )
+
+;; Install Khoj Package using Straight.el
+(use-package khoj
+  :after org
+  :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
+  :bind ("C-c s" . 'khoj))

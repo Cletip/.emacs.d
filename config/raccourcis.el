@@ -69,13 +69,16 @@
   ;;for all other extensions, you can change variable after require the extension
 
   (require 'xah-fly-keys-layer-better-remap)
+
   (setq xah-fly-keys-layer-isearch-forward-variable 'consult-line
         xah-fly-keys-layer-ispell-word-variable 'flyspell-correct-wrapper
         xah-fly-keys-layer-xah-extend-selection-variable 'er/expand-region
         xah-fly-keys-layer-xah-open-file-at-cursor-variable 'cp/open-link
         xah-fly-keys-layer-recentf-open-files-variable 'consult-recent-file
         ;;since I don't use save-buffer, I prefer this
-        xah-fly-keys-layer-save-buffer-variable 'avy-goto-char-2)
+        xah-fly-keys-layer-save-buffer-variable 'avy-goto-char-2
+        xah-fly-keys-layer-describe-function-variable 'helpful-symbol
+        xah-fly-keys-layer-describe-variable-variable 'helpful-at-point)
 
   (require 'xah-fly-keys-layer-major-mode)
   ;; like default place, but change here if you want
@@ -156,7 +159,7 @@
      ;; ("b" . nil)
      ;; ("c" . nil)
      ;; ("d" . org-capture-keymap)
-     ("d" . helpful-at-point)
+     ;; ("d" . helpful-at-point)
      ;; ("e" . nil)
      ("f" . org-next-link)
      ("g" . consult-org-roam-search)
@@ -185,8 +188,7 @@
   (setq xah-fly-keys-layer-misc-enter-open-line t
         xah-fly-keys-layer-misc-autosave t
         xah-fly-keys-layer-embark t
-        embark-cycle-key (xah-fly--convert-kbd-str "i")
-        )
+        embark-cycle-key (xah-fly--convert-kbd-str "i"))
   (require 'xah-fly-keys-layer-misc)
 
   ;; end of the package here

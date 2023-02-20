@@ -26,7 +26,8 @@
     ("ds" "dans")
     ("qd" "quand")
     ("All" "Allegorithmic")
-    ("xfk" "xah-fly-keys") 
+    ("xfk" "xah-fly-keys")
+    ("mtn" "maintenant")
 
 
     ;; net abbrev
