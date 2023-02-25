@@ -235,3 +235,14 @@ chatgpt install
     )
 
 #+end_src
+
+
+* TODO Pour pouvoir collaborer comme google-drive
+:LOGBOOK:
+- State "TODO"       from              [2023-02-23 Thu 15:57]
+:END:
+
+https://code.librehq.com/qhong/crdt.el
+
+
+Ou essayer ceci : https://www.reddit.com/r/orgmode/comments/w1wpk9/how_do_you_collaborate_through_org_files/

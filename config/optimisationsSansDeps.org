@@ -537,25 +537,27 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 :scope 'page pour tous !
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (use-package holymotion
-    :straight (holymotion :type git
-                          :host github
-                          :repo "Overdr0ne/holymotion"
-                          :branch "main")
-    :config
-    ;; define some custom motions, I'm using smartparens here
-    (holymotion-make-motion
-     holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
-    (holymotion-make-motion
-     holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
+  :straight (holymotion :type git
+                        :host github
+                        :repo "Overdr0ne/holymotion"
+                        :branch "main")
+  :config
 
-    (defun holymotion-next-line-only-with-prefix ()
-      "DOCSTRING here"
-      (interactive)
-      (if current-prefix-arg
-          (holymotion-next-line)
-        (next-line))))
+  (require 'holymotion)
+  ;; define some custom motions, I'm using smartparens here
+  ;; (holymotion-make-motion
+  ;;  holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
+  ;; (holymotion-make-motion
+  ;;  holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
+
+  (defun holymotion-next-line-only-with-prefix ()
+    "DOCSTRING here"
+    (interactive)
+    (if current-prefix-arg
+        (holymotion-next-line)
+      (next-line))))
 #+end_src
 
 

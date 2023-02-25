@@ -2637,7 +2637,11 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         org-roam-ui-open-on-start nil)
   )
 
+;; uuid avec le timestamp
 (setq regex-of-an-id "[0-9]\\{19\\}")
+
+;; uuid classique
+;; (concat "\\(" "[a-zA-Z0-9]\\{8\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{4\\}" "-" "[a-zA-Z0-9]\\{12\\}" "\\)")
 
 (defun org-element-link-parser ()
   "Parse link at point, if any.

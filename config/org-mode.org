@@ -74,7 +74,7 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
 
 #+end_src
 
-*** Modification de vulpea insert
+*** Modification de vulpea insert pour choix des aliases
 
 #+begin_src emacs-lisp
   (defun vulpea-insert (&optional filter-fn)
@@ -4464,11 +4464,19 @@ Au final, deux cas : 
         ;; :action '(org-todo "DONE")
         :action #'org-archive-subtree)
 
-**** Gestion de l'intéraction avec le pc
+**** Gestion de l'intéraction avec le pc / de capture de page
 
+***** Org-protocol
 #+begin_src emacs-lisp
   (require 'org-protocol)
 #+end_src
+
+***** TODO Grasp (plus simple ?)
+:LOGBOOK:
+- State "TODO"       from              [2023-02-23 Thu 18:00]
+:END:
+
+https://github.com/karlicoss/grasp
 
 **** Gestion du cryptage
 
@@ -5831,7 +5839,7 @@ Créer une table qui stocke les relations. Pour les avoirs, suffit de parser les
 
 Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en utilisant les fonctionnalité d'org-mode.
 
-****** Nouveau
+****** Version 1 : modifier org-mode
 
 ******* Dans org-mode pour ajouter un type de tel sorte que cela soit détectecter comme un "type id"
 
@@ -6298,6 +6306,110 @@ Je sais déjà où faire la moddif sur cette fonction pour que cela marche bien 
 :LOGBOOK:
 - State "TODO"       from              [2023-02-11 Sat 02:39]
 :END:
+
+
+****** TODO Version 2 : modifier org-roam (privilégier celle la ?)
+:LOGBOOK:
+- State "TODO"       from              [2023-02-25 Sat 13:59]
+:END:
+
+******* TODO Création du type de lien dans org-mode
+:LOGBOOK:
+- State "TODO"       from              [2023-02-25 Sat 14:01]
+:END:
+
+******* CANCELED Modifier la fonction pour insérer des liens dans la db (pour insérer dans la table lien : type = id du lien, et valeur = id de la note)
+
+#+begin_src emacs-lisp :tangle no 
+  (defun org-roam-db-insert-link (link)
+    "Insert link data for LINK at current point into the Org-roam cache."
+    (save-excursion
+      (goto-char (org-element-property :begin link))
+      (let ((type (org-element-property :type link))
+            (path (org-element-property :path link))
+            (source (org-roam-id-at-point))
+            (properties (list :outline (ignore-errors
+                                         ;; This can error if link is not under any headline
+                                         (org-get-outline-path 'with-self 'use-cache)))))
+        ;; For Org-ref links, we need to split the path into the cite keys
+        (when (and source path)
+          (if (and (boundp 'org-ref-cite-types)
+                   (or (assoc type org-ref-cite-types)
+                       (member type org-ref-cite-types)))
+              (org-roam-db-query
+               [:insert :into citations
+                :values $v1]
+               (mapcar (lambda (k) (vector source k (point) properties))
+                       (org-roam-org-ref-path-to-keys path)))
+
+            ;;modifier ici avec un "if" pour permettre de savoir si l'id 1
+            ;;correspond à une relation
+            (org-roam-db-query
+             [:insert :into links
+              :values $v1]
+             (vector (point) source path type properties)))))))
+#+end_src
+
+******* TODO Modification pour avoir les backlinks en entier
+:LOGBOOK:
+- State "TODO"       from              [2023-02-25 Sat 14:01]
+:END:
+
+******** Modifier la fonction backlinks-get : NON ! car il faudrait créer une nouvelle section pour les backlinks de type id-rel, avec affichage par exemple : relation-liens
+
+#+begin_src emacs-lisp :tangle no
+  (cl-defun org-roam-backlinks-get (node &key unique)
+    "Return the backlinks for NODE.
+
+   When UNIQUE is nil, show all positions where references are found.
+   When UNIQUE is t, limit to unique sources."
+    (let* ((sql (if unique
+                    [:select :distinct [source dest pos properties]
+                             :from links
+                             :where (= dest $s1)
+                             :and (= type "id")
+                             :group :by source
+                             :having (funcall min pos)]
+                  [:select [source dest pos properties]
+                           :from links
+                           :where (= dest $s1)
+                           :and (= type "id")]))
+  ;; rajouter ici "id-rel", il faut prendre à la fois 
+           (sql2 (if unique
+                     [:select :distinct [source dest pos properties]
+                              :from links
+                              :where (= dest $s1)
+                              :and (= type "id")
+                              :group :by source
+                              :having (funcall min pos)]
+                   [:select [source dest pos properties]
+                            :from links
+                            :where (= dest $s1)
+                            :and (= type "id")]))
+           ;;concatener
+           (backlinks (org-roam-db-query sql (org-roam-node-id node))))
+      (cl-loop for backlink in backlinks
+               collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
+                         (org-roam-populate
+                          (org-roam-backlink-create
+                           :source-node (org-roam-node-create :id source-id)
+                           :target-node (org-roam-node-create :id dest-id)
+                           :point pos
+                           :properties properties))))))
+#+end_src
+
+******** Modifier la section des backlinks
+
+créer une nouvelle section dans la variable
+
+(setq org-roam-mode-sections
+        (list #'org-roam-backlinks-section
+              #'org-roam-reflinks-section
+              ;; #'org-roam-unlinked-references-section
+              ))
+
+s'inspirer des section déjà existante : org-roam-backlinks-section par exemple
+
 
 ****** Ancien, à supprimer petit à petit
 
@@ -7491,3 +7603,18 @@ khoj
     :straight (khoj :type git :host github :repo "debanjum/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
     :bind ("C-c s" . 'khoj))
 #+end_src
+
+** Télécharger des images simplement
+
+*** TODO Org-download (toutes une image)
+:LOGBOOK:
+- State "TODO"       from              [2023-02-21 Tue 22:01]
+:END:
+
+*** TODO Un screenshoot
+:LOGBOOK:
+- State "TODO"       from              [2023-02-21 Tue 22:01]
+:END:
+
+
+[[https://github.com/LionyxML/ros][ici]]

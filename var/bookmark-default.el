@@ -82,16 +82,16 @@
  (front-context-string . "config\n  -rw-rw-")
  (rear-context-string . " juin  16 11:09 ")
  (position . 799))
-("org-mode "
- (filename . "~/.emacs.d/straight/repos/org/lisp/")
- (front-context-string . "Makefile\n  -rw-r")
- (rear-context-string . " juin  16 14:55 ")
- (position . 287))
 ("org-mode.org"
  (filename . "~/.emacs.d/config/org-mode.org")
  (front-context-string . "* Config + code ")
  (rear-context-string . "mon braindump\n\n\n")
  (position . 204))
+("org-mode "
+ (filename . "~/.emacs.d/straight/repos/org/lisp/")
+ (front-context-string . "Makefile\n  -rw-r")
+ (rear-context-string . " juin  16 14:55 ")
+ (position . 287))
 ("secondCerveau.org"
  (filename . "~/braindump/org/.data/2022/06/16/93340664791/secondCerveau.org")
  (front-context-string . "#+filetags: :pro")
@@ -108,10 +108,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/pages/20230217103602-page_de_test_pour_khoj.org")
- (front-context-string . "\n* Premier titre")
- (rear-context-string . " test pour khoj\n")
- (position . 100))
+ (filename . "~/braindump/org/inbox-localhost.org")
+ (front-context-string . "* TODO papa appl")
+ (rear-context-string . "point classique\n")
+ (position . 23191))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")
