@@ -2,8 +2,6 @@
 
 * Mon xah
 
-
-
 ** xah-fly-keys
 #+begin_src emacs-lisp
   (use-package xah-fly-keys
@@ -52,6 +50,7 @@
             dired-jump
             vertico-exit
             ace-link-eww
+            debugger-quit
             ))
     (setq xah-fly-keys-layer-auto-insert-mode
           '(
@@ -70,20 +69,11 @@
           xah-fly-keys-layer-better-place-for-pinky-block t)
     (require 'xah-fly-keys-layer-better-place)
 
-    ;; try :
-
-    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "z"
-                                           'xah-forward-right-bracket)
-    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "v"
-                                           'xah-goto-matching-bracket)
-    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "b"
-                                           'xah-backward-left-bracket)
-
     ;;for all other extensions, you can change variable after require the extension
 
     (require 'xah-fly-keys-layer-better-remap)
 
-    (setq xah-fly-keys-layer-isearch-forward-variable 'consult-line
+    (setq xah-fly-keys-layer-isearch-forward-variable 'cp/consult-line-or-with-word
           xah-fly-keys-layer-ispell-word-variable 'flyspell-correct-wrapper
           xah-fly-keys-layer-xah-extend-selection-variable 'er/expand-region
           xah-fly-keys-layer-xah-open-file-at-cursor-variable 'cp/open-link
@@ -95,8 +85,9 @@
 
     (require 'xah-fly-keys-layer-major-mode)
     ;; like default place, but change here if you want
-    (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "x"))
-    ;; override a default keymap : 
+    ;; (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "x"))
+
+    ;; override a default keymap :
     (xah-fly--define-keys
      (define-prefix-command 'xah-fly-keys-layer-org-mode-keymap)
      '(("SPC" . org-mode-babel-keymap)
@@ -205,11 +196,36 @@
           embark-cycle-key (xah-fly--convert-kbd-str "i"))
     (require 'xah-fly-keys-layer-misc)
 
+    ;; try :
+
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "z"
+                                           'xah-forward-right-bracket)
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "v"
+                                           'xah-goto-matching-bracket)
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "b"
+                                           'xah-backward-left-bracket)
+
+
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "i"
+                                           'avy-goto-char-2)
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "p"
+                                           'set-mark-command)
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "x"
+                                           'embark-act)
+    (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "'"
+                                           'kill-word)
+
+    (require 'xah-fly-keys-layer-major-mode)
+    ;;try
+    (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "y"))
+    (require 'xah-fly-keys-layer-major-mode)
+
     ;; end of the package here
     )
 
-#+end_src
 
+
+#+end_src
 
 ** Mes ajouts persos, peut-être à mettre dans xah-fly-keys-layer
 
@@ -220,8 +236,6 @@
     (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-leader-key-map "0" 'pop-global-mark)
   )
 #+end_src
-
-
 
 ** Avant, à supprimer un jour !
 Fork de xah pour faire des modifications de mon côté
@@ -434,8 +448,6 @@ Fork de xah pour faire des modifications de mon côté
        (org-agenda-open-link)))
 #+end_src
 
-
-
 ** Nouvelle fonction de recherche
 
 #+begin_src emacs-lisp
@@ -467,7 +479,6 @@ Fork de xah pour faire des modifications de mon côté
 (with-eval-after-load 'xah-fly-keys-layer
   (defun cp/xah-insert-tilde () (interactive) (xah-insert-bracket-pair "~" "~") ) (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-leader-key-map "e o" 'cp/xah-insert-tilde))
 #+end_src
-
 * Touche xah pour l'historique du mini-buffer
 
 
@@ -477,7 +488,6 @@ Fork de xah pour faire des modifications de mon côté
   (define-key minibuffer-mode-map [remap next-line] #'next-line-or-history-element)
 
 #+end_src
-
 * TODO Mise en place des touches CTRL ALT etc en fonction du clavier
 :LOGBOOK:
 - State "TODO"       from              [2022-10-01 Sat 15:48]
@@ -510,9 +520,7 @@ Fork de xah pour faire des modifications de mon côté
 
 ** Test si le clavier est connecté
 
-
 [[https://stackoverflow.com/questions/29146545/identifying-which-keyboard-has-a-keystroke-originated-from-from-within-emacs][lien du stackoverflow]]
-
 
 #+begin_src emacs-lisp
 
@@ -521,7 +529,6 @@ Fork de xah pour faire des modifications de mon côté
                                    (split-string (shell-command-to-string "lsusb") "\n")))))
 
 #+end_src
-
 
 ** Activation 
 :LOGBOOK:
@@ -548,14 +555,12 @@ Fork de xah pour faire des modifications de mon côté
     ;; (setq device "Intel Corp.")
 
 #+end_src
-
 * Hydra
 * Chargement de mes abbréviation 
 
 #+begin_src emacs-lisp
   (load "~/.emacs.d/config/lisp/my-abbrev.el") 
 #+end_src
-
 * Compter le nombre de chaque commande faite (bien pour optimiser les raccourcis)
 
 keyfreq-show pour voir le nombre de commandes
@@ -563,17 +568,233 @@ keyfreq-show pour voir le nombre de commandes
 #+begin_src emacs-lisp
   (use-package keyfreq
     :config
-    ;;   Pour exclure des commandes 
+    ;;   Pour exclure des commandes
     (setq keyfreq-excluded-commands
           '(
             mouse-drag-region
             lsp-ui-doc--handle-mouse-movement
             mouse-set-point
             mwheel-scroll
-            )
-    )
+            ))
+    (setq keyfreq-buffer "*keyfreq-buffer*")
     (keyfreq-mode 1)
-    (keyfreq-autosave-mode 1)
-    )
+    (keyfreq-autosave-mode 1))
 
 #+end_src
+
+* Commandes xah améliorer pour org-mode
+
+#+begin_src emacs-lisp
+
+  (defun org-folded-p ()
+    "Returns non-nil if point is on a folded item."
+    (interactive)
+    (org-invisible-p (point-at-eol)))
+
+#+end_src
+
+** Xah beginning line or block
+
+#+begin_src emacs-lisp
+
+  (defun xah-beginning-of-line-or-block ()
+    "Move cursor to beginning of line or previous block.
+
+      • When called first time, move cursor to beginning of char in current line. (if already, move to beginning of line.)
+      • When called again, move cursor backward by jumping over any sequence of whitespaces containing 2 blank lines.
+      • if `visual-line-mode' is on, beginning of line means visual line.
+
+      URL `http://xahlee.info/emacs/emacs/emacs_keybinding_design_beginning-of-line-or-block.html'
+      Version: 2018-06-04 2021-03-16 2022-03-30 2022-07-03 2022-07-06"
+    (interactive)
+    (let (($p (point)))
+      (if (or (equal (point) (line-beginning-position))
+              (eq last-command this-command))
+          (when
+              (re-search-backward "\n[\t\n ]*\n+" nil 1)
+            (skip-chars-backward "\n\t ")
+            (if (org-invisible-p)
+                ;; élément précédent invisible
+                ;; pour tous les élément, revenir au début de la ligne, et caractère précédent
+                (progn
+                  (org-beginning-of-line)
+                  ;; des fois, on arrive dans le titre. Donc on revient bien au début du titre avec cette commande
+                  (beginning-of-line)
+                  ;; pour être à la bonne position
+                  (backward-char)
+                  )
+              ;; sinon cas classique
+              (forward-char)))
+        (if visual-line-mode
+            (beginning-of-visual-line)
+          (if (eq major-mode 'eshell-mode)
+              (progn
+                (declare-function eshell-bol "esh-mode.el" ())
+                (eshell-bol))
+            (back-to-indentation)
+            (when (eq $p (point))
+              (beginning-of-line)))))))
+
+#+end_src
+
+** Xah end of line or block
+
+#+begin_src emacs-lisp
+
+  (defun xah-end-of-line-or-block ()
+    "Move cursor to end of line or next block.
+
+              • When called first time, move cursor to end of line.
+              • When called again, move cursor forward by jumping over any sequence of whitespaces containing 2 blank lines.
+              • if `visual-line-mode' is on, end of line means visual line.
+
+              URL `http://xahlee.info/emacs/emacs/emacs_keybinding_design_beginning-of-line-or-block.html'
+              Version: 2018-06-04 2021-03-16 2022-03-05"
+    (interactive)
+    (if (or (equal (point) (line-end-position))
+            (eq last-command this-command))
+        (progn
+          (re-search-forward "\n[\t\n ]*\n+" nil 1)
+          ;; mince, on est passé sur un caractère invisible
+          (when (org-invisible-p)
+            (cond 
+             ;; cas où l'on vient de passer un titre plié
+             ((save-excursion
+                (backward-char)
+                ;; obligé de tester comme cela, org-at-heading-p marche seulement sur la ligne. De plus, permet aussi de skip si ya un drawer ou property-drawer
+                (if (or (equal 'headline (car (org-element-at-point))) 
+                        (equal 'drawer (car (org-element-at-point)))
+                        (equal 'property-drawer (car (org-element-at-point)))
+                        )
+                    t nil))
+              (outline-next-visible-heading 1)
+              ;; ne marche pas pour le dernier heading
+              ;; (org-next-visible-heading)
+              )
+             ;; cas des autres éléments pliables : ce sont juste des éléments en une partie, donc on va à la fin de cet élément
+             (t (goto-char (org-element-property :end (org-element-at-point)))))))
+      (if visual-line-mode
+          (end-of-visual-line)
+        (end-of-line))))
+
+#+end_src
+
+** Séléction paragraphe
+
+xah-select-block avec lorsque la marque est avant, on sélectionne le paragraphe d'avant
+
+#+begin_src emacs-lisp
+
+  (defun xah-select-block ()
+    "Select the current/next block plus 1 blankline.
+          If region is active, extend selection downward by block.
+
+          URL `http://xahlee.info/emacs/emacs/modernization_mark-word.html'
+          Version: 2019-12-26 2021-04-04 2021-08-13"
+    (interactive)
+    (if (region-active-p)
+        ;; (re-search-forward "\n[ \t]*\n[ \t]*\n*" nil 1)
+        (xah-end-of-line-or-block)
+      (progn
+        (skip-chars-forward " \n\t")
+        (when (re-search-backward "\n[ \t]*\n" nil 1)
+          (goto-char (match-end 0)))
+        (push-mark (point) t t)
+        ;; (re-search-forward "\n[ \t]*\n" nil 1)
+        (xah-end-of-line-or-block) ;; première fois pour aller à la fin de la ligne
+        (xah-end-of-line-or-block) ;; deuxième fois fin du block
+        )))
+
+#+end_src
+
+#+RESULTS:
+: xah-select-block
+
+
+
+** TODO xah-copy-line-or-region
+:LOGBOOK:
+- State "TODO"       from              [2023-04-09 Sun 11:05]
+:END:
+
+;; editing commands
+
+#+begin_src emacs-lisp
+
+  (defun xah-copy-line-or-region ()
+    "Copy current line or selection.
+                  When called repeatedly, append copy subsequent lines.
+                  When `universal-argument' is called first, copy whole buffer (respects `narrow-to-region').
+
+                  URL `http://xahlee.info/emacs/emacs/emacs_copy_cut_current_line.html'
+                  Version: 2010-05-21 2022-10-03"
+    (interactive)
+    (let ((inhibit-field-text-motion nil))
+      (if current-prefix-arg
+          (progn
+            (copy-region-as-kill (point-min) (point-max)))
+        (if (region-active-p)
+            (progn
+              (copy-region-as-kill (region-beginning) (region-end)))
+          (if (eq last-command this-command)
+              (if (eobp)
+                  (progn )
+                (progn
+                  (kill-append "\n" nil)
+                  (kill-append
+                   (buffer-substring-no-properties (line-beginning-position) (line-end-position))
+                   nil)
+                  (progn
+                    (end-of-line)
+                    (forward-char))))
+            (if (eobp)
+                (if (eq (char-before) 10 )
+                    (progn )
+                  (progn
+                    (copy-region-as-kill (line-beginning-position) (line-end-position))
+                    (end-of-line)))
+              (progn
+                ;;si on est sur un élément plié, on le copie
+                (if (org-folded-p)
+                    (progn
+                      (copy-region-as-kill (save-excursion (org-beginning-of-line) (point)) (save-excursion (goto-char (org-element-property :end (org-element-at-point))) (point)))
+                      (end-of-line)
+                      (next-line)
+                      (beginning-of-line)
+                      )
+                  (progn
+                    (copy-region-as-kill (line-beginning-position) (line-end-position)))
+                  ;; puis fin de ligne
+                  (end-of-line)
+                  (forward-char)
+                  )
+                )))))))
+
+#+end_src
+
+** xah-cut-line-or-region  
+
+#+begin_src emacs-lisp
+
+    (defun xah-cut-line-or-region ()
+      "Cut current line or selection.
+      When `universal-argument' is called first, cut whole buffer (respects `narrow-to-region').
+
+      URL `http://xahlee.info/emacs/emacs/emacs_copy_cut_current_line.html'
+      Version: 2010-05-21 2015-06-10"
+      (interactive)
+      (if current-prefix-arg
+          (progn ; not using kill-region because we don't want to include previous kill
+            (kill-new (buffer-string))
+            (delete-region (point-min) (point-max)))
+        (progn (if (region-active-p)
+                   (kill-region (region-beginning) (region-end) t)
+                 ;; si on est sur un élément plié
+                 (if (org-folded-p)
+                     (kill-region (save-excursion (org-beginning-of-line) (point)) (save-excursion (goto-char (org-element-property :end (org-element-at-point))) (point)))
+                   (kill-region (line-beginning-position) (line-beginning-position 2)))))))
+
+
+
+#+end_src
+

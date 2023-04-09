@@ -28,6 +28,8 @@
 (require 'straight-x)
 
 ;; (setq use-package-always-defer t)
+(setq use-package-verbose t)
+(setq use-package-minimum-reported-time 0.00001)
 
 (use-package no-littering
   :config

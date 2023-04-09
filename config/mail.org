@@ -25,26 +25,38 @@ flux rss reddit in gnus : https://www.reddit.com/r/emacs/comments/8boenu/looking
 
 #+end_src
 
-** Mails / messages
-
-email en asyncrous [[https://www.reddit.com/r/emacs/comments/101v46w/safer_async_email_sending_eg_mu4e/][ici]]
-
-
 *** Paths
 
 #+begin_src emacs-lisp
   (setq message-directory (no-littering-expand-var-file-name "Mail/")) ; As the default.
 #+end_src
 
+**** Functions
 
-*** Functions
-
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (setq send-mail-function 'smtpmail-send-it
         smtpmail-smtp-server "smtp.gmail.com"
         smtpmail-smtp-service 465
         smtpmail-stream-type  'ssl)
 #+end_src
+
+** Envoie de message
+
+email en asyncrous [[https://www.reddit.com/r/emacs/comments/101v46w/safer_async_email_sending_eg_mu4e/][ici]]
+
+mettre un with-eval-after gnus ici ?
+#+begin_src emacs-lisp
+
+  (setq message-send-mail-function 'smtpmail-send-it)
+
+  (setq smtpmail-smtp-server "smtp.gmail.com"
+        smtpmail-smtp-service 465
+        smtpmail-stream-type  'ssl)
+
+#+end_src
+
+
+
 
 ** TODO Org-msg, à ranger
 ** Gnus
@@ -197,7 +209,25 @@ Ne pas oublier la ligne dans le init.el
 
 **** Premier compte Gmail
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp 
+
+  ;; pas d'espace dans les noms
+  (add-to-list 'gnus-secondary-select-methods
+               '(nnimap "clement020302Gmail"
+                        (nnimap-address "imap.gmail.com")
+                        (nnimap-server-port 993)
+                        (nnimap-stream ssl)
+                        (nnir-search-engine imap)
+    ; @see http://www.gnu.org/software/emacs/manual/html_node/gnus/Expiring-Mail.html
+                        ;; press 'E' to expire email
+                        (nnmail-expiry-target "nnimap+gmail:[Gmail]/Trash")
+                        (nnmail-expiry-wait 90)))
+#+end_src
+
+
+
+
+#+begin_src emacs-lisp :tangle no
   (add-to-list 'gnus-secondary-select-methods
                '(nnimap "First Gmail : clement020302@gmail"
                         (nnimap-address "imap.gmail.com")
@@ -288,10 +318,10 @@ Test :
 
 **** Config (à déplacer ?/supprimer)
 
-#+begin_src emacs-lisp
-  ;; (setq gnus-select-method '(nnimap "imap.gmail.com")
-        ;; gnus-message-archive-group "Gmail]/Sent Mail"
-        ;; )
+#+begin_src emacs-lisp :tangle no
+  (setq gnus-select-method '(nnimap "imap.gmail.com")
+        gnus-message-archive-group "Gmail]/Sent Mail"
+        )
 
   ;; (add-to-list 'gnus-secondary-select-methods '(nntp "news.gmane.io"))
   ;; (add-to-list 'gnus-secondary-select-methods '(nntp "news.gnus.org"))

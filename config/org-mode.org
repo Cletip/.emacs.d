@@ -55,22 +55,18 @@ J'active donc les parties de org-mode qd il faut, et org-roam seulement si ya mo
   (use-package vulpea
     :if braindump-exists
     :straight (vulpea
-               :type git
-               :host github
-               :repo "d12frosted/vulpea")
+	       :type git
+	       :host github
+	       :repo "d12frosted/vulpea")
     ;; hook into org-roam-db-autosync-mode you wish to enable
     ;; persistence of meta values (see respective section in README to
     ;; find out what meta means)
     :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
-    :config
-    (defun org-roam-vulpea-bdd ()
-      (interactive)
-      "Mets à jour la bdd pour l'utilisation de velpua"
-      (org-roam-db-sync 'force)
-      )
+    ;; :config
     )
-(require 'vulpea)
-(advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
+
+  (require 'vulpea)
+  (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
 
 #+end_src
 
@@ -201,8 +197,8 @@ Pour les checkbox
 
 Now, you can type "<el or <sh" then "tab", and let's go for org-babel !
 
-
 #+begin_src emacs-lisp
+
   (require 'org-tempo)
 
   (add-to-list 'org-structure-template-alist '("sh" . "src sh"))
@@ -876,9 +872,6 @@ Rien besoin de faire, si ça change y mettre ici
   (use-package ox-epub)
 #+end_src
 
-
-
-
 **** Notes collaboratives avec org-mode ([[https://floobits.com/help/plugins/emacs][ici]]) 
 
 
@@ -1071,6 +1064,13 @@ Déjà dans org-mode natif, juste à activer
 #+end_src
 
 
+***** Quand on créer des liens sur un heading, on veut créer un id !
+
+#+begin_src emacs-lisp
+  ;;voir le manual pour plus d'information. Ne me créera pas d'id inutile
+  (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+#+end_src
+
 ***** TODO Pour mettre des les archives dans les id
 
 #+begin_src emacs-lisp :tangle no
@@ -1176,7 +1176,6 @@ Ce qu'il faut faire :
   ;; Update ID file .org-id-locations on startup
   ;; (org-id-update-id-locations)
 #+end_src
-
 
 **** Gestion des métadata
 
@@ -3779,9 +3778,9 @@ Qd on insère avec la fonction vulpea-insert une personne ailleurs dans un todo,
 
 1. aller dans inbox
 2. créer un sous titre
-3. ajouter la ligne avec le bon lien !
-   #+transclude: [[id:20220621120442360949][test contac]] :lines 0-20
+3. ajouter la ligne avec le bon lien ! #+transclude: [[id:20220621120442360949][test contac]] :lines 0-20
 4. il faut le hook avec l'autre fonction, voir même la lancer en même temps dans "when personne" !
+
 
 #+begin_src emacs-lisp
 
@@ -3855,7 +3854,14 @@ Dépendant des ids dans id-locations.el
     (setq org-transclusion-exclude-elements '(property-drawer
                                               ;; center-block
                                               keyword ;; pour pas exporter les truc avec #+ (comme les titres)
-                                              )))
+                                              )
+          )
+
+    ;; permet de transclude récursivement !
+    ;; (add-hook 'org-mode-hook 'org-transclusion-mode)
+    )
+
+
 
 #+end_src
 
@@ -4487,6 +4493,7 @@ Pour crypter automatiquement : epa + tag "crypt" sur des arbres org-mode
 Edit .gnupg/gpg-agent.conf (create it if necessary) by adding the following:
 allow-emacs-pinentry
 
+****** Moteur
 #+begin_src emacs-lisp 
 
   (use-package epa-file
@@ -4495,12 +4502,42 @@ allow-emacs-pinentry
     (epa-file-enable)
     ;; (setq epa-file-encrypt-to '("my@email.address.org"))
     (setq epa-file-select-keys nil)
+    (setq auth-sources '("~/.authinfo.gpg" "~/.authinfo" "~/.netrc"))
     (when termux-p
       (setq epa-pinentry-mode 'loopback) ;;demande le mdp dans le mini-buffer
-      (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")
-      )
-    )
+      (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")))
 
+#+end_src
+
+****** Pour avoir un mot de passe hors d'emacs
+
+Exemple utilisation : 
+
+#+begin_src sh
+  emacsclient -e "(efs/lookup-password :host \"facebook.com\" :user \"zuck\")" | cut -d '"' -f2
+
+  emacsclient -e "(efs/lookup-password :host \"clement020302Gmail\")" | cut -d '"' -f2
+#+end_src
+
+Ou dans un fichier : 
+
+#+begin_example
+IMAPAccount gmail
+Host imap.gmail.com
+User systemcrafters.test@gmail.com
+PassCmd "emacsclient -e \"(efs/lookup-password :host \\\"gmail.com\\\" :user \\\"systemcrafters.test\\\")\" | cut -d '\"' -f2"
+
+SSLType IMAPS
+CertificateFile /etc/ssl/certs/ca-certificates.crt
+#+end_example
+
+
+#+begin_src emacs-lisp
+  (defun efs/lookup-password (&rest keys)
+    (let ((result (apply #'auth-source-search keys)))
+      (if result
+          (funcall (plist-get (car result) :secret))
+        nil)))
 #+end_src
 
 ***** Org
@@ -4893,9 +4930,12 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
   ;;défini la capture de mon journal
   (setq org-roam-dailies-directory "journals/")
 
-  (setq org-roam-dailies-capture-templates  '(
-                                              ("d" "default" entry "* %<%H:%M> %?" :target
+  (setq org-roam-dailies-capture-templates  '(("d" "default" entry "* %<%H:%M> %?" :target
                                                (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+
+                                              ("j" "journal de gratitude" entry "* %<%H:%M> Journal de gratitude\n\n- %?" :target
+                                               (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+
                                               ))
 #+end_src
 
@@ -5121,7 +5161,6 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 #+end_src
 
-
 ****** Lors de l'ajout d'un noeud, permet de remplacer dans les org-files les unlinked references par le titre
 
 
@@ -5225,8 +5264,6 @@ Par exemple, si je veux que mes transclude soit considérer comme des backlinks,
 
 
 #+end_src
-
-
 
 ****** Voir l'historique d'un fichier (avec magit)
 
@@ -5448,8 +5485,8 @@ Autre version, peut-être à choisir (mais break la sémantique de vulpea-find) 
                       )
 
   (vulpea-select-from "texte" (vulpea-db-query
-                       (lambda (note)
-                         (< (vulpea-note-meta-get note "numbers" 'number) 100))))
+                               (lambda (note)
+                                 (< (vulpea-note-meta-get note "numbers" 'number) 100))))
 
 
 #+end_src
@@ -5594,9 +5631,6 @@ il faudrait :
 2. l’élément de destination
 3. et enfin la redirection de la page désormais inutile vers la nouvelle page (et également sur toutes les autres pages)
 
-
-
-
 ****** TODO Savoir si une note est populaire en fonction de son nombre de visite
 :LOGBOOK:
 - State "TODO"       from              [2023-02-19 Sun 21:49]
@@ -5725,29 +5759,31 @@ pour savoir le nombre de fois où c'est cité, suffit de savoir le nombre de bac
 ***** Consult org-roam (pour avoir la preview des noeuds)
 
 #+begin_src emacs-lisp
+
+;; lui ralentissement du démarrage de la recherche de note la première fois ? car ajoute tous les noeuds à la variable consult-buffer-sources ? tester avec et sans le mode d'activer au démarrage
   (use-package consult-org-roam
     :config
     ;; changement de cette fonction juste pour ajouter la liste pas à la fin
-    (defun consult-org-roam-buffer-setup ()
-      "Setup consult-org-roam-buffer functionality.
-      Setup consult-org-roam-buffer functionality by adding
-      org-roam-buffer-source to consult-buffer-sources and customizing
-      consult--source-buffer."
-      ;; Remove org-roam-buffer-source to avoid duplicate
-      (consult-org-roam-buffer-teardown)
-      (consult-org-roam-buffer--customize-source-buffer t)
-      (if consult-org-roam-buffer-after-buffers
-          (let* ((idx (cl-position 'consult--source-buffer
-                                   consult-buffer-sources :test 'equal))
-                 (tail (nthcdr idx consult-buffer-sources)))
-            (setcdr
-             (nthcdr (1- idx) consult-buffer-sources)
-             (append (list 'org-roam-buffer-source) tail)))
-        ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append
-        (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
-  ;; Activate the minor-mode
-  (consult-org-roam-mode 1)
-  (setq consult-org-roam-grep-func #'consult-ripgrep))
+    ;; (defun consult-org-roam-buffer-setup ()
+    ;;   "Setup consult-org-roam-buffer functionality.
+    ;;   Setup consult-org-roam-buffer functionality by adding
+    ;;   org-roam-buffer-source to consult-buffer-sources and customizing
+    ;;   consult--source-buffer."
+    ;;   ;; Remove org-roam-buffer-source to avoid duplicate
+    ;;   (consult-org-roam-buffer-teardown)
+    ;;   (consult-org-roam-buffer--customize-source-buffer t)
+    ;;   (if consult-org-roam-buffer-after-buffers
+    ;;       (let* ((idx (cl-position 'consult--source-buffer
+    ;;                                consult-buffer-sources :test 'equal))
+    ;;              (tail (nthcdr idx consult-buffer-sources)))
+    ;;         (setcdr
+    ;;          (nthcdr (1- idx) consult-buffer-sources)
+    ;;          (append (list 'org-roam-buffer-source) tail)))
+    ;;     ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append)
+    ;;     (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
+    ;; Activate the minor-mode
+    (consult-org-roam-mode 1)
+    (setq consult-org-roam-grep-func #'consult-ripgrep))
 #+end_src
 
 ***** Autre preview des noeuds, pas utilisé
@@ -5840,6 +5876,8 @@ Créer une table qui stocke les relations. Pour les avoirs, suffit de parser les
 Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en utilisant les fonctionnalité d'org-mode.
 
 ****** Version 1 : modifier org-mode
+
+id1:id2
 
 ******* Dans org-mode pour ajouter un type de tel sorte que cela soit détectecter comme un "type id"
 
@@ -6071,28 +6109,6 @@ Je pense donc qu'il faut créer un nouveau type de lien, exclusif à org-roam en
 #+RESULTS:
 : org-link-open
 
-******* CANCEL Creation of the type of link
-
-To avoid confusion and ensure that your relation information is properly stored and accessible, it's recommended to use the double colon format [[id-rel:destination::relation]].
-
-#+begin_src emacs-lisp :tangle no
-
-  (org-link-set-parameters "id-rel"
-			   :follow #'org-id-rel-open
-			   :export #'org-id-rel-export-function)
-
-  (defun org-id-rel-open (id-rel)
-    "Follow the ID-REL link.
-		    ID-REL is the string representation of the link, with the format:
-		    [[id-rel:destination::relation][description]]."
-    (let* ((parts (split-string id-rel "::"))
-	   (destination (car parts))
-	   (relation (cadr parts)))
-      ;; (message "Following link to destination: %s, with relation: %s" destination relation)
-      (org-roam-id-open destination nil)))
-
-#+end_src
-
 ******* Exportation
 
 Pour l'export, il va falloir "voir chaque cas". Par exemple, en html, il suffit de passer le lien "normal" dans la fonction "org-export-resolve-id-link". Il faut donc faire un truc sur le id-rel, et le "convertir" en lien id.
@@ -6302,35 +6318,350 @@ Je sais déjà où faire la moddif sur cette fonction pour que cela marche bien 
 
 #+end_src
 
-******* TODO La db pour stocker tout cela (temporaire avec vulpea, je vais pas aller rajouter une colonne dans celle d'org-roam... quoique). Au final, inutile car je fais les choses du type id1:id2, donc pas besoin de rajouter quelque chose au niveau de la dblocks
+******* CANCELED La db pour stocker tout cela (temporaire avec vulpea, je vais pas aller rajouter une colonne dans celle d'org-roam... quoique). Au final, inutile car je fais les choses du type id1:id2, donc pas besoin de rajouter quelque chose au niveau de la dblocks
 :LOGBOOK:
 - State "TODO"       from              [2023-02-11 Sat 02:39]
 :END:
-
 
 ****** TODO Version 2 : modifier org-roam (privilégier celle la ?)
 :LOGBOOK:
 - State "TODO"       from              [2023-02-25 Sat 13:59]
 :END:
 
+
+            
 ******* TODO Création du type de lien dans org-mode
 :LOGBOOK:
 - State "TODO"       from              [2023-02-25 Sat 14:01]
 :END:
 
-******* CANCELED Modifier la fonction pour insérer des liens dans la db (pour insérer dans la table lien : type = id du lien, et valeur = id de la note)
+To avoid confusion and ensure that your relation information is properly stored and accessible, it's recommended to use the double colon format [[id-rel:destination::relation]].
 
-#+begin_src emacs-lisp :tangle no 
+#+begin_src emacs-lisp
+
+  (setq separator-of-parse-id-link-with-relation "::")
+  (setq id-relationnal "id-rel")
+
+  (org-link-set-parameters id-relationnal
+                           :follow #'org-id-rel-open
+                           :export #'org-id-rel-export-function
+                           )
+
+
+  (defun org-id-rel-open (id-rel)
+    "Follow the ID-REL link.
+                      ID-REL is the string representation of the link, with the format:
+                      [[id-rel:destination::relation][description]]."
+    (let* ((parts (split-string id-rel "::"))
+           (destination (car parts))
+           (relation (cadr parts)))
+      ;; (message "Following link to destination: %s, with relation: %s" destination relation)
+      (if (yes-or-no-p "Open the relation ?")
+          (org-id-open relation nil)
+        (org-roam-id-open destination nil))))
+
+#+end_src
+
+******* Exportation
+******** TODO Html
+:LOGBOOK:
+- State "TODO"       from              [2023-02-11 Sat 17:31]
+:END:
+
+Je sais déjà où faire la moddif sur cette fonction pour que cela marche bien : rechercher  ";; TODO"
+
+#+begin_src emacs-lisp
+
+  (defun org-html-link (link desc info)
+    "Transcode a LINK object from Org to HTML.
+  DESC is the description part of the link, or the empty string.
+  INFO is a plist holding contextual information.  See
+  `org-export-data'."
+    (let* ((html-ext (plist-get info :html-extension))
+           (dot (when (> (length html-ext) 0) "."))
+           (link-org-files-as-html-maybe
+            (lambda (raw-path info)
+              ;; Treat links to `file.org' as links to `file.html', if
+              ;; needed.  See `org-html-link-org-files-as-html'.
+              (cond
+               ((and (plist-get info :html-link-org-files-as-html)
+                     (string= ".org"
+                              (downcase (file-name-extension raw-path "."))))
+                (concat (file-name-sans-extension raw-path) dot html-ext))
+               (t raw-path))))
+           (type (org-element-property :type link))
+           (raw-path (org-element-property :path link))
+           ;; Ensure DESC really exists, or set it to nil.
+           (desc (org-string-nw-p desc))
+           (path
+            (cond
+             ((member type '("http" "https" "ftp" "mailto" "news"))
+              (url-encode-url (concat type ":" raw-path)))
+             ((string= "file" type)
+              ;; During publishing, turn absolute file names belonging
+              ;; to base directory into relative file names.  Otherwise,
+              ;; append "file" protocol to absolute file name.
+              (setq raw-path
+                    (org-export-file-uri
+                     (org-publish-file-relative-name raw-path info)))
+              ;; Possibly append `:html-link-home' to relative file
+              ;; name.
+              (let ((home (and (plist-get info :html-link-home)
+                               (org-trim (plist-get info :html-link-home)))))
+                (when (and home
+                           (plist-get info :html-link-use-abs-url)
+                           (file-name-absolute-p raw-path))
+                  (setq raw-path (concat (file-name-as-directory home) raw-path))))
+              ;; Maybe turn ".org" into ".html".
+              (setq raw-path (funcall link-org-files-as-html-maybe raw-path info))
+              ;; Add search option, if any.  A search option can be
+              ;; relative to a custom-id, a headline title, a name or
+              ;; a target.
+              (let ((option (org-element-property :search-option link)))
+                (if (not option) raw-path
+                  (let ((path (org-element-property :path link)))
+                    (concat raw-path
+                            "#"
+                            (org-publish-resolve-external-link option path t))))))
+             ;; TODO
+             ;; ((condition  ici pour détecter un id-rel) le truc à renvoyer ici est le texte)
+             (t raw-path)))
+           (attributes-plist
+            (org-combine-plists
+             ;; Extract attributes from parent's paragraph.  HACK: Only
+             ;; do this for the first link in parent (inner image link
+             ;; for inline images).  This is needed as long as
+             ;; attributes cannot be set on a per link basis.
+             (let* ((parent (org-export-get-parent-element link))
+                    (link (let ((container (org-export-get-parent link)))
+                            (if (and (eq 'link (org-element-type container))
+                                     (org-html-inline-image-p link info))
+                                container
+                              link))))
+               (and (eq link (org-element-map parent 'link #'identity info t))
+                    (org-export-read-attribute :attr_html parent)))
+             ;; Also add attributes from link itself.  Currently, those
+             ;; need to be added programmatically before `org-html-link'
+             ;; is invoked, for example, by backends building upon HTML
+             ;; export.
+             (org-export-read-attribute :attr_html link)))
+           (attributes
+            (let ((attr (org-html--make-attribute-string attributes-plist)))
+              (if (org-string-nw-p attr) (concat " " attr) ""))))
+      (cond
+       ;; Link type is handled by a special function.
+       ((org-export-custom-protocol-maybe link desc 'html info))
+       ;; Image file.
+       ((and (plist-get info :html-inline-images)
+             (org-export-inline-image-p
+              link (plist-get info :html-inline-image-rules)))
+        (org-html--format-image path attributes-plist info))
+       ;; Radio target: Transcode target's contents and use them as
+       ;; link's description.
+       ((string= type "radio")
+        (let ((destination (org-export-resolve-radio-link link info)))
+          (if (not destination) desc
+            (format "<a href=\"#%s\"%s>%s</a>"
+                    (org-export-get-reference destination info)
+                    attributes
+                    desc))))
+       ;; Links pointing to a headline: Find destination and build
+       ;; appropriate referencing command.
+       ((member type '("custom-id" "fuzzy" "id"))
+        (let ((destination (if (string= type "fuzzy")
+                               (org-export-resolve-fuzzy-link link info)
+                             (org-export-resolve-id-link link info))))
+          (pcase (org-element-type destination)
+            ;; ID link points to an external file.
+            (`plain-text
+             (let ((fragment (concat "ID-" path))
+                   ;; Treat links to ".org" files as ".html", if needed.
+                   (path (funcall link-org-files-as-html-maybe
+                                  destination info)))
+               (format "<a href=\"%s#%s\"%s>%s</a>"
+                       path fragment attributes (or desc destination))))
+            ;; Fuzzy link points nowhere.
+            (`nil
+             (format "<i>%s</i>"
+                     (or desc
+                         (org-export-data
+                          (org-element-property :raw-link link) info))))
+            ;; Link points to a headline.
+            (`headline
+             (let ((href (org-html--reference destination info))
+                   ;; What description to use?
+                   (desc
+                    ;; Case 1: Headline is numbered and LINK has no
+                    ;; description.  Display section number.
+                    (if (and (org-export-numbered-headline-p destination info)
+                             (not desc))
+                        (mapconcat #'number-to-string
+                                   (org-export-get-headline-number
+                                    destination info) ".")
+                      ;; Case 2: Either the headline is un-numbered or
+                      ;; LINK has a custom description.  Display LINK's
+                      ;; description or headline's title.
+                      (or desc
+                          (org-export-data
+                           (org-element-property :title destination) info)))))
+               (format "<a href=\"#%s\"%s>%s</a>" href attributes desc)))
+            ;; Fuzzy link points to a target or an element.
+            (_
+             (if (and destination
+                      (memq (plist-get info :with-latex) '(mathjax t))
+                      (eq 'latex-environment (org-element-type destination))
+                      (eq 'math (org-latex--environment-type destination)))
+                 ;; Caption and labels are introduced within LaTeX
+                 ;; environment.  Use "ref" or "eqref" macro, depending on user
+                 ;; preference to refer to those in the document.
+                 (format (plist-get info :html-equation-reference-format)
+                         (org-html--reference destination info))
+               (let* ((ref (org-html--reference destination info))
+                      (org-html-standalone-image-predicate
+                       #'org-html--has-caption-p)
+                      (counter-predicate
+                       (if (eq 'latex-environment (org-element-type destination))
+                           #'org-html--math-environment-p
+                         #'org-html--has-caption-p))
+                      (number
+                       (cond
+                        (desc nil)
+                        ((org-html-standalone-image-p destination info)
+                         (org-export-get-ordinal
+                          (org-element-map destination 'link #'identity info t)
+                          info 'link 'org-html-standalone-image-p))
+                        (t (org-export-get-ordinal
+                            destination info nil counter-predicate))))
+                      (desc
+                       (cond (desc)
+                             ((not number) "No description for this link")
+                             ((numberp number) (number-to-string number))
+                             (t (mapconcat #'number-to-string number ".")))))
+                 (format "<a href=\"#%s\"%s>%s</a>" ref attributes desc)))))))
+       ;; Coderef: replace link with the reference name or the
+       ;; equivalent line number.
+       ((string= type "coderef")
+        (let ((fragment (concat "coderef-" (org-html-encode-plain-text path))))
+          (format "<a href=\"#%s\" %s%s>%s</a>"
+                  fragment
+                  (format "class=\"coderef\" onmouseover=\"CodeHighlightOn(this, \
+  '%s');\" onmouseout=\"CodeHighlightOff(this, '%s');\""
+                          fragment fragment)
+                  attributes
+                  (format (org-export-get-coderef-format path desc)
+                          (org-export-resolve-coderef path info)))))
+       ;; External link with a description part.
+       ((and path desc)
+        (format "<a href=\"%s\"%s>%s</a>"
+                (org-html-encode-plain-text path)
+                attributes
+                desc))
+       ;; External link without a description part.
+       (path
+        (let ((path (org-html-encode-plain-text path)))
+          (format "<a href=\"%s\"%s>%s</a>" path attributes path)))
+       ;; No path, only description.  Try to do something useful.
+       (t
+        (format "<i>%s</i>" desc)))))
+
+#+end_src
+
+******* La db schemata
+
+#+begin_src emacs-lisp
+  ;;; Schemata
+  (defconst org-roam-db--table-schemata
+    '((files
+       [(file :unique :primary-key)
+        title
+        (hash :not-null)
+        (atime :not-null)
+        (mtime :not-null)])
+
+      (nodes
+       ([(id :not-null :primary-key)
+         (file :not-null)
+         (level :not-null)
+         (pos :not-null)
+         todo
+         priority
+         (scheduled text)
+         (deadline text)
+         title
+         properties
+         olp]
+        (:foreign-key [file] :references files [file] :on-delete :cascade)))
+
+      (aliases
+       ([(node-id :not-null)
+         alias]
+        (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+      (citations
+       ([(node-id :not-null)
+         (cite-key :not-null)
+         (pos :not-null)
+         properties]
+        (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+      (refs
+       ([(node-id :not-null)
+         (ref :not-null)
+         (type :not-null)]
+        (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+      (tags
+       ([(node-id :not-null)
+         tag]
+        (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+      (links
+       ([(pos :not-null)
+         (source :not-null)
+         (dest :not-null)
+         (relation)
+         (type :not-null)
+         (properties :not-null)]
+        (:foreign-key [source] :references nodes [id] :on-delete :cascade)))))
+#+end_src
+
+******* Modifier la fonction pour insérer des liens dans la db (pour insérer dans la table lien :type = id du lien, et valeur = id de la note)
+
+#+begin_src emacs-lisp
+  (defun cp/org-roam-type-and-id-of-id-relationnal (path)
+    "return a list where car = the relation and cadr = new-path"
+    (split-string path "::")
+    )
+
   (defun org-roam-db-insert-link (link)
     "Insert link data for LINK at current point into the Org-roam cache."
+
     (save-excursion
       (goto-char (org-element-property :begin link))
-      (let ((type (org-element-property :type link))
-            (path (org-element-property :path link))
-            (source (org-roam-id-at-point))
-            (properties (list :outline (ignore-errors
-                                         ;; This can error if link is not under any headline
-                                         (org-get-outline-path 'with-self 'use-cache)))))
+      (let* ((type (org-element-property :type link))
+
+             ;; (destination (car parts))
+             ;; (relation (cadr parts))
+             ;; (relation)
+             (path (org-element-property :path link))
+             (parts (if (string-equal type id-relationnal)
+                        (cp/org-roam-type-and-id-of-id-relationnal path)
+                      nil
+                      ))
+             (path (if parts
+                       (cadr parts)
+                     path
+                     ))
+             (relation  (if parts
+                                 (car parts)
+                               nil
+                               ))
+             (source (org-roam-id-at-point))
+             (properties (list :outline (ignore-errors
+                                          ;; This can error if link is not under any headline
+                                          (org-get-outline-path 'with-self
+                                                                'use-cache)))))
+
         ;; For Org-ref links, we need to split the path into the cite keys
         (when (and source path)
           (if (and (boundp 'org-ref-cite-types)
@@ -6338,16 +6669,18 @@ Je sais déjà où faire la moddif sur cette fonction pour que cela marche bien 
                        (member type org-ref-cite-types)))
               (org-roam-db-query
                [:insert :into citations
-                :values $v1]
+                        :values $v1]
                (mapcar (lambda (k) (vector source k (point) properties))
                        (org-roam-org-ref-path-to-keys path)))
-
-            ;;modifier ici avec un "if" pour permettre de savoir si l'id 1
-            ;;correspond à une relation
-            (org-roam-db-query
-             [:insert :into links
-              :values $v1]
-             (vector (point) source path type properties)))))))
+            (if relation
+                (org-roam-db-query
+                 [:insert :into links
+                          :values $v1]
+                 (vector (point) source path relation type properties))
+              (org-roam-db-query
+               [:insert :into links
+                        :values $v1]
+               (vector (point) source path relation type properties))))))))
 #+end_src
 
 ******* TODO Modification pour avoir les backlinks en entier
@@ -6410,6 +6743,55 @@ créer une nouvelle section dans la variable
 
 s'inspirer des section déjà existante : org-roam-backlinks-section par exemple
 
+****** Mon "parser" de fonction pour run une fonction par rapport à l'id
+
+
+******* Fonction pour run une liste de fonction sur chaque liens
+(org-roam-db-map-links (list #'org-roam-db-insert-link #'une-autre-fonction))
+
+******* En fonction de l'id, faire tel fonction
+
+#+begin_src emacs-lisp :tangle no
+  (defun cp/translate-id-to-function ()
+    (interactive)
+    (let* ((link (org-element-context))
+           (type (org-element-property :type link))
+           (path (org-element-property :path link))
+           (path (split-string path "::"))
+           ;; (source (org-roam-id-at-point))
+           (value1 (car path))
+           (value2 (cdr path))
+           ;; (properties (list :outline (ignore-errors
+           ;; This can error if link is not under any headline
+           ;; (org-get-outline-path 'with-self
+           ;; 'use-cache))))
+           )
+      ;; (funcall
+      ;; (message "%s" path)
+      (message "%s" (intern (concat "cp/" path)))
+      ;; )
+      ))
+
+
+#+end_src
+
+[[id-rel:val1::val2][machin descriptior]]
+
+****** Mise à jour de la db pour 
+
+#+begin_src emacs-lisp
+
+  (defun org-roam-vulpea-bdd ()
+    (interactive)
+    "Mets à jour la bdd pour l'utilisation de velpua"
+    (vulpea-db-autosync-mode -1)
+    (org-roam-db-sync 'force)
+    (vulpea-db-autosync-mode 1)
+    )
+
+  (org-roam-vulpea-bdd)
+
+#+end_src
 
 ****** Ancien, à supprimer petit à petit
 
@@ -6618,7 +7000,6 @@ Devoir parcourir pour chaque relation et écrire
 			   :point pos
 			   :properties properties))))))
 #+end_src
-
 
 ** Gestion des références/bibliographie
 
@@ -7474,6 +7855,7 @@ Consult-ripgrep est mieux je pense : plus rapide et plus intuitif. Mais deft p
 ** Polymode ? non casse tout mais idée bien
 
 #+begin_src emacs-lisp :tangle no
+
   (use-package polymode)
 
 

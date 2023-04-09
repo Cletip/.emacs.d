@@ -149,11 +149,19 @@ func main() {
 (define-abbrev-table 'org-mode-abbrev-table
   '(
     ;; ("if" "if 4 { 3 }")
-    
-    ("upk" "use-package")
+
+    ("up" "use-package")
 
     ("acb" "l'accessibilité")
-    
+
+    ("setup" "
+(setup (:elpaca)
+
+(:after-loaded
+)
+
+)")
+
     ;;
 
     ))

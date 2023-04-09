@@ -10,8 +10,9 @@
 
 (setq message-directory (no-littering-expand-var-file-name "Mail/")) ; As the default.
 
-(setq send-mail-function 'smtpmail-send-it
-      smtpmail-smtp-server "smtp.gmail.com"
+(setq message-send-mail-function 'smtpmail-send-it)
+
+(setq smtpmail-smtp-server "smtp.gmail.com"
       smtpmail-smtp-service 465
       smtpmail-stream-type  'ssl)
 
@@ -125,8 +126,9 @@
 
 (setq gnus-select-method '(nnnil))
 
+;; pas d'espace dans les noms
 (add-to-list 'gnus-secondary-select-methods
-             '(nnimap "First Gmail : clement020302@gmail"
+             '(nnimap "clement020302Gmail"
                       (nnimap-address "imap.gmail.com")
                       (nnimap-server-port 993)
                       (nnimap-stream ssl)
@@ -135,13 +137,6 @@
                       ;; press 'E' to expire email
                       (nnmail-expiry-target "nnimap+gmail:[Gmail]/Trash")
                       (nnmail-expiry-wait 90)))
-
-;; (setq gnus-select-method '(nnimap "imap.gmail.com")
-      ;; gnus-message-archive-group "Gmail]/Sent Mail"
-      ;; )
-
-;; (add-to-list 'gnus-secondary-select-methods '(nntp "news.gmane.io"))
-;; (add-to-list 'gnus-secondary-select-methods '(nntp "news.gnus.org"))
 
 ;;  pour du local avec isync ?
 ;; (setq gnus-secondary-select-methods

@@ -156,7 +156,10 @@
                :scroll-bar t
                :margin t)))
 
-(server-start)  ;; starts emacs as server (if you didn't already)
+;; starts emacs as server (if you didn't already)
+
+(require 'server) ;; pour se servir de (server-running-p)
+(unless (server-running-p) (server-start))
 
 ;; en mode readble, plus sympa à lire (provoque un bug, mais pg. corrigé avec une maj ?)
 (add-hook 'eww-after-render-hook 'eww-readable)
@@ -313,7 +316,8 @@
   :custom
   ;;personnalition des touches, important
   ;; (avy-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ?\^M)) ;;^M=enter
-  (avy-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ))
+  ;; todo adapter à xah-fly-key !
+  (avy-keys '(?\ ?e ?u ?i ?a ?s ?t ?r ?. ?c))
   (avy-background t)
   ;;nouvelle touches pour escape avy go timer
   (avy-escape-chars '(?\e ?\M-g))
@@ -333,15 +337,31 @@
 The window scope is determined by `avy-all-windows' (ARG negates it)."
     (interactive "P")
     (avy-goto-char-timer arg)
-    (forward-char (length avy-text)))
-
-
-
-  )
+    (forward-char (length avy-text))))
 
 (use-package ace-link
   :config
   (ace-link-setup-default))
+
+(use-package holymotion
+  :straight (holymotion :type git
+                        :host github
+                        :repo "Cletip/holymotion"
+                        :branch "main")
+  :config
+  (require 'holymotion)
+  ;; define some custom motions, I'm using smartparens here
+  (holymotion-make-motion
+   holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
+  ;; (holymotion-make-motion
+  ;;  holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
+
+  (defun holymotion-next-line-only-with-prefix ()
+    "DOCSTRING here"
+    (interactive)
+    (if current-prefix-arg
+        (holymotion-next-line)
+      (next-line))))
 
 (use-package trashed)
 
@@ -597,7 +617,6 @@ Version 2017-06-02"
   (vertico-current ((t (:background "#3a3f5a"))))
   :config
 
-
   ;; Prefix the current candidate with “» ”. From
   ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
   (advice-add #'vertico--format-candidate :around
@@ -609,10 +628,6 @@ Version 2017-06-02"
                    "  ")
                  cand)))
 
-
-
-
-
   ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! )
   (require 'vertico-directory)
   ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
@@ -623,9 +638,29 @@ Version 2017-06-02"
   ;; pour pouvoir jump à une entrée
   ;; (define-key vertico-map [remap avy-goto-char] #'vertico-quick-jump)
 
-  (vertico-mode)
+  (with-eval-after-load 'avy
 
-  )
+    (defun divide-list-in-two-equal-part (lst)
+      (let ((len (length lst)))
+        (list (seq-subseq lst 0 (/ len 2))
+              (seq-subseq lst (/ len 2)))))
+
+    (setq avy-keys-alist-two-part (divide-list-in-two-equal-part (mapconcat 'char-to-string '(?\ ?e ?u ?i ?a ?s ?t ?r ?n) "")))
+
+    ;; lorsqu'il y a une touche
+    (setq vertico-quick1 (car avy-keys-alist-two-part))
+    ;; deux touches
+    (setq vertico-quick2 (cadr avy-keys-alist-two-part))
+
+    (require 'vertico-quick)
+    (use-package vertico-quick
+      :straight nil
+      :after vertico
+      :custom (test 2)
+      :bind (:map vertico-map
+                  ("C-<return>" . vertico-quick-exit))))
+
+  (vertico-mode))
 
 (use-package marginalia
   :after vertico
@@ -641,18 +676,29 @@ Version 2017-06-02"
 ;; You may prefer to use `initials' instead of `partial-completion'.
 (use-package orderless
   :init
+
   (setq completion-styles '(orderless)
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion))))
   :config
 
+  (setq orderless-matching-styles
+        '(
+          orderless-regexp
+          ;; orderless-literal
+          orderless-initialism ;;très puissant
+          ;; orderless-prefixes ;; utile pour les commandes de temps en temps
+          ;; orderless-flex ;; sert à rien pour moi, donne même des candidats inutiles
+          ;; orderless-without-literal ;; à ne pas utiliser directement
+          ))
+
+(setq orderless-component-separator 'orderless-escapable-split-on-space)
+
   ;;couleur avec company
   (defun just-one-face (fn &rest args)
     (let ((orderless-match-faces [completions-common-part]))
       (apply fn args)))
-  (advice-add 'company-capf--candidates :around #'just-one-face)
-
-  )
+  (advice-add 'company-capf--candidates :around #'just-one-face))
 
 (use-package embark
   :load-path "straight/build/embark"
@@ -1224,3 +1270,11 @@ Version 2017-06-02"
 (use-package hyperbole
   :config
   (hyperbole-mode 1))
+
+(setq erc-server "irc.libera.chat"
+      erc-nick "Cletip"    ; Change this!
+      erc-user-full-name "Cletip"  ; And this!
+      erc-track-shorten-start 8
+      ;;      erc-autojoin-channels-alist '(("irc.libera.chat" "#systemcrafters" "#emacs"))
+      erc-kill-buffer-on-part t
+      erc-auto-query 'bury)

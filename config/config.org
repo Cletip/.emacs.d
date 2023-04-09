@@ -26,7 +26,7 @@
 
   ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 
-
+;; TODO changer le non pour termuxp
   (defvar termux-p (not (null (getenv "ANDROID_ROOT")))
     "If non-nil, GNU Emacs is running on Termux.")
   (when termux-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
@@ -52,9 +52,6 @@
 #+begin_src emacs-lisp
 (setq braindump-exists (file-exists-p braindump-directory))
 #+end_src
-
-
-
 
 ** Modes qui n'apparaissent plus dans la modeline
 

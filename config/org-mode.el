@@ -20,22 +20,18 @@
                               ))
 
 (use-package vulpea
-    :if braindump-exists
-    :straight (vulpea
-               :type git
-               :host github
-               :repo "d12frosted/vulpea")
-    ;; hook into org-roam-db-autosync-mode you wish to enable
-    ;; persistence of meta values (see respective section in README to
-    ;; find out what meta means)
-    :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
-    :config
-    (defun org-roam-vulpea-bdd ()
-      (interactive)
-      "Mets à jour la bdd pour l'utilisation de velpua"
-      (org-roam-db-sync 'force)
-      )
-    )
+  :if braindump-exists
+  :straight (vulpea
+	     :type git
+	     :host github
+	     :repo "d12frosted/vulpea")
+  ;; hook into org-roam-db-autosync-mode you wish to enable
+  ;; persistence of meta values (see respective section in README to
+  ;; find out what meta means)
+  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable))
+  ;; :config
+  )
+
 (require 'vulpea)
 (advice-add 'org-transclusion-add :before #'org-id-update-id-locations)
 
@@ -491,6 +487,9 @@ Add this function to `org-mode-hook'."
 (setq org-id-extra-files (append(directory-files-recursively config-directory "org$") (org-roam-list-files)))
 
 (require 'ol-man)
+
+;;voir le manual pour plus d'information. Ne me créera pas d'id inutile
+(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
 
 ;; Update ID file .org-id-locations on startup
 ;; (org-id-update-id-locations)
@@ -1723,7 +1722,12 @@ Refer to `org-agenda-prefix-format' for more information."
   (setq org-transclusion-exclude-elements '(property-drawer
                                             ;; center-block
                                             keyword ;; pour pas exporter les truc avec #+ (comme les titres)
-                                            )))
+                                            )
+        )
+
+  ;; permet de transclude récursivement !
+  ;; (add-hook 'org-mode-hook 'org-transclusion-mode)
+  )
 
 (org-link-set-parameters
  "config" :follow (lambda (_) (find-file "~/.emacs.d/init.el")))
@@ -1927,11 +1931,16 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
   (epa-file-enable)
   ;; (setq epa-file-encrypt-to '("my@email.address.org"))
   (setq epa-file-select-keys nil)
+  (setq auth-sources '("~/.authinfo.gpg" "~/.authinfo" "~/.netrc"))
   (when termux-p
     (setq epa-pinentry-mode 'loopback) ;;demande le mdp dans le mini-buffer
-    (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")
-    )
-  )
+    (setq epg-gpg-program "/data/data/com.termux/files/usr/bin/gpg")))
+
+(defun efs/lookup-password (&rest keys)
+  (let ((result (apply #'auth-source-search keys)))
+    (if result
+        (funcall (plist-get (car result) :secret))
+      nil)))
 
 (use-package org-crypt
   :straight nil  ;; included with org-mode
@@ -2155,9 +2164,12 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
 ;;défini la capture de mon journal
 (setq org-roam-dailies-directory "journals/")
 
-(setq org-roam-dailies-capture-templates  '(
-                                            ("d" "default" entry "* %<%H:%M> %?" :target
+(setq org-roam-dailies-capture-templates  '(("d" "default" entry "* %<%H:%M> %?" :target
                                              (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+
+                                            ("j" "journal de gratitude" entry "* %<%H:%M> Journal de gratitude\n\n- %?" :target
+                                             (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+
                                             ))
 
 ;;ce qu'il y a dans le buffer de backlinks
@@ -2589,29 +2601,30 @@ METHOD may be `cp', `mv', `ln', `lns' or `url' default taken from
         (setq ref-url ref)))
     (browse-url ref-url)))
 
-(use-package consult-org-roam
-  :config
-  ;; changement de cette fonction juste pour ajouter la liste pas à la fin
-  (defun consult-org-roam-buffer-setup ()
-    "Setup consult-org-roam-buffer functionality.
-    Setup consult-org-roam-buffer functionality by adding
-    org-roam-buffer-source to consult-buffer-sources and customizing
-    consult--source-buffer."
-    ;; Remove org-roam-buffer-source to avoid duplicate
-    (consult-org-roam-buffer-teardown)
-    (consult-org-roam-buffer--customize-source-buffer t)
-    (if consult-org-roam-buffer-after-buffers
-        (let* ((idx (cl-position 'consult--source-buffer
-                                 consult-buffer-sources :test 'equal))
-               (tail (nthcdr idx consult-buffer-sources)))
-          (setcdr
-           (nthcdr (1- idx) consult-buffer-sources)
-           (append (list 'org-roam-buffer-source) tail)))
-      ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append
-      (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
-;; Activate the minor-mode
-(consult-org-roam-mode 1)
-(setq consult-org-roam-grep-func #'consult-ripgrep))
+;; lui ralentissement du démarrage de la recherche de note la première fois ? car ajoute tous les noeuds à la variable consult-buffer-sources ? tester avec et sans le mode d'activer au démarrage
+  (use-package consult-org-roam
+    :config
+    ;; changement de cette fonction juste pour ajouter la liste pas à la fin
+    ;; (defun consult-org-roam-buffer-setup ()
+    ;;   "Setup consult-org-roam-buffer functionality.
+    ;;   Setup consult-org-roam-buffer functionality by adding
+    ;;   org-roam-buffer-source to consult-buffer-sources and customizing
+    ;;   consult--source-buffer."
+    ;;   ;; Remove org-roam-buffer-source to avoid duplicate
+    ;;   (consult-org-roam-buffer-teardown)
+    ;;   (consult-org-roam-buffer--customize-source-buffer t)
+    ;;   (if consult-org-roam-buffer-after-buffers
+    ;;       (let* ((idx (cl-position 'consult--source-buffer
+    ;;                                consult-buffer-sources :test 'equal))
+    ;;              (tail (nthcdr idx consult-buffer-sources)))
+    ;;         (setcdr
+    ;;          (nthcdr (1- idx) consult-buffer-sources)
+    ;;          (append (list 'org-roam-buffer-source) tail)))
+    ;;     ;; (add-to-list 'consult-buffer-sources 'org-roam-buffer-source 'append)
+    ;;     (add-to-list 'consult-buffer-sources 'org-roam-buffer-source)))
+    ;; Activate the minor-mode
+    (consult-org-roam-mode 1)
+    (setq consult-org-roam-grep-func #'consult-ripgrep))
 
 (use-package ox-hugo
   :after org org-roam
@@ -3034,6 +3047,338 @@ INFO is a plist holding contextual information.  See
      ;; No path, only description.  Try to do something useful.
      (t
       (format "<i>%s</i>" desc)))))
+
+(setq separator-of-parse-id-link-with-relation "::")
+(setq id-relationnal "id-rel")
+
+(org-link-set-parameters id-relationnal
+                         :follow #'org-id-rel-open
+                         :export #'org-id-rel-export-function
+                         )
+
+
+(defun org-id-rel-open (id-rel)
+  "Follow the ID-REL link.
+                    ID-REL is the string representation of the link, with the format:
+                    [[id-rel:destination::relation][description]]."
+  (let* ((parts (split-string id-rel "::"))
+         (destination (car parts))
+         (relation (cadr parts)))
+    ;; (message "Following link to destination: %s, with relation: %s" destination relation)
+    (if (yes-or-no-p "Open the relation ?")
+        (org-id-open relation nil)
+      (org-roam-id-open destination nil))))
+
+(defun org-html-link (link desc info)
+  "Transcode a LINK object from Org to HTML.
+DESC is the description part of the link, or the empty string.
+INFO is a plist holding contextual information.  See
+`org-export-data'."
+  (let* ((html-ext (plist-get info :html-extension))
+         (dot (when (> (length html-ext) 0) "."))
+         (link-org-files-as-html-maybe
+          (lambda (raw-path info)
+            ;; Treat links to `file.org' as links to `file.html', if
+            ;; needed.  See `org-html-link-org-files-as-html'.
+            (cond
+             ((and (plist-get info :html-link-org-files-as-html)
+                   (string= ".org"
+                            (downcase (file-name-extension raw-path "."))))
+              (concat (file-name-sans-extension raw-path) dot html-ext))
+             (t raw-path))))
+         (type (org-element-property :type link))
+         (raw-path (org-element-property :path link))
+         ;; Ensure DESC really exists, or set it to nil.
+         (desc (org-string-nw-p desc))
+         (path
+          (cond
+           ((member type '("http" "https" "ftp" "mailto" "news"))
+            (url-encode-url (concat type ":" raw-path)))
+           ((string= "file" type)
+            ;; During publishing, turn absolute file names belonging
+            ;; to base directory into relative file names.  Otherwise,
+            ;; append "file" protocol to absolute file name.
+            (setq raw-path
+                  (org-export-file-uri
+                   (org-publish-file-relative-name raw-path info)))
+            ;; Possibly append `:html-link-home' to relative file
+            ;; name.
+            (let ((home (and (plist-get info :html-link-home)
+                             (org-trim (plist-get info :html-link-home)))))
+              (when (and home
+                         (plist-get info :html-link-use-abs-url)
+                         (file-name-absolute-p raw-path))
+                (setq raw-path (concat (file-name-as-directory home) raw-path))))
+            ;; Maybe turn ".org" into ".html".
+            (setq raw-path (funcall link-org-files-as-html-maybe raw-path info))
+            ;; Add search option, if any.  A search option can be
+            ;; relative to a custom-id, a headline title, a name or
+            ;; a target.
+            (let ((option (org-element-property :search-option link)))
+              (if (not option) raw-path
+                (let ((path (org-element-property :path link)))
+                  (concat raw-path
+                          "#"
+                          (org-publish-resolve-external-link option path t))))))
+           ;; TODO
+           ;; ((condition  ici pour détecter un id-rel) le truc à renvoyer ici est le texte)
+           (t raw-path)))
+         (attributes-plist
+          (org-combine-plists
+           ;; Extract attributes from parent's paragraph.  HACK: Only
+           ;; do this for the first link in parent (inner image link
+           ;; for inline images).  This is needed as long as
+           ;; attributes cannot be set on a per link basis.
+           (let* ((parent (org-export-get-parent-element link))
+                  (link (let ((container (org-export-get-parent link)))
+                          (if (and (eq 'link (org-element-type container))
+                                   (org-html-inline-image-p link info))
+                              container
+                            link))))
+             (and (eq link (org-element-map parent 'link #'identity info t))
+                  (org-export-read-attribute :attr_html parent)))
+           ;; Also add attributes from link itself.  Currently, those
+           ;; need to be added programmatically before `org-html-link'
+           ;; is invoked, for example, by backends building upon HTML
+           ;; export.
+           (org-export-read-attribute :attr_html link)))
+         (attributes
+          (let ((attr (org-html--make-attribute-string attributes-plist)))
+            (if (org-string-nw-p attr) (concat " " attr) ""))))
+    (cond
+     ;; Link type is handled by a special function.
+     ((org-export-custom-protocol-maybe link desc 'html info))
+     ;; Image file.
+     ((and (plist-get info :html-inline-images)
+           (org-export-inline-image-p
+            link (plist-get info :html-inline-image-rules)))
+      (org-html--format-image path attributes-plist info))
+     ;; Radio target: Transcode target's contents and use them as
+     ;; link's description.
+     ((string= type "radio")
+      (let ((destination (org-export-resolve-radio-link link info)))
+        (if (not destination) desc
+          (format "<a href=\"#%s\"%s>%s</a>"
+                  (org-export-get-reference destination info)
+                  attributes
+                  desc))))
+     ;; Links pointing to a headline: Find destination and build
+     ;; appropriate referencing command.
+     ((member type '("custom-id" "fuzzy" "id"))
+      (let ((destination (if (string= type "fuzzy")
+                             (org-export-resolve-fuzzy-link link info)
+                           (org-export-resolve-id-link link info))))
+        (pcase (org-element-type destination)
+          ;; ID link points to an external file.
+          (`plain-text
+           (let ((fragment (concat "ID-" path))
+                 ;; Treat links to ".org" files as ".html", if needed.
+                 (path (funcall link-org-files-as-html-maybe
+                                destination info)))
+             (format "<a href=\"%s#%s\"%s>%s</a>"
+                     path fragment attributes (or desc destination))))
+          ;; Fuzzy link points nowhere.
+          (`nil
+           (format "<i>%s</i>"
+                   (or desc
+                       (org-export-data
+                        (org-element-property :raw-link link) info))))
+          ;; Link points to a headline.
+          (`headline
+           (let ((href (org-html--reference destination info))
+                 ;; What description to use?
+                 (desc
+                  ;; Case 1: Headline is numbered and LINK has no
+                  ;; description.  Display section number.
+                  (if (and (org-export-numbered-headline-p destination info)
+                           (not desc))
+                      (mapconcat #'number-to-string
+                                 (org-export-get-headline-number
+                                  destination info) ".")
+                    ;; Case 2: Either the headline is un-numbered or
+                    ;; LINK has a custom description.  Display LINK's
+                    ;; description or headline's title.
+                    (or desc
+                        (org-export-data
+                         (org-element-property :title destination) info)))))
+             (format "<a href=\"#%s\"%s>%s</a>" href attributes desc)))
+          ;; Fuzzy link points to a target or an element.
+          (_
+           (if (and destination
+                    (memq (plist-get info :with-latex) '(mathjax t))
+                    (eq 'latex-environment (org-element-type destination))
+                    (eq 'math (org-latex--environment-type destination)))
+               ;; Caption and labels are introduced within LaTeX
+               ;; environment.  Use "ref" or "eqref" macro, depending on user
+               ;; preference to refer to those in the document.
+               (format (plist-get info :html-equation-reference-format)
+                       (org-html--reference destination info))
+             (let* ((ref (org-html--reference destination info))
+                    (org-html-standalone-image-predicate
+                     #'org-html--has-caption-p)
+                    (counter-predicate
+                     (if (eq 'latex-environment (org-element-type destination))
+                         #'org-html--math-environment-p
+                       #'org-html--has-caption-p))
+                    (number
+                     (cond
+                      (desc nil)
+                      ((org-html-standalone-image-p destination info)
+                       (org-export-get-ordinal
+                        (org-element-map destination 'link #'identity info t)
+                        info 'link 'org-html-standalone-image-p))
+                      (t (org-export-get-ordinal
+                          destination info nil counter-predicate))))
+                    (desc
+                     (cond (desc)
+                           ((not number) "No description for this link")
+                           ((numberp number) (number-to-string number))
+                           (t (mapconcat #'number-to-string number ".")))))
+               (format "<a href=\"#%s\"%s>%s</a>" ref attributes desc)))))))
+     ;; Coderef: replace link with the reference name or the
+     ;; equivalent line number.
+     ((string= type "coderef")
+      (let ((fragment (concat "coderef-" (org-html-encode-plain-text path))))
+        (format "<a href=\"#%s\" %s%s>%s</a>"
+                fragment
+                (format "class=\"coderef\" onmouseover=\"CodeHighlightOn(this, \
+'%s');\" onmouseout=\"CodeHighlightOff(this, '%s');\""
+                        fragment fragment)
+                attributes
+                (format (org-export-get-coderef-format path desc)
+                        (org-export-resolve-coderef path info)))))
+     ;; External link with a description part.
+     ((and path desc)
+      (format "<a href=\"%s\"%s>%s</a>"
+              (org-html-encode-plain-text path)
+              attributes
+              desc))
+     ;; External link without a description part.
+     (path
+      (let ((path (org-html-encode-plain-text path)))
+        (format "<a href=\"%s\"%s>%s</a>" path attributes path)))
+     ;; No path, only description.  Try to do something useful.
+     (t
+      (format "<i>%s</i>" desc)))))
+
+;;; Schemata
+(defconst org-roam-db--table-schemata
+  '((files
+     [(file :unique :primary-key)
+      title
+      (hash :not-null)
+      (atime :not-null)
+      (mtime :not-null)])
+
+    (nodes
+     ([(id :not-null :primary-key)
+       (file :not-null)
+       (level :not-null)
+       (pos :not-null)
+       todo
+       priority
+       (scheduled text)
+       (deadline text)
+       title
+       properties
+       olp]
+      (:foreign-key [file] :references files [file] :on-delete :cascade)))
+
+    (aliases
+     ([(node-id :not-null)
+       alias]
+      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+    (citations
+     ([(node-id :not-null)
+       (cite-key :not-null)
+       (pos :not-null)
+       properties]
+      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+    (refs
+     ([(node-id :not-null)
+       (ref :not-null)
+       (type :not-null)]
+      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+    (tags
+     ([(node-id :not-null)
+       tag]
+      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+
+    (links
+     ([(pos :not-null)
+       (source :not-null)
+       (dest :not-null)
+       (relation)
+       (type :not-null)
+       (properties :not-null)]
+      (:foreign-key [source] :references nodes [id] :on-delete :cascade)))))
+
+(defun cp/org-roam-type-and-id-of-id-relationnal (path)
+  "return a list where car = the relation and cadr = new-path"
+  (split-string path "::")
+  )
+
+(defun org-roam-db-insert-link (link)
+  "Insert link data for LINK at current point into the Org-roam cache."
+
+  (save-excursion
+    (goto-char (org-element-property :begin link))
+    (let* ((type (org-element-property :type link))
+
+           ;; (destination (car parts))
+           ;; (relation (cadr parts))
+           ;; (relation)
+           (path (org-element-property :path link))
+           (parts (if (string-equal type id-relationnal)
+                      (cp/org-roam-type-and-id-of-id-relationnal path)
+                    nil
+                    ))
+           (path (if parts
+                     (cadr parts)
+                   path
+                   ))
+           (relation  (if parts
+                               (car parts)
+                             nil
+                             ))
+           (source (org-roam-id-at-point))
+           (properties (list :outline (ignore-errors
+                                        ;; This can error if link is not under any headline
+                                        (org-get-outline-path 'with-self
+                                                              'use-cache)))))
+
+      ;; For Org-ref links, we need to split the path into the cite keys
+      (when (and source path)
+        (if (and (boundp 'org-ref-cite-types)
+                 (or (assoc type org-ref-cite-types)
+                     (member type org-ref-cite-types)))
+            (org-roam-db-query
+             [:insert :into citations
+                      :values $v1]
+             (mapcar (lambda (k) (vector source k (point) properties))
+                     (org-roam-org-ref-path-to-keys path)))
+          (if relation
+              (org-roam-db-query
+               [:insert :into links
+                        :values $v1]
+               (vector (point) source path relation type properties))
+            (org-roam-db-query
+             [:insert :into links
+                      :values $v1]
+             (vector (point) source path relation type properties))))))))
+
+(defun org-roam-vulpea-bdd ()
+  (interactive)
+  "Mets à jour la bdd pour l'utilisation de velpua"
+  (vulpea-db-autosync-mode -1)
+  (org-roam-db-sync 'force)
+  (vulpea-db-autosync-mode 1)
+  )
+
+(org-roam-vulpea-bdd)
 
 (setq bibtex-dialect 'biblatex)
 

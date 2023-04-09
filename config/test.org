@@ -28,6 +28,15 @@
   (define-key xah-fly-key-map [remap switch-to-buffer] #'consult-buffer)
 #+end_src
 
+* Test "next line" en tant que avy go to char
+
+#+begin_src emacs-lisp
+  ;; (if (not termux-p)
+    ;; (define-key xah-fly-key-map [remap next-line] #'avy-goto-char-2))
+
+#+end_src
+
+
 * Fin try
 #+begin_src emacs-lisp
 (message "fin try")

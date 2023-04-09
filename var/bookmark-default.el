@@ -108,10 +108,10 @@
  (rear-context-string . " juin  12 18:01 ")
  (position . 544))
 ("org-capture-last-stored"
- (filename . "~/braindump/org/inbox-localhost.org")
- (front-context-string . "* TODO papa appl")
- (rear-context-string . "point classique\n")
- (position . 23191))
+ (filename . "~/braindump/org/journals/2023-03-26.org")
+ (front-context-string . "* 22:35 Journal ")
+ (rear-context-string . "tle: 2023-03-26\n")
+ (position . 88))
 ("config emacs"
  (filename . "~/.emacs.d/config/")
  (front-context-string . "org-mode.org\n  -")

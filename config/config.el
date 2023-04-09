@@ -5,14 +5,14 @@ In a nutshell, it's just a value of $HOME.")
 
 ;; (defvar my-laptop-p (equal (system-name) "sacha-kubuntu"))
 
-;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
+  ;; (defvar my-server-p (and (equal (system-name) "localhost") (equal user-login-name "sacha")))
 
-
-(defvar termux-p (not (null (getenv "ANDROID_ROOT")))
-  "If non-nil, GNU Emacs is running on Termux.")
-(when termux-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
-;; lancement de syncthing en arrière plan dans termux (impossible de le lancer en background normal)
-(when termux-p (shell-command "syncthing &"))
+;; TODO changer le non pour termuxp
+  (defvar termux-p (not (null (getenv "ANDROID_ROOT")))
+    "If non-nil, GNU Emacs is running on Termux.")
+  (when termux-p (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3"))
+  ;; lancement de syncthing en arrière plan dans termux (impossible de le lancer en background normal)
+  (when termux-p (shell-command "syncthing &"))
 
 (setq config-directory (expand-file-name "config/" user-emacs-directory))
 

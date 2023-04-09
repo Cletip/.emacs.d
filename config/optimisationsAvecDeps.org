@@ -69,13 +69,13 @@ Pas vraiment trier ici
 
 #+begin_src emacs-lisp
 
-    (use-package flycheck
-      :config
-      (global-flycheck-mode t)
-      )
+  (use-package flycheck
+    :config
+    (global-flycheck-mode t)
+    )
 
-    (use-package flycheck-grammalecte
-      ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
+  (use-package flycheck-grammalecte
+    ;; :hook (lsp-mode . flycheck-mode) ;; aucun sens avec le précédent
     :after flycheck
     :config
 
@@ -114,24 +114,35 @@ Pas vraiment trier ici
           ;; package. Force install it, as nothing will work without it.
           (grammalecte-download-grammalecte upstream-version))))
 
+    ;;flycheck-grammalecte--convert-elisp-rx-to-python
+
+    (setq flycheck-grammalecte-filters '(
+                                         "\""   ;; éviter les erreurs de "" guillement
+
+                                         ))
+
+
     ;;à faire pour enlever l'erreur des tirés
     ;; pour enlever l'erreur des des begin_src etc
-    (setq flycheck-grammalecte-filters
-          '("(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
-            "(?im)^[ \t]*#\\+begin[_:].+$"
-            "(?im)^[ \t]*#\\+end[_:].+$"
-            "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
-            "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
-            "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
-            "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
-            "(?ims)^\- $"
+    ;; cela doit être des regex pytohn !!
+    ;; (setq flycheck-grammalecte-filters
+    ;;       `("(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
+    ;;         "(?im)^[ \t]*#\\+begin[_:].+$"
+    ;;         "(?im)^[ \t]*#\\+end[_:].+$"
+    ;;         "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
+    ;;         "(?m)^\\*+ .*[ \t]*(:[\\w:@]+:)[ \t]*$"
+    ;;         "(?im)^[ \t]*#\\+(?:caption|description|keywords|(?:sub)?title):"
+    ;;         "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
+    ;;         "(?ims)^\- $"
 
-            "-"  ;; éviter l'erreur des tirets
-            "\"" ;; éviter les erreurs de "" guillement
-            ))
+    ;;         "-"				 ;; éviter l'erreur des tirets
+    ;;         "\""				 ;; éviter les erreurs de "" guillement
+    ;;         "\[\[([^][]+)\]\[([^][]+)\]\]" ;; éviter les erreurs avec les liens
+    ;;         ;; ,(regexp-emacs-to-python org-link-bracket-re)
+    ;;         ))
 
     (setq flycheck-grammalecte-filters-by-mode
-          '((org-mode "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
+          `((org-mode "(?ims)^[ \t]*#\\+begin_src.+#\\+end_src"
                       "(?im)^[ \t]*#\\+begin[_:].+$"
                       "(?im)^[ \t]*#\\+end[_:].+$"
                       "(?m)^[ \t]*(?:DEADLINE|SCHEDULED):.+$"
@@ -140,8 +151,19 @@ Pas vraiment trier ici
                       "(?im)^[ \t]*#\\+(?!caption|description|keywords|(?:sub)?title)\\w+:.*$"
                       "(?ims)^\- $"
 
-                      "-"	 ;; éviter l'erreur des tirets
-                      "\"" ;; éviter les erreurs de "" guillement
+                      "-"    ;; éviter l'erreur des tirets
+                      ;; "\""   ;; éviter les erreurs de "" guillement
+
+                      ;; "\[\[([^][]+)\]\[([^][]+)\]\]" ;; éviter les erreurs avec les liens
+                      ;; "\[\[([^][]+)\]\]"
+                      ;;                       "\[\[([^][]+)\]\[([^][]+)\]\]"
+                      ;; ;
+    ; ,org-link-bracket-re
+                      ;; "\[\[(.*?)\]\]|\[\[(.*?)\]\[(.*?)\]\]"
+                      ;; "\[\[[^\[\]]+:[^\[\]]+\]\](?:\[\w+\])?"
+                      ;; "\[.*\:.*\]"
+                      ;; ,(flycheck-grammalecte--convert-elisp-rx-to-python org-link-bracket-re)
+
                       )))
 
     (defun flycheck-grammalecte-correct-error-before-point ()

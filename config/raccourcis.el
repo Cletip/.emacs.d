@@ -39,6 +39,7 @@
           dired-jump
           vertico-exit
           ace-link-eww
+          debugger-quit
           ))
   (setq xah-fly-keys-layer-auto-insert-mode
         '(
@@ -57,20 +58,11 @@
         xah-fly-keys-layer-better-place-for-pinky-block t)
   (require 'xah-fly-keys-layer-better-place)
 
-  ;; try :
-
-  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "z"
-                                         'xah-forward-right-bracket)
-  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "v"
-                                         'xah-goto-matching-bracket)
-  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "b"
-                                         'xah-backward-left-bracket)
-
   ;;for all other extensions, you can change variable after require the extension
 
   (require 'xah-fly-keys-layer-better-remap)
 
-  (setq xah-fly-keys-layer-isearch-forward-variable 'consult-line
+  (setq xah-fly-keys-layer-isearch-forward-variable 'cp/consult-line-or-with-word
         xah-fly-keys-layer-ispell-word-variable 'flyspell-correct-wrapper
         xah-fly-keys-layer-xah-extend-selection-variable 'er/expand-region
         xah-fly-keys-layer-xah-open-file-at-cursor-variable 'cp/open-link
@@ -82,8 +74,9 @@
 
   (require 'xah-fly-keys-layer-major-mode)
   ;; like default place, but change here if you want
-  (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "x"))
-  ;; override a default keymap : 
+  ;; (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "x"))
+
+  ;; override a default keymap :
   (xah-fly--define-keys
    (define-prefix-command 'xah-fly-keys-layer-org-mode-keymap)
    '(("SPC" . org-mode-babel-keymap)
@@ -192,6 +185,30 @@
         embark-cycle-key (xah-fly--convert-kbd-str "i"))
   (require 'xah-fly-keys-layer-misc)
 
+  ;; try :
+
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "z"
+                                         'xah-forward-right-bracket)
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "v"
+                                         'xah-goto-matching-bracket)
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "b"
+                                         'xah-backward-left-bracket)
+
+
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "i"
+                                         'avy-goto-char-2)
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "p"
+                                         'set-mark-command)
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "x"
+                                         'embark-act)
+  (xah-fly-keys-layer-add-keys-to-keymap 'xah-fly-command-map "'"
+                                         'kill-word)
+
+  (require 'xah-fly-keys-layer-major-mode)
+  ;;try
+  (setq xah-fly-keys-layer-major-mode-key (xah-fly--convert-kbd-str "y"))
+  (require 'xah-fly-keys-layer-major-mode)
+
   ;; end of the package here
   )
 
@@ -274,15 +291,14 @@
 
 (use-package keyfreq
   :config
-  ;;   Pour exclure des commandes 
+  ;;   Pour exclure des commandes
   (setq keyfreq-excluded-commands
         '(
           mouse-drag-region
           lsp-ui-doc--handle-mouse-movement
           mouse-set-point
           mwheel-scroll
-          )
-  )
+          ))
+  (setq keyfreq-buffer "*keyfreq-buffer*")
   (keyfreq-mode 1)
-  (keyfreq-autosave-mode 1)
-  )
+  (keyfreq-autosave-mode 1))

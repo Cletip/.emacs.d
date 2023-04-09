@@ -156,6 +156,13 @@ https://dev.to/viglioni/emacs-as-sql-client-with-lsp-143l
           ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5432 user=yyoncho password=local dbname=sammy sslmode=disable"))))
 #+end_src
 
+***** TODO LSP mode dans org babel 
+:LOGBOOK:
+- State "TODO"       from              [2023-03-05 Sun 18:13]
+:END:
+
+https://emacs-lsp.github.io/lsp-mode/manual-language-docs/lsp-org/
+
 **** Completion et proposition
 ***** Voir les propositions avec company
 

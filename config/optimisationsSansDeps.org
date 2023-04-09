@@ -233,9 +233,18 @@ Cela permet de ré-avoir les commandes faites lors de la dernière session d'ema
 
 I advise you to put in "application at startup" (under linux, I don't know under windows) the command "emacs" to launch emacs at startup
 
+Emacs en mode serveur permet de gagner beaucoup de temps : lors de l'ouverture du premier Emacs, on pourra, pour les prochaines ouvertures, appeler un client qui se connecte au serveur/au premier emacs. Le serveur peut être kill comme un Emacs normal
+De plus, on peut aussi run emacs en mode daemon. La seule différence est que c'est en arrière plan.
+
+Ce qui est bien c'est qu'avec le serveur, cela marche sur toutes les platformes.
+
 #+begin_src emacs-lisp 
 
-  (server-start)  ;; starts emacs as server (if you didn't already)
+  ;; starts emacs as server (if you didn't already)
+
+  (require 'server) ;; pour se servir de (server-running-p)
+  (unless (server-running-p) (server-start))
+
 
 #+end_src
 
@@ -420,7 +429,6 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 #+begin_src emacs-lisp
   (use-package sudo-edit)
 #+end_src
-
 ** Navigation
 *** Consult
 
@@ -462,7 +470,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
         (when (< $p1 (point))
           (goto-char $p1))
         (consult-line (buffer-substring-no-properties $p1 $p2))))
-  
+
     ;; au final cela pas ouf, car je suis obligé de passer par le mini-buffer. En plus, activé grâce à universal argument + consult-ripgrep
     (defun cp/consult-ripgrep-with-directory (&optional dir)
       (interactive)
@@ -495,7 +503,8 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
     :custom
     ;;personnalition des touches, important
     ;; (avy-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ?\^M)) ;;^M=enter
-    (avy-keys '(?a ?u ?e ?i ?t ?s ?r ?n ?\ ))
+    ;; todo adapter à xah-fly-key !
+    (avy-keys '(?\ ?e ?u ?i ?a ?s ?t ?r ?. ?c))
     (avy-background t)
     ;;nouvelle touches pour escape avy go timer
     (avy-escape-chars '(?\e ?\M-g))
@@ -515,11 +524,7 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
   The window scope is determined by `avy-all-windows' (ARG negates it)."
       (interactive "P")
       (avy-goto-char-timer arg)
-      (forward-char (length avy-text)))
-
-
-
-    )
+      (forward-char (length avy-text))))
 
 
 
@@ -537,27 +542,26 @@ Doc : https://github.com/Fuco1/smartparens et [[https://smartparens.readthedocs.
 
 :scope 'page pour tous !
 
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
   (use-package holymotion
-  :straight (holymotion :type git
-                        :host github
-                        :repo "Overdr0ne/holymotion"
-                        :branch "main")
-  :config
+    :straight (holymotion :type git
+                          :host github
+                          :repo "Cletip/holymotion"
+                          :branch "main")
+    :config
+    (require 'holymotion)
+    ;; define some custom motions, I'm using smartparens here
+    (holymotion-make-motion
+     holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
+    ;; (holymotion-make-motion
+    ;;  holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
 
-  (require 'holymotion)
-  ;; define some custom motions, I'm using smartparens here
-  ;; (holymotion-make-motion
-  ;;  holymotion-xah-forward-right-bracket #'xah-forward-right-bracket)
-  ;; (holymotion-make-motion
-  ;;  holymotion-xah-backward-left-bracket #'xah-backward-left-bracket)
-
-  (defun holymotion-next-line-only-with-prefix ()
-    "DOCSTRING here"
-    (interactive)
-    (if current-prefix-arg
-        (holymotion-next-line)
-      (next-line))))
+    (defun holymotion-next-line-only-with-prefix ()
+      "DOCSTRING here"
+      (interactive)
+      (if current-prefix-arg
+          (holymotion-next-line)
+        (next-line))))
 #+end_src
 
 
@@ -1143,7 +1147,6 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
     (vertico-current ((t (:background "#3a3f5a"))))
     :config
 
-
     ;; Prefix the current candidate with “» ”. From
     ;; https://github.com/minad/vertico/wiki#prefix-current-candidate-with-arrow
     (advice-add #'vertico--format-candidate :around
@@ -1155,10 +1158,6 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
                      "  ")
                    cand)))
 
-
-
-
-
     ;;pour activer vertico directory (remonte d'un dossier à chaque fois, pratique ! )
     (require 'vertico-directory)
     ;; (define-key vertico-map [remap backward-kill-word] #'vertico-directory-up)
@@ -1169,12 +1168,45 @@ Vertico provides a minimalistic vertical completion UI, which is based on the de
     ;; pour pouvoir jump à une entrée
     ;; (define-key vertico-map [remap avy-goto-char] #'vertico-quick-jump)
 
-    (vertico-mode)
+    (with-eval-after-load 'avy
 
-    )
+      (defun divide-list-in-two-equal-part (lst)
+        (let ((len (length lst)))
+          (list (seq-subseq lst 0 (/ len 2))
+                (seq-subseq lst (/ len 2)))))
+
+      (setq avy-keys-alist-two-part (divide-list-in-two-equal-part (mapconcat 'char-to-string '(?\ ?e ?u ?i ?a ?s ?t ?r ?n) "")))
+
+      ;; lorsqu'il y a une touche
+      (setq vertico-quick1 (car avy-keys-alist-two-part))
+      ;; deux touches
+      (setq vertico-quick2 (cadr avy-keys-alist-two-part))
+
+      (require 'vertico-quick)
+      (use-package vertico-quick
+        :straight nil
+        :after vertico
+        :custom (test 2)
+        :bind (:map vertico-map
+                    ("C-<return>" . vertico-quick-exit))))
+
+    (vertico-mode))
 
 #+end_src
 
+(defun vertico-quick-jump ()
+        "Jump to candidate using quick keys."
+        (interactive)
+        (cond
+         ((= vertico--total 0) (and (minibuffer-message "No match") nil))
+         ;;opti s'il y a un candidat, on le choisit 
+         ((= vertico--total 1) (vertico-exit))
+         ;; si on est pas sur le premier candidat, en considère qu'on a bougé avec de la prévisualisation (comme consult-line), donc on exit tout de suite
+         ((not (= vertico--index 0))
+          (vertico-exit))
+         (t (let ((idx (vertico-quick--read)))
+              (when (consp idx) (setq idx (vertico-quick--read (car idx))))
+              (when idx (setq vertico--index idx))))))
 
 ***** Marginalia
 
@@ -1207,18 +1239,29 @@ OVERCHEAT et je m'en sert tout le temps
   ;; You may prefer to use `initials' instead of `partial-completion'.
   (use-package orderless
     :init
+
     (setq completion-styles '(orderless)
           completion-category-defaults nil
           completion-category-overrides '((file (styles partial-completion))))
     :config
 
+    (setq orderless-matching-styles
+          '(
+            orderless-regexp
+            ;; orderless-literal
+            orderless-initialism ;;très puissant
+            ;; orderless-prefixes ;; utile pour les commandes de temps en temps
+            ;; orderless-flex ;; sert à rien pour moi, donne même des candidats inutiles
+            ;; orderless-without-literal ;; à ne pas utiliser directement
+            ))
+
+  (setq orderless-component-separator 'orderless-escapable-split-on-space)
+
     ;;couleur avec company
     (defun just-one-face (fn &rest args)
       (let ((orderless-match-faces [completions-common-part]))
         (apply fn args)))
-    (advice-add 'company-capf--candidates :around #'just-one-face)
-
-    )
+    (advice-add 'company-capf--candidates :around #'just-one-face))
 
 #+end_src
 
@@ -2167,7 +2210,6 @@ Sert à pas grands choses pour moi, et ne marche pas avec xah
 (use-package pocket-reader)
 #+end_src
 
-
 * Hyperbole (bouton clicable)
 
 
@@ -2178,3 +2220,18 @@ Sert à pas grands choses pour moi, et ne marche pas avec xah
 #+end_src
 
 
+
+
+* Irc
+
+#+begin_src emacs-lisp
+
+  (setq erc-server "irc.libera.chat"
+        erc-nick "Cletip"    ; Change this!
+        erc-user-full-name "Cletip"  ; And this!
+        erc-track-shorten-start 8
+        ;;      erc-autojoin-channels-alist '(("irc.libera.chat" "#systemcrafters" "#emacs"))
+        erc-kill-buffer-on-part t
+        erc-auto-query 'bury)
+
+#+end_src
